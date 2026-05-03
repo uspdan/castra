@@ -1,0 +1,20 @@
+{
+  "title": "Phishing Investigation",
+  "slug": "phishing-investigation",
+  "description": "Analyze a simulated email inbox to identify the phishing email and extract the hidden flag.",
+  "category": "Incident Response",
+  "team": "blue",
+  "difficulty": 1,
+  "points": 100,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "Check the sender addresses carefully for lookalike domains",
+      "cost": 50
+    }
+  ],
+  "skills": ["Phishing Analysis", "Email Headers", "Base64"],
+  "mitre_techniques": ["T1566.001"],
+  "docker_image": "siege/phishing-investigation:latest",
+  "docker_port": 3000
+}

@@ -1,0 +1,38 @@
+# Phase 8: backend is now a packaged project so the built-in
+# validators in `app/validators/` can register under the
+# `bluerange.validators` entry-point group — the same mechanism
+# external plugin authors use. The package isn't published anywhere;
+# it's installed editable into the runtime image (Dockerfile) and the
+# host test venv (requirements-test.txt) purely so importlib.metadata
+# can enumerate the entry points.
+#
+# Runtime dependencies remain in requirements.txt — keeping them out
+# of [project.dependencies] preserves the existing pinning workflow
+# and avoids rewriting the install path for one phase's needs.
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "siege-backend"
+version = "0.0.0"
+description = "seige-range FastAPI application (internal package, not published)."
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+[project.entry-points."bluerange.validators"]
+exact = "app.validators.exact:ExactValidator"
+regex = "app.validators.regex:RegexValidator"
+multi_part = "app.validators.multi_part:MultiPartValidator"
+# Phase 10 — blue-team validators. Each maps a manifest flag.type
+# string to its implementation class.
+sigma_rule = "app.validators.sigma_rule:SigmaRuleValidator"
+yara_rule = "app.validators.yara_rule:YaraRuleValidator"
+chain_of_custody = "app.validators.chain_of_custody:ChainOfCustodyValidator"
+attack_chain = "app.validators.attack_chain:AttackChainValidator"
+cloud_misconfig = "app.validators.cloud_misconfig:CloudMisconfigValidator"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["tests*", "migrations*"]

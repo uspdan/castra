@@ -1,0 +1,102 @@
+services:
+  dashboard:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  api:
+    # Sprint 1: production containers boot through ``entrypoint.sh``
+    # (alembic upgrade head → uvicorn) instead of running uvicorn
+    # directly. The ENTRYPOINT in ``backend/Dockerfile`` is what
+    # actually invokes alembic; this ``command`` is the CMD args
+    # the entrypoint exec's into.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    environment:
+      - LOG_LEVEL=info
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  nginx:
+    # Sprint 1: TLS termination. Operators run
+    # ``scripts/generate_certs.sh`` (staging self-signed) or drop
+    # Let's Encrypt / cert-manager output into ``./nginx/certs/``,
+    # then enable the 80→443 redirect by copying
+    # ``nginx/conf.d/tls-redirect.conf.example`` to
+    # ``tls-redirect.conf`` and restarting nginx. The :443 server
+    # block is always live; it just doesn't accept connections
+    # until the cert files are present.
+    volumes:
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    ports:
+      - "443:443"
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  db:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4G
+        reservations:
+          cpus: "1.0"
+          memory: 1G
+
+  redis:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  orchestrator:
+    # Existing 4 CPU / 8 GB ceiling stays; orchestrator hosts
+    # challenge containers and needs the headroom.
+    restart: always
+
+  docker-proxy:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+
+  egress-proxy:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  vpn:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M

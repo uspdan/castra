@@ -1,0 +1,20 @@
+{
+  "title": "YARA Rule Writer",
+  "slug": "yara-rule-writer",
+  "description": "Write a YARA rule to detect malware samples without false positives.",
+  "category": "Detection Engineering",
+  "team": "blue",
+  "difficulty": 2,
+  "points": 200,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "Look for unique strings like mutex names or user-agents in the malware samples",
+      "cost": 50
+    }
+  ],
+  "skills": ["YARA", "Malware Analysis", "Detection Engineering"],
+  "mitre_techniques": ["T1588.005"],
+  "docker_image": "siege/yara-rule-writer:latest",
+  "docker_port": 5000
+}

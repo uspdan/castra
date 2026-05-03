@@ -1,0 +1,44 @@
+fastapi==0.109.2
+uvicorn[standard]==0.27.1
+sqlalchemy[asyncio]==2.0.27
+asyncpg==0.29.0
+alembic==1.13.1
+pydantic==2.6.1
+pydantic-settings==2.1.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-multipart==0.0.9
+httpx==0.27.0
+docker==7.1.0
+redis==5.0.1
+hiredis==2.3.2
+websockets==12.0
+jinja2==3.1.3
+weasyprint==61.0
+apscheduler==3.10.4
+structlog==24.1.0
+bleach==6.1.0
+python-dateutil==2.8.2
+pyyaml==6.0.1
+# Phase 8: linear-time regex matcher for the regex flag validator
+# (immune to ReDoS). Ships manylinux2014 wheels for cpython
+# 3.10–3.12 — no system libre2 required at runtime. The validator
+# falls back to stdlib `re` if import fails, but production pinning
+# expects re2 to be present.
+google-re2==1.1.20240702
+# Phase 10: blue-team validators.
+# - pysigma: parser for Sigma detection rules. Pure Python; pulls in
+#   pyparsing + diskcache (rule-cache for backends we don't use,
+#   harmless at runtime). pinned to current 1.x.
+# - yara-python: bindings for libyara. The wheel on PyPI bundles
+#   libyara, so no apt-get install libyara is required at runtime;
+#   the gcc + libffi-dev already installed in the Dockerfile cover
+#   the source-build fallback for arches without a wheel.
+pysigma==1.3.3
+yara-python==4.5.4
+# In-repo bluerange-spec path-dep is installed via a separate
+# `pip install /packages/bluerange-spec` step in the Dockerfile
+# (and via `-e ../packages/bluerange-spec` in requirements-test.txt
+# on the host). Keeping it out of this file means `pip install -r
+# requirements.txt` works equally on host and in the build context.

@@ -1,0 +1,1003 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "maxLength": 64,
+          "minLength": 64,
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "maximum": 10737418240,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Bytes"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    },
+    "AttackChainFlag": {
+      "additionalProperties": false,
+      "description": "Player must submit an ordered list of MITRE ATT&CK technique IDs\nthat satisfies ``required_chain``.",
+      "properties": {
+        "allow_distractors": {
+          "default": false,
+          "title": "Allow Distractors",
+          "type": "boolean"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]$|^[a-z0-9]$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "max_steps": {
+          "anyOf": [
+            {
+              "maximum": 32,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Steps"
+        },
+        "min_steps": {
+          "anyOf": [
+            {
+              "maximum": 32,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Steps"
+        },
+        "points": {
+          "maximum": 100000,
+          "minimum": 0,
+          "title": "Points",
+          "type": "integer"
+        },
+        "required_chain": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "title": "Required Chain",
+          "type": "array"
+        },
+        "type": {
+          "const": "attack_chain",
+          "default": "attack_chain",
+          "title": "Type"
+        }
+      },
+      "required": [
+        "id",
+        "points",
+        "required_chain"
+      ],
+      "title": "AttackChainFlag",
+      "type": "object"
+    },
+    "Author": {
+      "additionalProperties": false,
+      "description": "Identity of the human who authored a challenge.\n\nEither ``email`` or ``url`` should be provided so that a reviewer can\ncontact the author or follow up; we don't enforce one being present\nin v1, but the loader emits a warning when both are absent.",
+      "properties": {
+        "email": {
+          "anyOf": [
+            {
+              "maxLength": 320,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Email"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "Author",
+      "type": "object"
+    },
+    "ChainOfCustodyFlag": {
+      "additionalProperties": false,
+      "description": "Player must submit a JSON chain-of-custody timeline that satisfies\nthe configured step vocabulary, actor allowlist, and hash chain.",
+      "properties": {
+        "allowed_actors": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "minItems": 1,
+          "title": "Allowed Actors",
+          "type": "array"
+        },
+        "expected_final_hash": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Final Hash"
+        },
+        "expected_steps": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "minItems": 1,
+          "title": "Expected Steps",
+          "type": "array"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]$|^[a-z0-9]$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "points": {
+          "maximum": 100000,
+          "minimum": 0,
+          "title": "Points",
+          "type": "integer"
+        },
+        "type": {
+          "const": "chain_of_custody",
+          "default": "chain_of_custody",
+          "title": "Type"
+        }
+      },
+      "required": [
+        "id",
+        "points",
+        "expected_steps",
+        "allowed_actors"
+      ],
+      "title": "ChainOfCustodyFlag",
+      "type": "object"
+    },
+    "CloudMisconfigFinding": {
+      "additionalProperties": false,
+      "description": "A single (resource, finding, severity) tuple in the expected\nanswer key.",
+      "properties": {
+        "finding": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Finding",
+          "type": "string"
+        },
+        "resource": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Resource",
+          "type": "string"
+        },
+        "severity": {
+          "default": "info",
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Severity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "resource",
+        "finding"
+      ],
+      "title": "CloudMisconfigFinding",
+      "type": "object"
+    },
+    "CloudMisconfigFlag": {
+      "additionalProperties": false,
+      "description": "Player must enumerate every cloud misconfiguration in the answer\nkey (set equality, unordered) \u2014 possibly with extra distractors.",
+      "properties": {
+        "allow_extra": {
+          "default": false,
+          "title": "Allow Extra",
+          "type": "boolean"
+        },
+        "expected_findings": {
+          "items": {
+            "$ref": "#/$defs/CloudMisconfigFinding"
+          },
+          "maxItems": 256,
+          "minItems": 1,
+          "title": "Expected Findings",
+          "type": "array"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]$|^[a-z0-9]$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "min_findings": {
+          "anyOf": [
+            {
+              "maximum": 256,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Findings"
+        },
+        "must_include_severities": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Must Include Severities",
+          "type": "array"
+        },
+        "points": {
+          "maximum": 100000,
+          "minimum": 0,
+          "title": "Points",
+          "type": "integer"
+        },
+        "type": {
+          "const": "cloud_misconfig",
+          "default": "cloud_misconfig",
+          "title": "Type"
+        }
+      },
+      "required": [
+        "id",
+        "points",
+        "expected_findings"
+      ],
+      "title": "CloudMisconfigFlag",
+      "type": "object"
+    },
+    "Container": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "anyOf": [
+            {
+              "maxLength": 71,
+              "minLength": 71,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Digest"
+        },
+        "egress_allowlist": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Egress Allowlist"
+        },
+        "image": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Image",
+          "type": "string"
+        },
+        "port": {
+          "maximum": 65535,
+          "minimum": 1,
+          "title": "Port",
+          "type": "integer"
+        },
+        "profile": {
+          "default": "default-strict",
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Profile",
+          "type": "string"
+        }
+      },
+      "required": [
+        "image",
+        "port"
+      ],
+      "title": "Container",
+      "type": "object"
+    },
+    "ExactFlag": {
+      "additionalProperties": false,
+      "properties": {
+        "case_sensitive": {
+          "default": true,
+          "title": "Case Sensitive",
+          "type": "boolean"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]$|^[a-z0-9]$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "points": {
+          "maximum": 100000,
+          "minimum": 0,
+          "title": "Points",
+          "type": "integer"
+        },
+        "type": {
+          "const": "exact",
+          "default": "exact",
+          "title": "Type"
+        },
+        "value": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "points",
+        "value"
+      ],
+      "title": "ExactFlag",
+      "type": "object"
+    },
+    "Hint": {
+      "additionalProperties": false,
+      "description": "One hint, with the points cost incurred when it is unlocked.\n\nThe platform deducts ``cost`` from the awarded score when the user\nhas unlocked this hint before solving. The cost may be 0 (free\nhint).",
+      "properties": {
+        "cost": {
+          "default": 0,
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Cost",
+          "type": "integer"
+        },
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "Hint",
+      "type": "object"
+    },
+    "MultiPartFlag": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]$|^[a-z0-9]$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "ordered": {
+          "default": true,
+          "title": "Ordered",
+          "type": "boolean"
+        },
+        "parts": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 2,
+          "title": "Parts",
+          "type": "array"
+        },
+        "points": {
+          "maximum": 100000,
+          "minimum": 0,
+          "title": "Points",
+          "type": "integer"
+        },
+        "type": {
+          "const": "multi_part",
+          "default": "multi_part",
+          "title": "Type"
+        }
+      },
+      "required": [
+        "id",
+        "points",
+        "parts"
+      ],
+      "title": "MultiPartFlag",
+      "type": "object"
+    },
+    "RegexFlag": {
+      "additionalProperties": false,
+      "properties": {
+        "case_sensitive": {
+          "default": true,
+          "title": "Case Sensitive",
+          "type": "boolean"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]$|^[a-z0-9]$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "pattern": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "title": "Pattern",
+          "type": "string"
+        },
+        "points": {
+          "maximum": 100000,
+          "minimum": 0,
+          "title": "Points",
+          "type": "integer"
+        },
+        "type": {
+          "const": "regex",
+          "default": "regex",
+          "title": "Type"
+        }
+      },
+      "required": [
+        "id",
+        "points",
+        "pattern"
+      ],
+      "title": "RegexFlag",
+      "type": "object"
+    },
+    "SigmaRuleFlag": {
+      "additionalProperties": false,
+      "description": "Player must submit a Sigma rule that detects exactly the\nmanifest's expected event indices.\n\n``events_filename`` references a JSON file under the challenge's\nartefact directory containing a list of event objects. The\nplatform stages a read-only copy at submission time and exposes\nits path via :class:`ValidationContext.artifact_dir`.",
+      "properties": {
+        "events_filename": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Events Filename",
+          "type": "string"
+        },
+        "expected_match_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 4096,
+          "minItems": 1,
+          "title": "Expected Match Indices",
+          "type": "array"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]$|^[a-z0-9]$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "points": {
+          "maximum": 100000,
+          "minimum": 0,
+          "title": "Points",
+          "type": "integer"
+        },
+        "require_logsource": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Require Logsource"
+        },
+        "type": {
+          "const": "sigma_rule",
+          "default": "sigma_rule",
+          "title": "Type"
+        }
+      },
+      "required": [
+        "id",
+        "points",
+        "events_filename",
+        "expected_match_indices"
+      ],
+      "title": "SigmaRuleFlag",
+      "type": "object"
+    },
+    "TestCase": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "expected": {
+          "enum": [
+            "pass",
+            "fail"
+          ],
+          "title": "Expected",
+          "type": "string"
+        },
+        "flag_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Flag Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "submission": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "title": "Submission",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "flag_id",
+        "submission",
+        "expected"
+      ],
+      "title": "TestCase",
+      "type": "object"
+    },
+    "TestSuite": {
+      "additionalProperties": false,
+      "properties": {
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/TestCase"
+          },
+          "maxItems": 200,
+          "title": "Cases",
+          "type": "array"
+        }
+      },
+      "title": "TestSuite",
+      "type": "object"
+    },
+    "YaraRuleFlag": {
+      "additionalProperties": false,
+      "description": "Player must submit a YARA rule that matches every positive\nsample and misses every negative sample under ``samples_dir``.",
+      "properties": {
+        "expected_matches": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "minItems": 1,
+          "title": "Expected Matches",
+          "type": "array"
+        },
+        "expected_no_match": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Expected No Match",
+          "type": "array"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]$|^[a-z0-9]$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "max_sample_bytes": {
+          "anyOf": [
+            {
+              "maximum": 16777216,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Sample Bytes"
+        },
+        "points": {
+          "maximum": 100000,
+          "minimum": 0,
+          "title": "Points",
+          "type": "integer"
+        },
+        "samples_dir": {
+          "default": "samples",
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Samples Dir",
+          "type": "string"
+        },
+        "type": {
+          "const": "yara_rule",
+          "default": "yara_rule",
+          "title": "Type"
+        }
+      },
+      "required": [
+        "id",
+        "points",
+        "expected_matches"
+      ],
+      "title": "YaraRuleFlag",
+      "type": "object"
+    }
+  },
+  "$id": "https://seige-range.local/schemas/bluerange-spec/v1/manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "v1 challenge manifest for the seige-range platform.",
+  "properties": {
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/Artifact"
+      },
+      "maxItems": 200,
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "author": {
+      "$ref": "#/$defs/Author"
+    },
+    "category": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Category",
+      "type": "string"
+    },
+    "container": {
+      "$ref": "#/$defs/Container"
+    },
+    "description": {
+      "maxLength": 10000,
+      "minLength": 1,
+      "title": "Description",
+      "type": "string"
+    },
+    "difficulty": {
+      "maximum": 5,
+      "minimum": 1,
+      "title": "Difficulty",
+      "type": "integer"
+    },
+    "flags": {
+      "items": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/ExactFlag"
+          },
+          {
+            "$ref": "#/$defs/RegexFlag"
+          },
+          {
+            "$ref": "#/$defs/MultiPartFlag"
+          },
+          {
+            "$ref": "#/$defs/SigmaRuleFlag"
+          },
+          {
+            "$ref": "#/$defs/YaraRuleFlag"
+          },
+          {
+            "$ref": "#/$defs/ChainOfCustodyFlag"
+          },
+          {
+            "$ref": "#/$defs/AttackChainFlag"
+          },
+          {
+            "$ref": "#/$defs/CloudMisconfigFlag"
+          }
+        ]
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "title": "Flags",
+      "type": "array"
+    },
+    "hints": {
+      "items": {
+        "$ref": "#/$defs/Hint"
+      },
+      "maxItems": 20,
+      "title": "Hints",
+      "type": "array"
+    },
+    "license": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "License",
+      "type": "string"
+    },
+    "mitre_techniques": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Mitre Techniques",
+      "type": "array"
+    },
+    "points": {
+      "maximum": 100000,
+      "minimum": 1,
+      "title": "Points",
+      "type": "integer"
+    },
+    "prerequisites": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Prerequisites",
+      "type": "array"
+    },
+    "skills": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Skills",
+      "type": "array"
+    },
+    "slug": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Slug",
+      "type": "string"
+    },
+    "spec_version": {
+      "const": "1",
+      "title": "Spec Version"
+    },
+    "team": {
+      "enum": [
+        "red",
+        "blue",
+        "purple"
+      ],
+      "title": "Team",
+      "type": "string"
+    },
+    "tests": {
+      "$ref": "#/$defs/TestSuite"
+    },
+    "title": {
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "spec_version",
+    "slug",
+    "title",
+    "description",
+    "team",
+    "category",
+    "difficulty",
+    "points",
+    "license",
+    "author",
+    "container",
+    "flags"
+  ],
+  "title": "BluerangeChallengeManifest",
+  "type": "object"
+}

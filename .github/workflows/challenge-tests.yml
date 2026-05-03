@@ -1,0 +1,99 @@
+# Per-challenge test harness.
+#
+# Walks examples/challenges/ and exercises every TestCase declared in
+# every manifest. Fails the build when any case mis-matches its
+# expected outcome — challenge authors get a tight feedback loop on
+# whether their flag definitions still match their test cases.
+#
+# This pipeline is deliberately read-only: no postgres, no redis, no
+# docker-in-docker. It installs the backend + spec packages and runs
+# `python -m app.tools.test_harness` over the examples directory.
+
+name: challenge-tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/app/validators/**"
+      - "backend/app/services/test_harness/**"
+      - "backend/app/services/challenge_loader/flag_mapping.py"
+      - "backend/app/tools/test_harness.py"
+      - "backend/requirements.txt"
+      - "backend/pyproject.toml"
+      - "packages/bluerange-spec/**"
+      - "examples/challenges/**"
+      - ".github/workflows/challenge-tests.yml"
+  pull_request:
+    paths:
+      - "backend/app/validators/**"
+      - "backend/app/services/test_harness/**"
+      - "backend/app/services/challenge_loader/flag_mapping.py"
+      - "backend/app/tools/test_harness.py"
+      - "backend/requirements.txt"
+      - "backend/pyproject.toml"
+      - "packages/bluerange-spec/**"
+      - "examples/challenges/**"
+      - ".github/workflows/challenge-tests.yml"
+
+jobs:
+  harness:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-test.txt
+
+      - name: Install runtime + spec packages
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          # Phase 11: harness only needs runtime deps + spec + the
+          # backend's editable install for entry-point discovery.
+          # Skip requirements-test.txt to keep the pipeline lean.
+          pip install -r requirements.txt
+          pip install ../packages/bluerange-spec
+          pip install -e .
+
+      - name: Run challenge harness
+        working-directory: ${{ github.workspace }}
+        run: |
+          python -m app.tools.test_harness examples/challenges
+        # PYTHONPATH so the backend package is importable from the
+        # repo root (the harness lives under backend/app/...).
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
+
+      - name: Run challenge harness (machine-readable summary)
+        if: always()
+        working-directory: ${{ github.workspace }}
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
+        run: |
+          python -m app.tools.test_harness --json examples/challenges \
+            > harness-report.json || true
+          python -c "
+          import json, sys
+          report = json.load(open('harness-report.json'))
+          counts = report['case_counts']
+          print(f\"::notice title=Challenge harness::\"
+                f\"{counts['passed']} passed, {counts['failed']} failed, \"
+                f\"{counts['errored']} errored\")
+          "
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: challenge-harness-report
+          path: harness-report.json
+          if-no-files-found: ignore

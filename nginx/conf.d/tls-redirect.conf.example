@@ -1,0 +1,20 @@
+# When TLS is in play (operators copy this file to
+# ``tls-redirect.conf`` after running ``scripts/generate_certs.sh``
+# or installing real certs), every non-/health request on :80 gets
+# 301'd to https. Keeping this in a separate include lets dev
+# compose run the http surface directly without certs.
+#
+# To enable:
+#
+#     cp nginx/conf.d/tls-redirect.conf.example nginx/conf.d/tls-redirect.conf
+#
+# After enabling, restart nginx:
+#
+#     docker compose -f docker-compose.yml -f docker-compose.prod.yml restart nginx
+
+# Redirect everything except /health to https://. The :80 server's
+# ``location = /health`` is matched before this generic ``location /``
+# since exact matches win in nginx ordering.
+location / {
+    return 301 https://$host$request_uri;
+}

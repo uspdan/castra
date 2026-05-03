@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=../../../packages/bluerange-spec/src/bluerange_spec/schemas/manifest.schema.json
+spec_version: "1"
+slug: dfir-001-memory-string
+title: "Process Memory: Strings of Interest"
+description: |
+  A pre-acquired snippet of a suspect process's memory has surfaced
+  during incident response. Recover the value of the `FLAG` environment
+  variable that the malware briefly leaked into its own memory before
+  scrubbing it.
+
+team: blue
+category: DFIR
+difficulty: 1
+points: 150
+
+license: CC-BY-4.0
+author:
+  name: "seige-range maintainers"
+  url: "https://github.com/seige-range"
+
+container:
+  image: "siege/blue-dfir-base"
+  port: 8080
+  profile: default-strict
+
+flags:
+  - id: env_flag
+    type: regex
+    points: 150
+    label: "FLAG environment variable"
+    pattern: "^CTF\\{m3m_str1ngs_dont_l13\\}$"
+
+hints:
+  - text: "`strings -a process.dmp | grep FLAG=` is enough."
+    cost: 30
+
+skills:
+  - "Memory triage"
+  - "strings(1)"
+
+mitre_techniques:
+  - "T1003"
+
+prerequisites: []
+
+artifacts:
+  - path: "artifacts/process.dmp"
+    sha256: "bfcc5345481d038294df562b57069e10b976d1f06b54329f8a19d9b406d290d7"
+    size_bytes: 2135
+    description: "Deterministic 2 KiB memory snippet with an embedded FLAG=... env var."
+
+tests:
+  cases:
+    - name: "exact flag passes"
+      flag_id: env_flag
+      submission: "CTF{REDACTED}"
+      expected: pass
+    - name: "prefix-only fails"
+      flag_id: env_flag
+      submission: "CTF{REDACTED}"
+      expected: fail

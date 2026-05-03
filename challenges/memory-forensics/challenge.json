@@ -1,0 +1,20 @@
+{
+  "title": "Memory Forensics",
+  "slug": "memory-forensics",
+  "description": "Analyze a simulated memory dump using Volatility-like commands to find a suspicious process.",
+  "category": "Digital Forensics",
+  "team": "blue",
+  "difficulty": 2,
+  "points": 200,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "Run pslist to look for suspicious process names",
+      "cost": 50
+    }
+  ],
+  "skills": ["Memory Forensics", "Process Analysis", "Volatility"],
+  "mitre_techniques": ["T1003"],
+  "docker_image": "siege/memory-forensics:latest",
+  "docker_port": 5000
+}

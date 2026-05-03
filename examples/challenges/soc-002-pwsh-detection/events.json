@@ -1,0 +1,8 @@
+[
+  {"EventID": 4688, "Image": "C:\\Windows\\System32\\svchost.exe", "User": "SYSTEM", "CommandLine": "svchost.exe -k LocalService"},
+  {"EventID": 4688, "Image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "User": "alice", "CommandLine": "powershell.exe -nop -w hidden"},
+  {"EventID": 4624, "Image": null, "User": "alice", "LogonType": 3},
+  {"EventID": 4688, "Image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "User": "bob", "CommandLine": "powershell.exe -EncodedCommand JABz..."},
+  {"EventID": 4688, "Image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "User": "SYSTEM", "CommandLine": "powershell.exe -ExecutionPolicy Restricted"},
+  {"EventID": 4688, "Image": "C:\\Windows\\System32\\REDACTED", "User": "alice", "CommandLine": "REDACTED /c whoami"}
+]

@@ -1,0 +1,68 @@
+# yaml-language-server: $schema=../../../packages/bluerange-spec/src/bluerange_spec/schemas/manifest.schema.json
+spec_version: "1"
+slug: soc-001-off-hours-admin
+title: "Off-Hours Admin Activity"
+description: |
+  An on-call SOC analyst spotted an alert overnight: the `svc_backup`
+  service account elevated to `domain_admin` from an external IP and
+  read sensitive shares minutes later. Trace the attacker's path
+  through `auth.log` and recover the elevation timestamp encoded as
+  the flag.
+
+team: blue
+category: SOC
+difficulty: 1
+points: 100
+
+license: CC-BY-4.0
+author:
+  name: "seige-range maintainers"
+  url: "https://github.com/seige-range"
+
+container:
+  image: "siege/blue-soc-base"
+  port: 8080
+  profile: default-strict
+
+flags:
+  - id: elevation_ts
+    type: exact
+    points: 100
+    label: "Elevation timestamp"
+    value: "CTF{REDACTED}"
+
+hints:
+  - text: "Filter for `action=elevate` events — there is exactly one in the log."
+    cost: 10
+  - text: "The flag is wrapped as `CTF{REDACTED}`."
+    cost: 25
+
+skills:
+  - "Log triage"
+  - "Privilege-escalation detection"
+
+mitre_techniques:
+  - "T1078"
+  - "T1098"
+
+prerequisites: []
+
+artifacts:
+  - path: "artifacts/auth.log"
+    sha256: "cf4fc122f6212241c7f009ecd0356c75285f3bda53f229366550c58c63e9868e"
+    description: "14-line excerpt of the authentication log spanning 2026-04-20 / 21."
+
+tests:
+  cases:
+    - name: "correct timestamp passes"
+      flag_id: elevation_ts
+      submission: "CTF{REDACTED}"
+      expected: pass
+    - name: "different timestamp fails"
+      flag_id: elevation_ts
+      submission: "CTF{REDACTED}"
+      expected: fail
+    - name: "missing wrapper fails"
+      flag_id: elevation_ts
+      submission: "2026-04-20T23:43:14Z"
+      expected: fail

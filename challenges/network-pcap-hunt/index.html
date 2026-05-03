@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Network PCAP Hunt</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0a0a; color: #e0e0e0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
+    h1 { color: #00ff88; margin-bottom: 10px; font-size: 2em; }
+    .subtitle { color: #888; margin-bottom: 30px; }
+    .card { background: #1a1a2e; padding: 30px; border-radius: 10px; border: 1px solid #333; width: 100%; max-width: 700px; margin-bottom: 20px; }
+    .card h2 { color: #00ff88; margin-bottom: 15px; }
+    .card p { line-height: 1.6; margin-bottom: 10px; color: #ccc; }
+    .download-btn { display: inline-block; padding: 15px 30px; background: #00ff88; color: #000; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 18px; margin: 20px 0; transition: background 0.2s; }
+    .download-btn:hover { background: #00cc6a; }
+    .steps { list-style: none; counter-reset: steps; }
+    .steps li { counter-increment: steps; padding: 10px 0; padding-left: 40px; position: relative; border-bottom: 1px solid #222; }
+    .steps li:last-child { border-bottom: none; }
+    .steps li::before { content: counter(steps); position: absolute; left: 0; width: 28px; height: 28px; background: #00ff88; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; }
+    .tools { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    .tool-tag { background: #0f0f1a; padding: 5px 12px; border-radius: 15px; border: 1px solid #444; font-size: 14px; color: #aaa; }
+    .hint { background: #2a1a00; border: 1px solid #ff6600; padding: 15px; border-radius: 5px; margin-top: 10px; }
+    .hint p { color: #ffaa44; }
+  </style>
+</head>
+<body>
+  <h1>Network PCAP Hunt</h1>
+  <p class="subtitle">Analyze network traffic to uncover hidden credentials</p>
+
+  <div class="card">
+    <h2>Mission Briefing</h2>
+    <p>Our security monitoring system captured suspicious network traffic from a compromised workstation. The attacker accessed several internal services and may have transmitted credentials in cleartext.</p>
+    <p>Download the capture file and analyze the traffic to find the hidden credentials.</p>
+    <a href="/capture.pcap" class="download-btn">Download capture.pcap</a>
+  </div>
+
+  <div class="card">
+    <h2>Instructions</h2>
+    <ol class="steps">
+      <li>Download the PCAP file using the button above</li>
+      <li>Open it in Wireshark or use tshark/tcpdump for command-line analysis</li>
+      <li>Analyze the network traffic for any sensitive data transmitted in cleartext</li>
+      <li>Find the flag hidden within the captured traffic</li>
+      <li>Submit the flag in the format: CTF{REDACTED}</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>Suggested Tools</h2>
+    <div class="tools">
+      <span class="tool-tag">Wireshark</span>
+      <span class="tool-tag">tshark</span>
+      <span class="tool-tag">tcpdump</span>
+      <span class="tool-tag">NetworkMiner</span>
+      <span class="tool-tag">strings</span>
+    </div>
+    <div class="hint">
+      <p><strong>Tip:</strong> Not all traffic is interesting. Focus on protocols that commonly transmit data in cleartext.</p>
+    </div>
+  </div>
+</body>
+</html>

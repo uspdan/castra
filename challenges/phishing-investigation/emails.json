@@ -1,0 +1,153 @@
+[
+  {
+    "id": 1,
+    "from": "John Smith <john.smith@company.com>",
+    "to": "you@company.com",
+    "subject": "Q3 Budget Report",
+    "date": "2024-03-14T09:15:00Z",
+    "body": "Hi,\n\nPlease find the Q3 budget report attached. We came in 3% under budget this quarter which is great news.\n\nLet me know if you have any questions.\n\nBest,\nJohn",
+    "headers": {
+      "Received": "from mail.company.com (10.0.0.5) by mx.company.com",
+      "X-Originating-IP": "10.0.0.5",
+      "Message-ID": "<abc123@company.com>",
+      "DKIM-Signature": "v=1; a=rsa-sha256; d=company.com; s=selector1;",
+      "SPF": "Pass (sender IP is 10.0.0.5)"
+    }
+  },
+  {
+    "id": 2,
+    "from": "HR Department <hr@company.com>",
+    "to": "all-staff@company.com",
+    "subject": "Updated PTO Policy",
+    "date": "2024-03-14T10:30:00Z",
+    "body": "Dear Team,\n\nWe have updated our PTO policy for 2024. Key changes include:\n\n- Increased annual PTO from 20 to 25 days\n- Rollover limit increased to 10 days\n- New mental health days (3 per year)\n\nPlease review the full policy on the intranet.\n\nRegards,\nHR Department",
+    "headers": {
+      "Received": "from mail.company.com (10.0.0.3) by mx.company.com",
+      "X-Originating-IP": "10.0.0.3",
+      "Message-ID": "<def456@company.com>",
+      "DKIM-Signature": "v=1; a=rsa-sha256; d=company.com; s=selector1;",
+      "SPF": "Pass (sender IP is 10.0.0.3)"
+    }
+  },
+  {
+    "id": 3,
+    "from": "IT Support <support@c0mpany-secure.com>",
+    "to": "you@company.com",
+    "subject": "Urgent: Password Reset Required",
+    "date": "2024-03-14T11:02:00Z",
+    "body": "URGENT SECURITY NOTICE\n\nYour account has been flagged for suspicious activity. You must reset your password immediately to avoid account lockout.\n\nClick the link below to verify your identity and reset your password:\n\naHR0cDovL2V2aWwuZXhhbXBsZS5jb20vc3RlYWw/ZmxhZz1DVEZ7cGgxc2hfMW52M3N0MWc0dDN9\n\nThis link will expire in 24 hours. Failure to act may result in permanent account suspension.\n\nIT Support Team\nCompany REDACTED Division",
+    "headers": {
+      "Received": "from smtp-relay.c0mpany-secure.com (185.100.87.42) by mx.company.com",
+      "X-Originating-IP": "185.100.87.42",
+      "Message-ID": "<xyz789@c0mpany-secure.com>",
+      "DKIM-Signature": "v=1; a=rsa-sha256; d=c0mpany-secure.com; s=default;",
+      "SPF": "Fail (sender IP 185.100.87.42 not authorized for company.com)",
+      "Return-Path": "bounce@c0mpany-secure.com"
+    }
+  },
+  {
+    "id": 4,
+    "from": "Sarah Chen <sarah.chen@company.com>",
+    "to": "you@company.com",
+    "subject": "Lunch tomorrow?",
+    "date": "2024-03-14T11:45:00Z",
+    "body": "Hey!\n\nWant to grab lunch tomorrow? That new Thai place on 5th Ave looks amazing.\n\nLet me know!\nSarah",
+    "headers": {
+      "Received": "from mail.company.com (10.0.0.5) by mx.company.com",
+      "X-Originating-IP": "10.0.0.5",
+      "Message-ID": "<ghi012@company.com>",
+      "DKIM-Signature": "v=1; a=rsa-sha256; d=company.com; s=selector1;",
+      "SPF": "Pass (sender IP is 10.0.0.5)"
+    }
+  },
+  {
+    "id": 5,
+    "from": "DevOps Team <devops@company.com>",
+    "to": "engineering@company.com",
+    "subject": "Scheduled Maintenance - March 16",
+    "date": "2024-03-14T13:00:00Z",
+    "body": "Hi Engineering,\n\nWe'll be performing scheduled maintenance on the CI/CD pipeline this Saturday (March 16) from 2:00 AM to 6:00 AM EST.\n\nDuring this window:\n- Jenkins will be offline\n- Docker registry will be read-only\n- Deployments should be frozen\n\nPlease plan accordingly.\n\nThanks,\nDevOps Team",
+    "headers": {
+      "Received": "from mail.company.com (10.0.0.8) by mx.company.com",
+      "X-Originating-IP": "10.0.0.8",
+      "Message-ID": "<jkl345@company.com>",
+      "DKIM-Signature": "v=1; a=rsa-sha256; d=company.com; s=selector1;",
+      "SPF": "Pass (sender IP is 10.0.0.8)"
+    }
+  },
+  {
+    "id": 6,
+    "from": "Mike Johnson <mike.johnson@company.com>",
+    "to": "you@company.com",
+    "subject": "Code Review Request - PR #427",
+    "date": "2024-03-14T14:20:00Z",
+    "body": "Hi,\n\nCould you review PR #427 when you get a chance? It's the auth middleware refactor we discussed last sprint.\n\nNo rush - just before end of week would be great.\n\nThanks,\nMike",
+    "headers": {
+      "Received": "from mail.company.com (10.0.0.5) by mx.company.com",
+      "X-Originating-IP": "10.0.0.5",
+      "Message-ID": "<mno678@company.com>",
+      "DKIM-Signature": "v=1; a=rsa-sha256; d=company.com; s=selector1;",
+      "SPF": "Pass (sender IP is 10.0.0.5)"
+    }
+  },
+  {
+    "id": 7,
+    "from": "Finance Team <finance@company.com>",
+    "to": "all-staff@company.com",
+    "subject": "Expense Report Deadline",
+    "date": "2024-03-14T15:00:00Z",
+    "body": "Reminder: All March expense reports must be submitted by March 31st.\n\nPlease use the standard expense form on the intranet portal. Receipts over $25 must be attached.\n\nQuestions? Contact finance@company.com\n\nThanks,\nFinance Team",
+    "headers": {
+      "Received": "from mail.company.com (10.0.0.3) by mx.company.com",
+      "X-Originating-IP": "10.0.0.3",
+      "Message-ID": "<pqr901@company.com>",
+      "DKIM-Signature": "v=1; a=rsa-sha256; d=company.com; s=selector1;",
+      "SPF": "Pass (sender IP is 10.0.0.3)"
+    }
+  },
+  {
+    "id": 8,
+    "from": "Lisa Park <lisa.park@company.com>",
+    "to": "you@company.com",
+    "subject": "Meeting Notes - REDACTED Standup",
+    "date": "2024-03-14T16:10:00Z",
+    "body": "Hi,\n\nHere are the notes from today's security standup:\n\n1. Vulnerability scan completed - 3 medium findings in staging\n2. SOC reported increase in phishing attempts targeting our domain\n3. MFA rollout for contractors starts next Monday\n4. Penetration test scheduled for April\n\nAction items tracked in Jira.\n\nBest,\nLisa",
+    "headers": {
+      "Received": "from mail.company.com (10.0.0.5) by mx.company.com",
+      "X-Originating-IP": "10.0.0.5",
+      "Message-ID": "<stu234@company.com>",
+      "DKIM-Signature": "v=1; a=rsa-sha256; d=company.com; s=selector1;",
+      "SPF": "Pass (sender IP is 10.0.0.5)"
+    }
+  },
+  {
+    "id": 9,
+    "from": "CEO Office <ceo@company.com>",
+    "to": "all-staff@company.com",
+    "subject": "Company All-Hands - March 20",
+    "date": "2024-03-14T17:00:00Z",
+    "body": "Dear Team,\n\nPlease join us for our quarterly all-hands meeting on March 20 at 2:00 PM EST.\n\nAgenda:\n- Q1 results and outlook\n- New product announcements\n- Team recognition awards\n- Open Q&A\n\nCalendar invite to follow.\n\nBest regards,\nOffice of the CEO",
+    "headers": {
+      "Received": "from mail.company.com (10.0.0.2) by mx.company.com",
+      "X-Originating-IP": "10.0.0.2",
+      "Message-ID": "<vwx567@company.com>",
+      "DKIM-Signature": "v=1; a=rsa-sha256; d=company.com; s=selector1;",
+      "SPF": "Pass (sender IP is 10.0.0.2)"
+    }
+  },
+  {
+    "id": 10,
+    "from": "Tom Wilson <tom.wilson@company.com>",
+    "to": "you@company.com",
+    "subject": "Re: Project Timeline",
+    "date": "2024-03-14T17:30:00Z",
+    "body": "Sounds good! Let's plan for a soft launch on April 1st and GA on April 15th.\n\nI'll update the roadmap and share it with stakeholders tomorrow.\n\nCheers,\nTom",
+    "headers": {
+      "Received": "from mail.company.com (10.0.0.5) by mx.company.com",
+      "X-Originating-IP": "10.0.0.5",
+      "Message-ID": "<yza890@company.com>",
+      "DKIM-Signature": "v=1; a=rsa-sha256; d=company.com; s=selector1;",
+      "SPF": "Pass (sender IP is 10.0.0.5)"
+    }
+  }
+]

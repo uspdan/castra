@@ -1,0 +1,25 @@
+[run]
+# SQLAlchemy 2.0's async path runs through greenlet; without listing it
+# here, coverage misses every line inside an `async def` route handler
+# that awaits the DB. See https://github.com/nedbat/coveragepy/issues/1082.
+#
+# Phase 12 (slice 13): we initially tried adding ``multiprocessing`` +
+# ``parallel = True`` so ``app.services.validator_subprocess_runner``
+# (run in the validator sandbox child) would contribute its lines to
+# the parent's data file. The combination silently broke
+# thread+greenlet propagation in unrelated modules — total project
+# coverage dropped from 86% to 77% because the child-side gain
+# couldn't compensate for the parent-side loss. Reverted; the
+# runner's reported ~35% is a known measurement artefact, not a
+# real gap. End-to-end behaviour is exercised by the v1 submit +
+# sigma/yara integration tests.
+concurrency = thread,greenlet
+source =
+    app
+
+[report]
+exclude_also =
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    raise NotImplementedError
+    pragma: no cover

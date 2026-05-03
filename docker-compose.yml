@@ -1,0 +1,254 @@
+services:
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - "${SIEGE_PORT:-3000}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      dashboard:
+        condition: service_started
+      api:
+        condition: service_healthy
+    networks:
+      - siege-frontend
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  dashboard:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    networks:
+      - siege-frontend
+
+  api:
+    # Build context is the repo root so the Dockerfile can pull in the
+    # path-dependent `packages/bluerange-spec/` package alongside the
+    # backend source tree.
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      # Required: SECRET_KEY, ADMIN_PASSWORD, ALLOWED_ORIGINS — must come
+      # from a real .env file. No placeholder defaults here per CLAUDE.md
+      # §3.2 / §8.2; the api boots will fail fast otherwise.
+      - APP_ENV=${APP_ENV:-development}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-siege}:${POSTGRES_PASSWORD:-siege_secret}@db:5432/${POSTGRES_DB:-siege_range}
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@siege.local}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set in .env}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
+      - DOCKER_HOST=tcp://docker-proxy:2375
+      - REDIS_URL=redis://redis:6379/0
+      - CONTAINER_TIMEOUT=${CONTAINER_TIMEOUT:-7200}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - TEAMS_WEBHOOK_URL=${TEAMS_WEBHOOK_URL:-}
+      # Phase 12 follow-up: shared filter path. The api process writes
+      # the rendered tinyproxy allowlist to this path; the egress-proxy
+      # container mounts the same path read-only and re-reads on SIGHUP.
+      - EGRESS_FILTER_PATH=/srv/egress/egress-allowlist.conf
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      docker-proxy:
+        condition: service_started
+      egress-proxy:
+        condition: service_started
+    networks:
+      - siege-frontend
+      - siege-backend
+    volumes:
+      # Shared rw mount with egress-proxy so render_to_file lands on the
+      # same inode tinyproxy reads. The egress-proxy mounts this volume
+      # read-only at /etc/tinyproxy/egress-allowlist.conf.d/.
+      - egress_filter:/srv/egress
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-siege}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-siege_secret}
+      - POSTGRES_DB=${POSTGRES_DB:-siege_range}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - siege-backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-siege} -d ${POSTGRES_DB:-siege_range}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - siege-backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  orchestrator:
+    # Phase 9: DinD remains the sandbox boundary (privileged: true is the
+    # cost of nesting; rootless-Podman is documented future direction).
+    # The api never talks to this service directly any more — it goes
+    # through `docker-proxy`, which mounts the shared docker_socket
+    # volume below. DOCKER_TLS_CERTDIR is set so DinD's internal TCP
+    # listener is TLS-only as defense-in-depth even though no TCP port
+    # is published to the network.
+    image: docker:24-dind
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+    volumes:
+      - dind_data:/var/lib/docker
+      - dind_certs:/certs
+      - docker_socket:/var/run
+      - ./challenges:/challenges:ro
+    networks:
+      - siege-challenges
+    deploy:
+      resources:
+        limits:
+          cpus: "${ORCHESTRATOR_CPUS:-4.0}"
+          memory: "${ORCHESTRATOR_MEMORY:-8g}"
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  docker-proxy:
+    # tecnativa/docker-socket-proxy fronts the DinD daemon for the api.
+    # ACL: CONTAINERS, NETWORKS, IMAGES on; everything else default-deny.
+    # Exposes plaintext 2375 on the internal siege-backend network only
+    # (no port mapping to the host).
+    image: tecnativa/docker-socket-proxy:0.1.2
+    environment:
+      - CONTAINERS=1
+      - NETWORKS=1
+      - IMAGES=1
+      - INFO=1
+      - PING=1
+      - VERSION=1
+      - POST=1
+      - LOG_LEVEL=info
+    volumes:
+      - docker_socket:/var/run
+    networks:
+      - siege-backend
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:2375/_ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # Per-instance sidecar image. Built but not run as a service — the
+  # launcher spawns instances of this image on demand (via docker-py)
+  # for the `egress-proxied-sidecar` profile, one per challenge
+  # instance. Building it here keeps the image registered with the
+  # local daemon so launches don't depend on a remote pull.
+  egress-sidecar:
+    build:
+      context: ./docker/egress-sidecar
+      dockerfile: Dockerfile
+    image: siege-egress-sidecar:latest
+    profiles: ["build-only"]
+    command: ["true"]
+
+  egress-proxy:
+    # Phase 9: HTTP/CONNECT proxy with FQDN allowlist. The launcher
+    # attaches this container to per-instance internal bridges for the
+    # `egress-proxied` profile so a challenge has only one route to the
+    # outside world: through here, subject to the allowlist.
+    build:
+      context: ./docker/egress-proxy
+      dockerfile: Dockerfile
+    container_name: siege-egress-proxy
+    networks:
+      - siege-egress
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "8888"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    # Phase 12 follow-up: hot-reload pipeline. The api writes the
+    # rendered allowlist to ``/srv/egress/egress-allowlist.conf`` and
+    # SIGHUPs this container so tinyproxy re-reads the file.
+    # tinyproxy.conf points at /srv/egress/egress-allowlist.conf; the
+    # entrypoint touches the file on first boot if it is missing so a
+    # cold start without any rendered allowlists does not crash
+    # tinyproxy. Mounted rw because the entrypoint needs to seed the
+    # file; the api is the only writer in steady state.
+    volumes:
+      - egress_filter:/srv/egress
+
+  vpn:
+    image: lscr.io/linuxserver/wireguard:latest
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ:-UTC}
+      - SERVERURL=${VPN_SERVER_URL:-auto}
+      - SERVERPORT=${VPN_PORT:-51820}
+      - PEERS=${VPN_PEERS:-10}
+      - INTERNAL_SUBNET=10.13.13.0
+    ports:
+      - "${VPN_PORT:-51820}:51820/udp"
+    volumes:
+      - vpn_config:/config
+    networks:
+      - siege-challenges
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+
+networks:
+  siege-frontend:
+    driver: bridge
+  siege-backend:
+    driver: bridge
+    internal: true
+  siege-challenges:
+    driver: bridge
+    internal: true
+  # External-facing bridge for the egress-proxy. Not internal: we *want*
+  # tinyproxy to be able to reach the upstream allowlist. Per-instance
+  # bridges are still internal=true; the egress-proxy container itself
+  # gets attached to both for transit.
+  siege-egress:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  dind_data:
+  dind_certs:
+  docker_socket:
+  challenge_data:
+  vpn_config:
+  # Shared between api (rw) and egress-proxy (ro) so the rendered
+  # tinyproxy allowlist hot-reloads without rebuilding the proxy
+  # image. See ``app.services.orchestration.egress.refresh_proxy_allowlist``.
+  egress_filter:

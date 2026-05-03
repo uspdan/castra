@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-primary: #07080C;
+  --color-bg-surface: #0A0E14;
+  --color-bg-elevated: #0D1117;
+  --color-border: #141C28;
+  --color-border-hover: #1E2D3D;
+  --color-text-primary: #E2E8F0;
+  --color-text-secondary: #8899AA;
+  --color-text-muted: #4A5568;
+  --color-accent-cyan: #00C8FF;
+  --color-accent-red: #FF3E6C;
+  --color-accent-green: #00E5A0;
+  --color-accent-yellow: #F0B429;
+}
+
+:root {
+  --bg-primary: #07080C;
+  --bg-surface: #0A0E14;
+  --bg-elevated: #0D1117;
+  --border: #141C28;
+  --border-hover: #1E2D3D;
+  --text-primary: #E2E8F0;
+  --text-secondary: #8899AA;
+  --text-muted: #4A5568;
+  --accent-cyan: #00C8FF;
+  --accent-red: #FF3E6C;
+  --accent-green: #00E5A0;
+  --accent-yellow: #F0B429;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Outfit', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+code, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+@keyframes grid-flow {
+  0% { background-position: 0 0; }
+  100% { background-position: 50px 50px; }
+}
+@keyframes float-up {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(0, 200, 255, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(0, 200, 255, 0.6); }
+}
+
+.animate-float-up {
+  animation: float-up 0.3s ease-out;
+}
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(20, 28, 40, 0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 28, 40, 0.3) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: grid-flow 20s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid-bg { animation: none; }
+  .animate-float-up { animation: none; }
+  .animate-pulse-glow { animation: none; }
+}

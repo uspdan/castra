@@ -1,0 +1,20 @@
+{
+  "title": "Splunk Threat Hunt",
+  "slug": "splunk-threat-hunt",
+  "description": "Search through security logs to identify a brute force attack and validate your findings.",
+  "category": "Log Analysis",
+  "team": "blue",
+  "difficulty": 2,
+  "points": 200,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "Look for repeated failed login attempts from a single IP",
+      "cost": 50
+    }
+  ],
+  "skills": ["Log Analysis", "Threat Hunting", "Brute Force Detection"],
+  "mitre_techniques": ["T1110.001"],
+  "docker_image": "siege/splunk-threat-hunt:latest",
+  "docker_port": 5000
+}

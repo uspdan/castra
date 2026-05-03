@@ -1,0 +1,20 @@
+{
+  "title": "Network PCAP Hunt",
+  "slug": "network-pcap-hunt",
+  "description": "Download and analyze a network capture file to find credentials hidden in the traffic.",
+  "category": "Digital Forensics",
+  "team": "blue",
+  "difficulty": 1,
+  "points": 100,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "Look for HTTP POST requests containing form data",
+      "cost": 50
+    }
+  ],
+  "skills": ["Packet Analysis", "Wireshark", "Network Forensics"],
+  "mitre_techniques": ["T1040"],
+  "docker_image": "siege/network-pcap-hunt:latest",
+  "docker_port": 80
+}

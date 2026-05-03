@@ -1,0 +1,132 @@
+# Backend pytest suite — Sprint 1 (Phase 12 follow-on).
+#
+# Runs on every push to main + every PR touching backend code or the
+# in-repo bluerange-spec package. Uses the same `make test` entrypoint
+# operators run locally (testcontainers spins up ephemeral
+# Postgres + Redis via the host docker socket).
+#
+# This workflow exists alongside ``challenge-tests.yml`` (manifest
+# harness) and ``browser-tests.yml`` (Playwright E2E). Together they
+# gate every behaviour-changing PR.
+
+name: backend-tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "packages/bluerange-spec/**"
+      - ".github/workflows/backend-tests.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "packages/bluerange-spec/**"
+      - ".github/workflows/backend-tests.yml"
+
+jobs:
+  pytest:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+
+    env:
+      APP_ENV: test
+      SECRET_KEY: ci-secret-not-for-production-0123456789abcdef0123456789abcdef
+      ADMIN_PASSWORD: TestAdminPasswordA1!
+      ALLOWED_ORIGINS: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-test.txt
+
+      - name: Install backend deps
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          # Inlined ``make test-install`` so we don't depend on
+          # python-venv tooling on the runner. The runner's system
+          # python *is* the test venv.
+          rm -rf siege_backend.egg-info
+          pip install -r requirements.txt -r requirements-test.txt
+
+      - name: Run pytest
+        working-directory: backend
+        run: |
+          # Mirrors ``make test`` but uses the runner's pip-installed
+          # python instead of .venv-test/bin/python.
+          python -m pytest tests/ -v
+
+      - name: Upload coverage report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-pytest-output
+          path: |
+            backend/.coverage
+            backend/htmlcov/
+          if-no-files-found: ignore
+
+  spec-tests:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: |
+            packages/bluerange-spec/pyproject.toml
+
+      - name: Install spec package
+        working-directory: packages/bluerange-spec
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[test] || pip install -e . pytest pydantic pyyaml
+
+      - name: Run spec pytest
+        working-directory: packages/bluerange-spec
+        run: python -m pytest tests/ -v
+
+  challenge-harness:
+    # The challenge-tests workflow runs this independently on its own
+    # path filter; including a smoke run here means a backend change
+    # that breaks the harness fails the right CI job (this one) rather
+    # than only the harness one. Cheap (≈10s).
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend (runtime only)
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e ../packages/bluerange-spec
+          pip install -e .
+
+      - name: Walk examples/challenges
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
+        run: |
+          python -m app.tools.test_harness examples/challenges

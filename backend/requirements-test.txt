@@ -1,0 +1,34 @@
+# Test-only dependencies. Not installed in the production runtime image.
+# Phase 5 introduction — flagged in the corresponding commit.
+#
+# - pytest / pytest-asyncio: test runner + async support
+# - pytest-cov: coverage gate (Phase 5 floor: --cov-fail-under=60 on touched modules)
+# - testcontainers[postgres,redis]: ephemeral Postgres + Redis per test session.
+#   Chosen over pytest-postgresql because the latter is Postgres-only; we also
+#   need real Redis for rate-limit + lockout semantics.
+# - asgi-lifespan: drive FastAPI lifespan from inside httpx.AsyncClient when needed
+pytest==8.0.2
+pytest-asyncio==0.23.5
+pytest-cov==4.1.0
+testcontainers[postgres,redis]==4.0.1
+asgi-lifespan==2.1.0
+# Phase 7: pull in the bluerange-spec path-dep so loader / spec tests
+# can import from it. Path is relative to the backend/ directory (which
+# is where `make test-install` runs `pip install -r ...`).
+-e ../packages/bluerange-spec
+# Phase 8: install the backend editable so the bluerange.validators
+# entry-point group declared in backend/pyproject.toml is registered
+# in the test venv's metadata. Without this, importlib.metadata
+# returns an empty entry-point list and the registry can't discover
+# the built-ins.
+-e .
+# Phase 8: regex flag validator prefers re2; production deps already
+# pin it via requirements.txt, but the host venv used for tests
+# doesn't ingest requirements.txt directly — pull it in here too so
+# `RegexValidator` exercises the re2 path, not the `re` fallback.
+google-re2==1.1.20240702
+# Phase 10: pysigma + yara-python. Same pin as requirements.txt so
+# the host venv exercises the real parser/compiler — these are
+# expensive validator paths and the test venv must catch regressions.
+pysigma==1.3.3
+yara-python==4.5.4

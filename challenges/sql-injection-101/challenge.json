@@ -1,0 +1,15 @@
+{
+  "title": "SQL Injection 101",
+  "slug": "sql-injection-101",
+  "description": "A classic login form with a SQL injection vulnerability. Bypass authentication to access the admin panel and find the flag.",
+  "category": "Web Exploitation",
+  "team": "red",
+  "difficulty": 1,
+  "points": 100,
+  "flag": "CTF{REDACTED}",
+  "hints": [{"text": "Try entering special characters in the username field", "cost": 50}],
+  "skills": ["SQL Injection", "Web REDACTED", "Authentication Bypass"],
+  "mitre_techniques": ["T1190"],
+  "docker_image": "siege/sql-injection-101:latest",
+  "docker_port": 80
+}

@@ -1,0 +1,20 @@
+{
+  "title": "XSS Playground",
+  "slug": "xss-playground",
+  "description": "A search page reflects user input without sanitization. Steal the admin bot's cookie containing the flag.",
+  "category": "Web Exploitation",
+  "team": "red",
+  "difficulty": 2,
+  "points": 200,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "The search parameter q is reflected directly into HTML",
+      "cost": 50
+    }
+  ],
+  "skills": ["XSS", "Cookie Theft", "JavaScript"],
+  "mitre_techniques": ["T1059.007"],
+  "docker_image": "siege/xss-playground:latest",
+  "docker_port": 3000
+}

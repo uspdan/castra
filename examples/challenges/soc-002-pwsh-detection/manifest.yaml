@@ -1,0 +1,108 @@
+# yaml-language-server: $schema=../../../packages/bluerange-spec/src/bluerange_spec/schemas/manifest.schema.json
+spec_version: "1"
+slug: soc-002-pwsh-detection
+title: "Detect Off-Hours PowerShell Execution"
+description: |
+  An EDR exported a small batch of `process_creation` events overnight.
+  Two of them are interactive PowerShell launches; the rest are
+  benign service activity. Write a Sigma rule that flags exactly the
+  two malicious launches without firing on the noise.
+
+  Submit your rule as the flag. The platform compiles it with pysigma
+  and replays it against the embedded event log; you win when your
+  detection set equals the expected match set.
+
+team: blue
+category: SOC
+difficulty: 2
+points: 200
+
+license: CC-BY-4.0
+author:
+  name: "seige-range maintainers"
+  url: "https://github.com/seige-range"
+
+container:
+  image: "siege/blue-soc-base"
+  port: 8080
+  profile: default-strict
+
+flags:
+  - id: pwsh_rule
+    type: sigma_rule
+    points: 200
+    label: "Sigma detection rule"
+    events_filename: events.json
+    expected_match_indices: [1, 3]
+    require_logsource:
+      product: windows
+      category: process_creation
+
+hints:
+  - text: "Both malicious launches are EventID 4688 (process creation)."
+    cost: 20
+  - text: "The benign noise lives under SYSTEM; an analyst-launched shell does not."
+    cost: 40
+
+skills:
+  - "Sigma rule authoring"
+  - "Process-creation triage"
+
+mitre_techniques:
+  - "T1059.001"
+
+prerequisites: []
+
+artifacts:
+  - path: "artifacts/handout.md"
+    sha256: "eb6d56c1aab0e74f290acc96b8e18448334e3a7ab926a843c57e7e06efe80426"
+    description: "Player-facing summary describing the event-log shape and expected output."
+
+tests:
+  cases:
+    - name: "exact match rule passes"
+      flag_id: pwsh_rule
+      submission: |
+        title: detect interactive powershell
+        logsource:
+          product: windows
+          category: process_creation
+        detection:
+          selection:
+            EventID: 4688
+            Image|endswith: '\powershell.exe'
+          filter:
+            User: SYSTEM
+          condition: selection and not filter
+      expected: pass
+
+    - name: "too-broad rule (matches SYSTEM noise) fails"
+      flag_id: pwsh_rule
+      submission: |
+        title: too broad
+        logsource:
+          product: windows
+          category: process_creation
+        detection:
+          selection:
+            Image|endswith: '\powershell.exe'
+          condition: selection
+      expected: fail
+
+    - name: "wrong logsource fails"
+      flag_id: pwsh_rule
+      submission: |
+        title: wrong logsource
+        logsource:
+          product: linux
+        detection:
+          selection:
+            EventID: 4688
+            Image|endswith: '\powershell.exe'
+          condition: selection
+      expected: fail
+
+    - name: "syntactically invalid rule fails"
+      flag_id: pwsh_rule
+      submission: "title: not a real sigma rule"
+      expected: fail

@@ -1,0 +1,97 @@
+# Phase 12 (slice 20) — Playwright E2E suite.
+#
+# Brings up the full docker-compose stack, waits for the frontend +
+# backend to report healthy, and runs the chromium suite against it.
+# Tears down on completion.
+#
+# Triggers on PRs that touch the frontend, the v1 backend surface, or
+# this workflow file. Push-to-main runs the same flow as a smoke
+# gate.
+
+name: browser-tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - "backend/app/routers/v1/**"
+      - "backend/app/routers/auth.py"
+      - "backend/app/routers/challenges/**"
+      - "docker-compose.yml"
+      - "docker-compose.dev.yml"
+      - ".github/workflows/browser-tests.yml"
+  pull_request:
+    paths:
+      - "frontend/**"
+      - "backend/app/routers/v1/**"
+      - "backend/app/routers/auth.py"
+      - "backend/app/routers/challenges/**"
+      - "docker-compose.yml"
+      - "docker-compose.dev.yml"
+      - ".github/workflows/browser-tests.yml"
+
+jobs:
+  e2e:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+
+    env:
+      ADMIN_PASSWORD: TestAdminPlaywright!1A
+      SECRET_KEY: ci-secret-not-for-production-0123456789abcdef0123456789abcdef
+      ALLOWED_ORIGINS: http://localhost:8080
+      E2E_BASE_URL: http://localhost:8080
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm install --no-audit --no-fund
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Start docker-compose
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+
+      - name: Wait for the stack to settle
+        run: |
+          # Poll the backend healthz until it reports green or we
+          # time out. Two minutes is plenty for testcontainers +
+          # alembic migrations on the public CI runners.
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/healthz > /dev/null 2>&1; then
+              echo "stack ready after $((i*2))s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "stack failed to come up; recent logs:"
+          docker compose logs --tail=120
+          exit 1
+
+      - name: Run Playwright
+        working-directory: frontend
+        run: npx playwright test
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          if-no-files-found: ignore

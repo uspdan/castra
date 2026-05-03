@@ -1,0 +1,20 @@
+{
+  "title": "SSRF to Internal",
+  "slug": "ssrf-to-internal",
+  "description": "An image preview service fetches URLs server-side. Bypass basic filters to access internal cloud metadata.",
+  "category": "Web Exploitation",
+  "team": "red",
+  "difficulty": 4,
+  "points": 500,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "The filter blocks 127.0.0.1 and localhost but what about other addresses?",
+      "cost": 50
+    }
+  ],
+  "skills": ["SSRF", "Cloud REDACTED", "Filter Bypass"],
+  "mitre_techniques": ["T1190"],
+  "docker_image": "siege/ssrf-to-internal:latest",
+  "docker_port": 5000
+}

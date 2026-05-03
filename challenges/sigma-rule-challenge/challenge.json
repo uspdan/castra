@@ -1,0 +1,20 @@
+{
+  "title": "Sigma Rule Writer",
+  "slug": "sigma-rule-challenge",
+  "description": "Write Sigma detection rules to match given attack scenarios. Test your rules against log samples to verify detection coverage.",
+  "category": "Detection Engineering",
+  "team": "blue",
+  "difficulty": 3,
+  "points": 300,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "Focus on the process creation events - look for suspicious parent-child relationships",
+      "cost": 75
+    }
+  ],
+  "skills": ["Sigma Rules", "Detection Engineering", "Log Analysis", "SIEM"],
+  "mitre_techniques": ["T1059", "T1053"],
+  "docker_image": "siege/sigma-rule-challenge:latest",
+  "docker_port": 5000
+}

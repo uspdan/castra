@@ -1,0 +1,13 @@
+# Egress proxy allowlist — used by tinyproxy's `Filter` directive.
+#
+# Format: one regex per line. Tinyproxy matches against the requested
+# host. With `FilterDefaultDeny Yes` set, anything not matched is
+# blocked, so this file is purely additive.
+#
+# Operators copy this file to `egress-allowlist.conf` and add the
+# domains a given deployment intends to allow `egress-proxied`
+# challenges to reach. Restart the egress-proxy service after edits.
+#
+# Examples (commented out so the default policy is "deny everything"):
+# ^api\.example\.com$
+# ^.+\.example\.org$
