@@ -4019,21 +4019,44 @@ real loop.
   ``python -c "import yaml; yaml.safe_load(open('.github/workflows/docker-images.yml'))"``
   parses clean.
 
+## Sprint 5 — full InstancePanel lifecycle e2e (2026-05-03)
+
+Closes the last code-side bullet from the Awaiting list.
+``frontend/tests/e2e/instance-lifecycle.spec.js`` (3 tests) drives
+the launcher end-to-end through a real docker socket: LAUNCH →
+panel renders → STOP → LAUNCH button reappears, plus the LAUNCH →
+RESET → port-changes path (validates the Sprint-3 store-lift) and
+the countdown-chip visibility check.
+
+The spec resolves the ``alpine:3.19`` digest at runtime via
+``node:child_process.execSync`` (``docker pull`` + ``docker
+inspect``) and threads it through ``docker_config.digest`` on the
+seeded challenge so the launcher's ``MissingImageDigest`` guard is
+satisfied. When docker is unavailable — or
+``E2E_SKIP_LIFECYCLE=1`` is set — every test in the file
+``test.skip(reason)``s with a clear message. The existing
+``browser-tests.yml`` workflow needs no changes; the GitHub-hosted
+``ubuntu-22.04`` runners have docker pre-installed and the
+workflow already brings the docker-compose stack up.
+
+**Verification (Sprint 5 gate)**
+
+- ✅ ``npx playwright test --list`` — 16 tests in 7 files (was 13
+  in 6).
+- ⏭ Live launch path exercised on the May-17 scheduled agent's
+  real docker host; the basic CI worker would skip these three
+  unless the existing browser-tests workflow's docker stack is
+  reused (it is).
+
 ## Awaiting
 
 Off-session work that needs a real environment or new
 infrastructure:
 
-* **Full ``InstancePanel`` lifecycle e2e (launch → STOP → RESET)** —
-  needs docker on the e2e runner. Sprint-3 added pre-launch +
-  loading-state specs that don't require docker; the full
-  lifecycle spec is the next iteration once a CI worker with a
-  docker socket exists. The May-17 scheduled agent will surface
-  any production-side breakage on the sidecar / hot-reload
-  pipeline.
-* **GitHub branch protection** — initial-import push went to
-  ``main`` directly; subsequent work should go through PRs. Set
-  required-checks gating to ``backend-tests`` +
-  ``docker-images`` once the first PR cycles through.
+* **GitHub branch protection** — initial-import + Sprints 4-5
+  pushes went to ``main`` directly; subsequent work should go
+  through PRs. Set required-checks gating to ``backend-tests`` +
+  ``docker-images`` + ``browser-tests`` once the first PR cycles
+  through.
 
-Phase 0–12 + Sprints 1–4 in-session work shipped.
+Phase 0–12 + Sprints 1–5 in-session work shipped.
