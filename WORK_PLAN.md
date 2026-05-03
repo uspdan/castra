@@ -3968,6 +3968,57 @@ through.
   4 files).
 - ✅ ``npm run build`` — clean.
 
+## Sprint 4 — close the residual list (2026-05-03)
+
+User asked to do (a) sidecar CI build + (b) scheduler / ws_manager
+test sprint. Both shipped same-session. 517 tests (was 490),
+coverage 86.11% with the new modules at 93% (scheduler) / 94%
+(ws_manager).
+
+**(a) Docker image CI** — new
+``.github/workflows/docker-images.yml`` runs on changes to
+``docker/**`` or ``docker-compose.yml``. Two jobs (buildx + GHA
+cache):
+
+* ``egress-sidecar`` — builds ``siege-egress-sidecar:latest`` from
+  ``docker/egress-sidecar/`` and runs a smoke check against the
+  baked tinyproxy.conf. Closes the gap where a broken Dockerfile
+  was only detected at runtime when the first
+  ``egress-proxied-sidecar`` challenge launched.
+* ``egress-proxy`` — companion build for the shared (Phase 9) image
+  so Dockerfile drift on either side surfaces in CI.
+
+**(b) Scheduler + ws_manager coverage** —
+``backend/tests/integration/test_scheduler.py`` (12 tests) covers
+``cache_leaderboard``, ``cleanup_notifications``,
+``cleanup_expired_instances``, ``retry_failed_webhooks``,
+``prune_old_webhook_deliveries``, and ``setup_scheduler``.
+``cache_leaderboard`` runs against the testcontainer DB with a
+real-shape Solve graph (synthetic Challenge rows seeded for the FK
++ uniqueness constraints). Other jobs use injected fakes for
+``webhook_dispatch.retry_failed_deliveries`` /
+``prune_old_deliveries`` so we don't need real webhook traffic.
+
+``backend/tests/unit/test_ws_manager.py`` (15 tests) covers the
+``WebSocketManager`` class with AsyncMock-backed sockets and an
+in-memory pubsub stub: connect/disconnect lifecycle, broadcast +
+Redis publish, send_to_user, dropping failing sockets, and the
+Redis listener's message dispatch + decode-error swallow.
+
+``pytest.ini`` adds both modules to ``--cov``. Coverage gate stays
+at 80%; both new modules are well above. ``setup_scheduler`` is
+tested by patching ``scheduler.start`` so apscheduler doesn't spin a
+real loop.
+
+**Verification (Sprint 4 gate)**
+
+- ✅ ``pytest backend/tests/`` — 517 passed @ 86.11%.
+- ✅ scheduler.py — 93% (was excluded).
+- ✅ ws_manager.py — 94% (was excluded).
+- ✅ ``yamllint`` not configured but
+  ``python -c "import yaml; yaml.safe_load(open('.github/workflows/docker-images.yml'))"``
+  parses clean.
+
 ## Awaiting
 
 Off-session work that needs a real environment or new
@@ -3977,17 +4028,12 @@ infrastructure:
   needs docker on the e2e runner. Sprint-3 added pre-launch +
   loading-state specs that don't require docker; the full
   lifecycle spec is the next iteration once a CI worker with a
-  docker socket exists.
-* **Sidecar image build in CI** — ``docker/egress-sidecar/``
-  Dockerfile is wired into compose (``profiles: ["build-only"]``)
-  but the launch path ``client.containers.run(image="siege-egress-
-  sidecar:latest")`` assumes the operator has built the image
-  locally. Adding ``docker compose build egress-sidecar`` to the
-  bootstrap pipeline is operator-side plumbing.
-* **Scheduler / ws_manager into the cov gate** — Sprint-3 picked
-  up the easy router modules; ``app.services.scheduler`` and
-  ``app.services.ws_manager`` are still excluded because their
-  side-effects (process-wide scheduler, redis pub/sub task) are
-  awkward to test in the savepoint-rollback harness.
+  docker socket exists. The May-17 scheduled agent will surface
+  any production-side breakage on the sidecar / hot-reload
+  pipeline.
+* **GitHub branch protection** — initial-import push went to
+  ``main`` directly; subsequent work should go through PRs. Set
+  required-checks gating to ``backend-tests`` +
+  ``docker-images`` once the first PR cycles through.
 
-Phase 0–12 + Sprints 1–3 in-session work shipped.
+Phase 0–12 + Sprints 1–4 in-session work shipped.

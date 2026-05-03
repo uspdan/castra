@@ -48,3 +48,4 @@ nginx/certs/
 .memory-backups/
 .env.local
 .env.*.local
+.coverage

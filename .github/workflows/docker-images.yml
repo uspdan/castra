@@ -1,0 +1,81 @@
+# Docker image builds — Sprint 3 follow-on.
+#
+# Verifies that the docker contexts in ``docker/`` build cleanly. The
+# per-instance egress-proxy sidecar image (``siege-egress-sidecar:
+# latest``) is built on demand by the launcher
+# (``app.services.orchestration.launcher.launch_instance`` →
+# ``sidecar.launch_sidecar``); a broken Dockerfile is otherwise only
+# discovered at runtime when the first ``egress-proxied-sidecar``
+# challenge launches. This workflow gates that.
+#
+# Builds use docker buildx without a registry push — the goal is the
+# build success itself.
+
+name: docker-images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docker/**"
+      - "docker-compose.yml"
+      - ".github/workflows/docker-images.yml"
+  pull_request:
+    paths:
+      - "docker/**"
+      - "docker-compose.yml"
+      - ".github/workflows/docker-images.yml"
+
+jobs:
+  egress-sidecar:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build siege-egress-sidecar:latest
+        uses: docker/build-push-action@v5
+        with:
+          context: docker/egress-sidecar
+          file: docker/egress-sidecar/Dockerfile
+          push: false
+          load: true
+          tags: siege-egress-sidecar:latest
+          cache-from: type=gha,scope=egress-sidecar
+          cache-to: type=gha,scope=egress-sidecar,mode=max
+
+      - name: Smoke-check the image
+        run: |
+          # The entrypoint reads EGRESS_ALLOWLIST from env; verify it
+          # can render a filter file and that tinyproxy parses the
+          # config file without crashing. ``tinyproxy -d -c …`` runs
+          # in foreground; we send it a SIGTERM after a short
+          # window. If it crashed at startup the exit code surfaces.
+          docker run --rm --entrypoint /bin/sh siege-egress-sidecar:latest \
+            -c 'cat /etc/tinyproxy/tinyproxy.conf | head -5'
+
+  egress-proxy:
+    # Companion build for the shared (Phase 9) egress-proxy image.
+    # Sprint 3 added the new entrypoint + tinyproxy.conf changes; this
+    # job catches Dockerfile drift on either side.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build siege-egress-proxy
+        uses: docker/build-push-action@v5
+        with:
+          context: docker/egress-proxy
+          file: docker/egress-proxy/Dockerfile
+          push: false
+          load: true
+          tags: siege-egress-proxy:ci
+          cache-from: type=gha,scope=egress-proxy
+          cache-to: type=gha,scope=egress-proxy,mode=max
