@@ -54,6 +54,21 @@ const useAuthStore = create((set, get) => ({
     set({ accessToken: newToken })
   },
 
+  forgotPassword: async (email) => {
+    // Always returns 202 with a generic message regardless of
+    // whether the email matches a real account. The component
+    // doesn't need to know more — show "if an account exists,
+    // we sent a link" either way.
+    await client.post('/api/v1/auth/forgot-password', { email })
+  },
+
+  resetPassword: async (token, newPassword) => {
+    await client.post('/api/v1/auth/reset-password', {
+      token,
+      new_password: newPassword,
+    })
+  },
+
   fetchMe: async () => {
     // Phase 12 (slice 21): switched to the locked v1 endpoint.
     // Response shape adds totals (total_points / total_solves /

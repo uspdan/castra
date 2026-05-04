@@ -57,7 +57,11 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="text-center text-sm mt-6" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-center text-xs mt-4" style={{ color: 'var(--text-muted)' }}>
+          <Link to="/forgot-password" style={{ color: 'var(--text-muted)' }}>Forgot password?</Link>
+        </p>
+
+        <p className="text-center text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
           No account? <Link to="/register" style={{ color: 'var(--accent-cyan)' }}>Register</Link>
         </p>
       </div>
