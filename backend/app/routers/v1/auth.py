@@ -39,10 +39,30 @@ from app.schemas.v1.auth import (
     AuthRegisterRequest,
     AuthTokenPairResponse,
     AuthUser,
+    ChangePasswordRequest,
+    ChangePasswordResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
+    MfaConfirmRequest,
+    MfaConfirmResponse,
+    MfaDisableRequest,
+    MfaDisableResponse,
+    MfaEnrolResponse,
+    MfaPendingResponse,
+    MfaVerifyRequest,
+    ProfileUpdateRequest,
     ResetPasswordRequest,
     ResetPasswordResponse,
+)
+from app.services.mfa import (
+    InvalidMfaCode,
+    MfaNotEnrolled,
+    confirm_enrolment,
+    decode_mfa_pending_token,
+    disable_mfa,
+    issue_mfa_pending_token,
+    start_enrolment,
+    verify_login_code,
 )
 from app.services.audit import ActorType, EventType, append as audit_append
 from app.services.audit.request_context import context_from_request
@@ -82,6 +102,7 @@ def _to_auth_user(user: User) -> AuthUser:
         is_active=user.is_active,
         created_at=user.created_at,
         last_login=user.last_login,
+        mfa_enabled=bool(getattr(user, "mfa_enabled", False)),
     )
 
 
@@ -143,8 +164,9 @@ async def register_v1(
 
 @router.post(
     "/login",
-    response_model=AuthTokenPairResponse,
+    response_model=None,
     responses={
+        200: {"description": "Login success — token pair OR MFA pending"},
         401: {"description": "Invalid credentials"},
         403: {"description": "Account is disabled"},
         429: {"description": "Account temporarily locked"},
@@ -155,7 +177,19 @@ async def login_v1(
     request: Request,
     db: AsyncSession = Depends(get_db),
     redis_client=Depends(_get_redis),
-) -> AuthTokenPairResponse:
+):
+    """Authenticate by email + password.
+
+    Two response shapes:
+      * If MFA is **not** enabled on the matched user: returns
+        ``AuthTokenPairResponse`` (the standard
+        ``{user, access_token, refresh_token, token_type}``).
+      * If MFA **is** enabled: returns ``MfaPendingResponse``
+        (``{mfa_required: true, mfa_pending_token: "..."}``). The
+        client must call ``POST /api/v1/auth/mfa/verify`` with the
+        pending token + the user's TOTP / recovery code to receive
+        the real token pair.
+    """
     ctx = context_from_request(request)
     await check_account_lockout(payload.email, redis_client)
 
@@ -196,6 +230,31 @@ async def login_v1(
         raise HTTPException(status_code=403, detail="Account is disabled")
 
     await clear_failed_logins(payload.email, redis_client)
+
+    # MFA short-circuit: if the user has MFA enabled we return a
+    # pending token instead of the real pair. Login still counts as
+    # "successful first factor" — emit the audit row but don't bump
+    # last_login until the second factor verifies.
+    if user.mfa_enabled and user.mfa_secret:
+        await audit_append(
+            db,
+            event_type=EventType.AUTH_LOGIN_SUCCESS,
+            actor_type=ActorType.USER,
+            actor_id=user.id,
+            resource_type="user",
+            resource_id=user.id,
+            payload={
+                "username": user.username,
+                "mfa_pending": True,
+            },
+            **ctx,
+        )
+        await db.commit()
+        return MfaPendingResponse(
+            mfa_required=True,
+            mfa_pending_token=issue_mfa_pending_token(user.id),
+        )
+
     user.last_login = datetime.now(timezone.utc)
     await audit_append(
         db,
@@ -467,3 +526,310 @@ async def reset_password_v1(
     )
     await db.commit()
     return ResetPasswordResponse(message="Password reset successful.")
+
+
+# ---------------------------------------------------------------------------
+# Account settings (Sprint 7 Phase A)
+# ---------------------------------------------------------------------------
+@router.post(
+    "/change-password",
+    response_model=ChangePasswordResponse,
+    responses={401: {"description": "Current password incorrect"}},
+)
+async def change_password_v1(
+    payload: ChangePasswordRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ChangePasswordResponse:
+    """In-app password change. Requires current password."""
+
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        await audit_append(
+            db,
+            event_type=EventType.AUTH_PASSWORD_CHANGE,
+            actor_type=ActorType.USER,
+            actor_id=current_user.id,
+            resource_type="user",
+            resource_id=current_user.id,
+            payload={"success": False, "reason": "bad_current_password"},
+            **context_from_request(request),
+        )
+        await db.commit()
+        raise HTTPException(status_code=401, detail="current password incorrect")
+
+    current_user.hashed_password = hash_password(payload.new_password)
+    await audit_append(
+        db,
+        event_type=EventType.AUTH_PASSWORD_CHANGE,
+        actor_type=ActorType.USER,
+        actor_id=current_user.id,
+        resource_type="user",
+        resource_id=current_user.id,
+        payload={"success": True},
+        **context_from_request(request),
+    )
+    await db.commit()
+    return ChangePasswordResponse(message="Password changed.")
+
+
+@router.patch("/profile", response_model=AuthUser)
+async def update_profile_v1(
+    payload: ProfileUpdateRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> AuthUser:
+    """Self-service mutation of display_name + team."""
+
+    updates = payload.model_dump(exclude_unset=True)
+    if not updates:
+        # No-op; return current shape.
+        return _to_auth_user(current_user)
+
+    if "team" in updates and updates["team"] is not None:
+        updates["team"] = TeamType(updates["team"])
+
+    for field, value in updates.items():
+        setattr(current_user, field, value)
+
+    await audit_append(
+        db,
+        event_type=EventType.AUTH_PROFILE_UPDATE,
+        actor_type=ActorType.USER,
+        actor_id=current_user.id,
+        resource_type="user",
+        resource_id=current_user.id,
+        payload={
+            "fields": list(updates.keys()),
+        },
+        **context_from_request(request),
+    )
+    await db.commit()
+    await db.refresh(current_user)
+    return _to_auth_user(current_user)
+
+
+# ---------------------------------------------------------------------------
+# MFA — Sprint 7 Phase C
+# ---------------------------------------------------------------------------
+@router.post(
+    "/mfa/enroll",
+    response_model=None,
+    responses={
+        200: {"description": "Enrolment started; pass code to /mfa/confirm"},
+    },
+)
+async def mfa_enroll_v1(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> MfaEnrolResponse:
+    """Generate a fresh TOTP secret + provisioning URI.
+
+    Does NOT enable MFA — that requires the user to confirm a code
+    via ``/mfa/confirm``. Calling this on a user who already has
+    MFA fully enabled rotates the secret to a new one and resets
+    them to the unconfirmed state — they have to re-confirm.
+    """
+
+    result = await start_enrolment(db, current_user)
+    await audit_append(
+        db,
+        event_type=EventType.AUTH_MFA_ENROLL,
+        actor_type=ActorType.USER,
+        actor_id=current_user.id,
+        resource_type="user",
+        resource_id=current_user.id,
+        payload={"rotated": True},
+        **context_from_request(request),
+    )
+    await db.commit()
+    return MfaEnrolResponse(
+        secret=result.secret,
+        provisioning_uri=result.provisioning_uri,
+    )
+
+
+@router.post(
+    "/mfa/confirm",
+    response_model=None,
+    responses={
+        200: {"description": "MFA enabled, recovery codes returned"},
+        400: {"description": "Code did not match or no enrolment in progress"},
+    },
+)
+async def mfa_confirm_v1(
+    payload: MfaConfirmRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> MfaConfirmResponse:
+    """Verify the TOTP code and finalise enrolment.
+
+    On success: ``mfa_enabled=True``, recovery codes generated and
+    returned in cleartext **once**. The cleartext is never
+    persisted — only sha256 hashes live in
+    ``mfa_recovery_codes``.
+    """
+
+    try:
+        result = await confirm_enrolment(db, current_user, payload.code)
+    except (InvalidMfaCode, MfaNotEnrolled) as exc:
+        await audit_append(
+            db,
+            event_type=EventType.AUTH_MFA_CONFIRM,
+            actor_type=ActorType.USER,
+            actor_id=current_user.id,
+            resource_type="user",
+            resource_id=current_user.id,
+            payload={"success": False, "reason": str(exc)},
+            **context_from_request(request),
+        )
+        await db.commit()
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    await audit_append(
+        db,
+        event_type=EventType.AUTH_MFA_CONFIRM,
+        actor_type=ActorType.USER,
+        actor_id=current_user.id,
+        resource_type="user",
+        resource_id=current_user.id,
+        payload={"success": True},
+        **context_from_request(request),
+    )
+    await db.commit()
+    return MfaConfirmResponse(
+        message="MFA enabled.",
+        recovery_codes=result.recovery_codes,
+    )
+
+
+@router.post(
+    "/mfa/disable",
+    response_model=None,
+    responses={
+        200: {"description": "MFA disabled"},
+        400: {"description": "Code did not match"},
+        401: {"description": "Password incorrect"},
+    },
+)
+async def mfa_disable_v1(
+    payload: MfaDisableRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> MfaDisableResponse:
+    """Disable MFA after re-authenticating with password + code."""
+
+    if not verify_password(payload.password, current_user.hashed_password):
+        await audit_append(
+            db,
+            event_type=EventType.AUTH_MFA_DISABLE,
+            actor_type=ActorType.USER,
+            actor_id=current_user.id,
+            resource_type="user",
+            resource_id=current_user.id,
+            payload={"success": False, "reason": "bad_password"},
+            **context_from_request(request),
+        )
+        await db.commit()
+        raise HTTPException(status_code=401, detail="password incorrect")
+
+    try:
+        await disable_mfa(db, current_user, payload.code)
+    except (InvalidMfaCode, MfaNotEnrolled) as exc:
+        await audit_append(
+            db,
+            event_type=EventType.AUTH_MFA_DISABLE,
+            actor_type=ActorType.USER,
+            actor_id=current_user.id,
+            resource_type="user",
+            resource_id=current_user.id,
+            payload={"success": False, "reason": str(exc)},
+            **context_from_request(request),
+        )
+        await db.commit()
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    await audit_append(
+        db,
+        event_type=EventType.AUTH_MFA_DISABLE,
+        actor_type=ActorType.USER,
+        actor_id=current_user.id,
+        resource_type="user",
+        resource_id=current_user.id,
+        payload={"success": True},
+        **context_from_request(request),
+    )
+    await db.commit()
+    return MfaDisableResponse(message="MFA disabled.")
+
+
+@router.post(
+    "/mfa/verify",
+    response_model=AuthTokenPairResponse,
+    responses={
+        401: {"description": "Pending token invalid or code rejected"},
+    },
+)
+async def mfa_verify_v1(
+    payload: MfaVerifyRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> AuthTokenPairResponse:
+    """Second-factor step of the login flow.
+
+    Consumes the pending token from ``/auth/login`` (response body
+    when MFA is enabled) plus the user's TOTP code (or a recovery
+    code). Returns the real access + refresh token pair on
+    success.
+    """
+
+    ctx = context_from_request(request)
+
+    try:
+        user_id = decode_mfa_pending_token(payload.mfa_pending_token)
+    except InvalidMfaCode as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+
+    user = (
+        await db.execute(select(User).where(User.id == user_id))
+    ).scalar_one_or_none()
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=401, detail="user not found")
+
+    try:
+        access, refresh = await verify_login_code(db, user, payload.code)
+    except (InvalidMfaCode, MfaNotEnrolled) as exc:
+        await audit_append(
+            db,
+            event_type=EventType.AUTH_MFA_VERIFY_FAILED,
+            actor_type=ActorType.USER,
+            actor_id=user.id,
+            resource_type="user",
+            resource_id=user.id,
+            payload={"reason": str(exc)},
+            **ctx,
+        )
+        await db.commit()
+        raise HTTPException(status_code=401, detail="code rejected")
+
+    user.last_login = datetime.now(timezone.utc)
+    await audit_append(
+        db,
+        event_type=EventType.AUTH_MFA_VERIFY_SUCCESS,
+        actor_type=ActorType.USER,
+        actor_id=user.id,
+        resource_type="user",
+        resource_id=user.id,
+        payload={"username": user.username},
+        **ctx,
+    )
+    await db.commit()
+    return AuthTokenPairResponse(
+        user=_to_auth_user(user),
+        access_token=access,
+        refresh_token=refresh,
+    )

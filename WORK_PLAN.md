@@ -4118,23 +4118,79 @@ notifications-WS test. Backend: 528 passing @ 86.24% coverage
 - ✅ ``ls .github/workflows/`` — empty.
 - ✅ ``ls docs/ci-templates/ docs/adr/ docs/runbooks/prod-smoke.md`` — all present.
 
+## Sprint 7 — account settings + GDPR + MFA (2026-05-04)
+
+User asked for the entire account/security shipment in one sprint.
+Three phases shipped:
+
+**Phase A — account settings**
+* ``POST /api/v1/auth/change-password`` (verify current + set new)
+* ``PATCH /api/v1/auth/profile`` (display_name, team)
+* New ``Settings.jsx`` with profile / password / MFA / data
+  sections; Layout sidebar gains a "Settings" link.
+* New ``setUser`` action on authStore for store-side mutations
+  that need to persist to localStorage.
+* 11 new integration tests in ``test_account_settings.py``.
+
+**Phase B — GDPR endpoints**
+* ``GET /api/v1/me/data`` — JSON export of profile + solves +
+  solved_flags + instances + writeups + hint_unlocks + audit rows
+  attributed to the user (Article 15).
+* ``DELETE /api/v1/me`` — anonymise user row in place
+  (email/username/display_name → tombstone values, hashed_password
+  → unguessable random, is_active=False, team/last_login=NULL),
+  drop pending password-reset tokens. Audit ledger rows are
+  retained (CLAUDE.md §4.2 immutability) but no longer point at
+  identifying data. Requires current-password confirmation.
+* Settings danger-zone wires both into the UI.
+* 10 new integration tests in ``test_gdpr.py``.
+
+**Phase C — MFA / TOTP + recovery codes**
+* New ``services/mfa.py`` wrapping ``pyotp``: secret generation,
+  enrol-confirm flow, recovery-code (10 × 8-char) issue + redeem,
+  TOTP verify with valid_window=1 to tolerate clock drift,
+  short-lived MFA-pending JWT for the two-step login flow.
+* Migration 012 adds ``users.mfa_secret``, ``users.mfa_enabled``,
+  ``mfa_recovery_codes(id, user_id, code_hash, used_at)``.
+* Four endpoints:
+  - ``POST /api/v1/auth/mfa/enroll``
+  - ``POST /api/v1/auth/mfa/confirm`` (returns recovery codes
+    ONCE)
+  - ``POST /api/v1/auth/mfa/disable`` (password + code)
+  - ``POST /api/v1/auth/mfa/verify`` (second-factor login step)
+* ``POST /api/v1/auth/login`` now returns ``MfaPendingResponse``
+  ({mfa_required, mfa_pending_token}) when MFA is enabled.
+  Real token pair only flows via ``/mfa/verify``.
+* AuthUser shape gains ``mfa_enabled: bool``.
+* Login.jsx pivots to a TOTP/recovery input step on the pending
+  response. Settings.jsx renders enrol → QR + secret → confirm →
+  recovery-code display, plus a disable flow.
+* New audit event types: enroll, confirm, disable, verify.success,
+  verify.failed.
+* 15 new integration tests in ``test_mfa.py``.
+* New runtime dep: ``pyotp==2.9.0``.
+
+**Verification (Sprint 7 gate)**
+
+- ✅ ``pytest backend/tests/`` — 564 passed @ 86.64% (was 528 /
+  86.24%).
+- ✅ ``npm run build`` — clean.
+- ✅ ``npx playwright test --list`` — 16 tests in 7 files,
+  unchanged.
+
 ## Awaiting
 
 Off-session work that needs a real environment or new
 infrastructure:
 
-* **MFA / 2FA** — token-based reset alone isn't enough for
-  high-assurance accounts. ``pyotp``-backed TOTP enrolment + a
-  recovery-code system is queued for Sprint 7+.
-* **Account settings page** — change password (in-app, not
-  reset-flow), display name, team. Trivial UI, just hasn't
-  been written.
-* **GDPR endpoints** — ``GET /api/v1/me/data`` export +
-  ``DELETE /api/v1/me`` account deletion. Out of Sprint 6
-  scope.
 * **AI/LLM honeypot implementation** — ADR 0001 captures the
   design; implementation queued.
 * **Production smoke** — runbook exists; needs a real TLS host
   to execute against.
+* **Email verification on register** — natural pairing with the
+  password-reset / MFA flows; not in Sprint 7 scope.
+* **Admin dashboard UI** — backend has ``/admin/*`` v1; no
+  React admin pages for user management / audit viewer / webhook
+  delivery viewer.
 
-Phase 0–12 + Sprints 1–6 in-session work shipped.
+Phase 0–12 + Sprints 1–7 in-session work shipped.

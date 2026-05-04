@@ -47,3 +47,7 @@ yara-python==4.5.4
 # STARTTLS + auth out of the box; works against any modern SMTP
 # server. Pinned to the same major as the rest of the async stack.
 aiosmtplib==3.0.1
+
+# Sprint 7 Phase C — MFA / TOTP. pyotp generates and verifies
+# RFC 6238 codes; tiny pure-python lib with no dependencies.
+pyotp==2.9.0

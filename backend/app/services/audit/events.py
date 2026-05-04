@@ -37,6 +37,15 @@ class EventType:
     AUTH_REFRESH: Final = "auth.refresh"
     AUTH_PASSWORD_RESET_REQUEST: Final = "auth.password.reset.request"
     AUTH_PASSWORD_RESET_REDEEM: Final = "auth.password.reset.redeem"
+    AUTH_PASSWORD_CHANGE: Final = "auth.password.change"
+    AUTH_PROFILE_UPDATE: Final = "auth.profile.update"
+    AUTH_ACCOUNT_DELETE: Final = "auth.account.delete"
+    AUTH_DATA_EXPORT: Final = "auth.data.export"
+    AUTH_MFA_ENROLL: Final = "auth.mfa.enroll"
+    AUTH_MFA_CONFIRM: Final = "auth.mfa.confirm"
+    AUTH_MFA_DISABLE: Final = "auth.mfa.disable"
+    AUTH_MFA_VERIFY_SUCCESS: Final = "auth.mfa.verify.success"
+    AUTH_MFA_VERIFY_FAILED: Final = "auth.mfa.verify.failed"
 
     FLAG_SUBMIT_PASS: Final = "challenge.flag.submit.pass"
     FLAG_SUBMIT_FAIL: Final = "challenge.flag.submit.fail"
@@ -57,6 +66,15 @@ _ALLOWED_EVENT_TYPES: Final = frozenset(
         EventType.AUTH_REFRESH,
         EventType.AUTH_PASSWORD_RESET_REQUEST,
         EventType.AUTH_PASSWORD_RESET_REDEEM,
+        EventType.AUTH_PASSWORD_CHANGE,
+        EventType.AUTH_PROFILE_UPDATE,
+        EventType.AUTH_ACCOUNT_DELETE,
+        EventType.AUTH_DATA_EXPORT,
+        EventType.AUTH_MFA_ENROLL,
+        EventType.AUTH_MFA_CONFIRM,
+        EventType.AUTH_MFA_DISABLE,
+        EventType.AUTH_MFA_VERIFY_SUCCESS,
+        EventType.AUTH_MFA_VERIFY_FAILED,
         EventType.FLAG_SUBMIT_PASS,
         EventType.FLAG_SUBMIT_FAIL,
         EventType.CHALLENGE_RELEASED,

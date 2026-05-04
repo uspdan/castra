@@ -10,6 +10,7 @@ import Challenges from './pages/Challenges'
 import ChallengeDetail from './pages/ChallengeDetail'
 import Leaderboard from './pages/Leaderboard'
 import Profile from './pages/Profile'
+import Settings from './pages/Settings'
 import Admin from './pages/Admin'
 import Deploy from './pages/Deploy'
 import NotFound from './pages/NotFound'
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="challenges/:slug" element={<ChallengeDetail />} />
             <Route path="leaderboard" element={<Leaderboard />} />
             <Route path="profile/:username" element={<Profile />} />
+            <Route path="settings" element={<Settings />} />
             <Route path="admin" element={<Admin />} />
             <Route path="deploy" element={<Deploy />} />
           </Route>

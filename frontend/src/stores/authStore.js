@@ -15,7 +15,28 @@ const useAuthStore = create((set, get) => ({
   },
 
   login: async (email, password) => {
+    // Two response shapes — see /api/v1/auth/login docstring:
+    //   * Token pair: { user, access_token, refresh_token, token_type }
+    //   * MFA pending: { mfa_required: true, mfa_pending_token }
+    // The Login page distinguishes via the returned object's
+    // `mfa_required` flag and pivots to the TOTP-input step.
     const res = await client.post('/api/v1/auth/login', { email, password })
+    if (res.data?.mfa_required) {
+      return { mfaRequired: true, mfaPendingToken: res.data.mfa_pending_token }
+    }
+    const { user, access_token, refresh_token } = res.data
+    localStorage.setItem('access_token', access_token)
+    localStorage.setItem('refresh_token', refresh_token)
+    localStorage.setItem('user', JSON.stringify(user))
+    set({ user, accessToken: access_token, refreshToken: refresh_token })
+    return { mfaRequired: false, user }
+  },
+
+  verifyMfaLogin: async (mfaPendingToken, code) => {
+    const res = await client.post('/api/v1/auth/mfa/verify', {
+      mfa_pending_token: mfaPendingToken,
+      code,
+    })
     const { user, access_token, refresh_token } = res.data
     localStorage.setItem('access_token', access_token)
     localStorage.setItem('refresh_token', refresh_token)
@@ -67,6 +88,14 @@ const useAuthStore = create((set, get) => ({
       token,
       new_password: newPassword,
     })
+  },
+
+  setUser: (user) => {
+    // Used by /settings flows that mutate the current user (PATCH
+    // profile, MFA enable/disable). Keeps localStorage in sync so a
+    // refresh doesn't drop the change.
+    localStorage.setItem('user', JSON.stringify(user))
+    set({ user })
   },
 
   fetchMe: async () => {

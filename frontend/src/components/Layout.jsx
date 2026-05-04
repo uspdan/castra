@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { Shield, ChevronDown, LogOut, User, Settings } from 'lucide-react'
+import { Shield, ChevronDown, LogOut, User, Settings, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import useAuthStore from '../stores/authStore'
 import useWebSocket from '../hooks/useWebSocket'
@@ -101,6 +101,14 @@ export default function Layout() {
                     style={{ color: 'var(--text-secondary)' }}
                   >
                     <User size={14} /> Profile
+                  </NavLink>
+                  <NavLink
+                    to="/settings"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-white/5"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    <SlidersHorizontal size={14} /> Settings
                   </NavLink>
                   {isAdmin && (
                     <NavLink

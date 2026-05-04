@@ -58,6 +58,13 @@ class User(Base):
     onboarding_completed = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     last_login = Column(DateTime(timezone=True), nullable=True)
+    # Sprint 7 Phase C — TOTP MFA. ``mfa_secret`` is the base32-
+    # encoded RFC 6238 shared secret; ``mfa_enabled`` flips True
+    # only after the user confirms the code at enrol time.
+    mfa_secret = Column(String(64), nullable=True)
+    mfa_enabled = Column(
+        Boolean, default=False, nullable=False, server_default="false"
+    )
 
     solves = relationship("Solve", back_populates="user", lazy="selectin")
     instances = relationship("ChallengeInstance", back_populates="user", lazy="selectin")
@@ -500,3 +507,25 @@ class PasswordResetToken(Base):
     used_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 
+
+
+class MfaRecoveryCode(Base):
+    """Single-use 8-character recovery code for an MFA-enrolled user.
+
+    Sprint 7. The cleartext is shown once at enrol-confirm time and
+    never persisted; only the sha256 hash lives here. ``used_at``
+    flips on first redeem so a code cannot be replayed.
+    """
+
+    __tablename__ = "mfa_recovery_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    code_hash = Column(String(64), nullable=False, unique=True, index=True)
+    used_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)

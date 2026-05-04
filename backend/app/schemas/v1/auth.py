@@ -36,6 +36,10 @@ class AuthUser(BaseModel):
     is_active: bool
     created_at: datetime
     last_login: Optional[datetime] = None
+    # Sprint 7 Phase C — exposed so the frontend Settings page can
+    # render the right MFA UI (enrol vs disable). False until the
+    # user finishes the confirm step.
+    mfa_enabled: bool = False
 
 
 class AuthRegisterRequest(BaseModel):
@@ -150,3 +154,133 @@ class ResetPasswordResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     message: str
+
+
+class ChangePasswordRequest(BaseModel):
+    """In-app password change. Requires current password to defend
+    against the cookie-theft / unattended-session takeover scenario."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class ChangePasswordResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    message: str
+
+
+class AccountDeleteRequest(BaseModel):
+    """GDPR account deletion. Requires the current password to defend
+    against drive-by deletes via stolen access tokens."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    password: str = Field(min_length=1, max_length=128)
+
+
+class AccountDeleteResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    message: str
+
+
+class ProfileUpdateRequest(BaseModel):
+    """Self-service mutation of the user's own profile fields.
+
+    ``email`` and ``username`` are deliberately not editable here
+    (changing them is a separate flow with reverification). ``role``
+    is admin-only via /api/v1/admin/users.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    display_name: Optional[str] = Field(default=None, max_length=64)
+    team: Optional[str] = None
+
+    @field_validator("display_name")
+    @classmethod
+    def _display_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            raise ValueError("display_name cannot be empty")
+        return v
+
+    @field_validator("team")
+    @classmethod
+    def _team(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip().lower()
+        if v not in ("red", "blue"):
+            raise ValueError("team must be 'red' or 'blue'")
+        return v
+
+
+# ---------------------------------------------------------------------------
+# MFA — Sprint 7 Phase C
+# ---------------------------------------------------------------------------
+class MfaEnrolResponse(BaseModel):
+    """Returned by ``POST /api/v1/auth/mfa/enroll``.
+
+    The cleartext secret is shown once so the user can paste it
+    into an authenticator if they can't scan the QR. The
+    ``provisioning_uri`` is the otpauth:// URL the QR encodes.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    secret: str
+    provisioning_uri: str
+
+
+class MfaConfirmRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    code: str = Field(min_length=6, max_length=8)
+
+
+class MfaConfirmResponse(BaseModel):
+    """Returned only on successful confirm-enrol — recovery codes
+    are shown once and never persisted in cleartext."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    message: str
+    recovery_codes: list[str]
+
+
+class MfaDisableRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    password: str = Field(min_length=1, max_length=128)
+    code: str = Field(min_length=6, max_length=8)
+
+
+class MfaDisableResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    message: str
+
+
+class MfaPendingResponse(BaseModel):
+    """Returned from ``POST /api/v1/auth/login`` when the matched
+    user has MFA enabled. Replaces the normal token-pair shape;
+    client must call ``/auth/mfa/verify`` with the pending token
+    + the user's TOTP / recovery code to finish login."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mfa_required: bool = True
+    mfa_pending_token: str
+
+
+class MfaVerifyRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    mfa_pending_token: str = Field(min_length=1, max_length=4096)
+    code: str = Field(min_length=6, max_length=8)
