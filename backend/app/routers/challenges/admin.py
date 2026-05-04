@@ -127,17 +127,17 @@ async def release_challenge(
     challenge.is_released = True
     challenge.released_at = datetime.now(timezone.utc)
 
-    db.add(
-        Notification(
-            title="New Challenge Released!",
-            message=(
-                f"'{challenge.title}' "
-                f"({challenge.category} - {challenge.difficulty}) is now available!"
-            ),
-            notification_type="release",
-            is_global=True,
-            created_at=datetime.now(timezone.utc),
-        )
+    from app.services.notifications import create_notification
+
+    await create_notification(
+        db,
+        title="New Challenge Released!",
+        message=(
+            f"'{challenge.title}' "
+            f"({challenge.category} - {challenge.difficulty}) is now available!"
+        ),
+        notification_type="release",
+        is_global=True,
     )
 
     # Phase 12 (slice 9): emit ``challenge.released`` to the

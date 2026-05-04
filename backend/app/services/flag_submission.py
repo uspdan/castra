@@ -340,18 +340,18 @@ async def _record_multi_flag_pass(
             )
         )
         await update_streak(user.id, db)
-        db.add(
-            Notification(
-                target_user_id=user.id,
-                title="Challenge Fully Captured!",
-                message=(
-                    f"You captured every flag in '{challenge.title}' "
-                    f"for {total_points} points!"
-                ),
-                notification_type="solve",
-                is_global=False,
-                created_at=now,
-            )
+        from app.services.notifications import create_notification
+
+        await create_notification(
+            db,
+            target_user_id=user.id,
+            title="Challenge Fully Captured!",
+            message=(
+                f"You captured every flag in '{challenge.title}' "
+                f"for {total_points} points!"
+            ),
+            notification_type="solve",
+            is_global=False,
         )
 
     payload = {
@@ -489,15 +489,15 @@ async def _persist_pass(
         )
     )
     await update_streak(user.id, db)
-    db.add(
-        Notification(
-            target_user_id=user.id,
-            title="Challenge Solved!",
-            message=f"You solved '{challenge.title}' for {points_awarded} points!",
-            notification_type="solve",
-            is_global=False,
-            created_at=now,
-        )
+    from app.services.notifications import create_notification
+
+    await create_notification(
+        db,
+        target_user_id=user.id,
+        title="Challenge Solved!",
+        message=f"You solved '{challenge.title}' for {points_awarded} points!",
+        notification_type="solve",
+        is_global=False,
     )
 
 

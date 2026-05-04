@@ -224,18 +224,18 @@ async def release_challenge_v1(
     chal.is_released = True
     chal.released_at = datetime.now(timezone.utc)
 
-    db.add(
-        Notification(
-            title="New Challenge Released!",
-            message=(
-                f"'{chal.title}' "
-                f"({chal.category} - difficulty {chal.difficulty}) "
-                f"is now available!"
-            ),
-            notification_type="release",
-            is_global=True,
-            created_at=datetime.now(timezone.utc),
-        )
+    from app.services.notifications import create_notification
+
+    await create_notification(
+        db,
+        title="New Challenge Released!",
+        message=(
+            f"'{chal.title}' "
+            f"({chal.category} - difficulty {chal.difficulty}) "
+            f"is now available!"
+        ),
+        notification_type="release",
+        is_global=True,
     )
 
     payload = {

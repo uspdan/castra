@@ -905,6 +905,50 @@ class TestNotifications:
         )
         assert r.status_code == 200
 
+    async def test_release_broadcasts_notification_via_ws(
+        self,
+        client,
+        user_factory,
+        auth_headers,
+        challenge_factory,
+        monkeypatch,
+    ):
+        """Sprint 6 Phase B — challenge release publishes the
+        notification via ws_manager so the frontend
+        NotificationDropdown updates without a refetch."""
+
+        from app.models import UserRole
+        from app.services import ws_manager as ws_mod
+
+        admin = await user_factory(role=UserRole.admin)
+        await challenge_factory(slug="ws-release", is_released=False)
+
+        broadcasts: list[dict] = []
+
+        async def _capture(message):
+            broadcasts.append(message)
+
+        monkeypatch.setattr(ws_mod.ws_manager, "broadcast", _capture)
+
+        r = await client.post(
+            "/api/v1/admin/challenges/ws-release/release",
+            headers=auth_headers(admin),
+        )
+        assert r.status_code == 200, r.text
+
+        # Two broadcasts expected: the notification helper publishes
+        # a {type: "notification", …} envelope, and the existing
+        # release flow broadcasts a {type: "challenge_released", …}
+        # envelope. Order isn't important; assert both present.
+        types = {b.get("type") for b in broadcasts}
+        assert "notification" in types
+        assert "challenge_released" in types
+
+        notif = next(b for b in broadcasts if b.get("type") == "notification")
+        assert notif["notification_type"] == "release"
+        assert notif["is_global"] is True
+        assert "ws-release" in notif["message"] or "ws-release" in notif["title"] or "is now available" in notif["message"]
+
 
 # ---------------------------------------------------------------------------
 # /instances (legacy paths — auth/error only; live launch needs docker)
