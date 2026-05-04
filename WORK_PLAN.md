@@ -4178,6 +4178,51 @@ Three phases shipped:
 - ✅ ``npx playwright test --list`` — 16 tests in 7 files,
   unchanged.
 
+## Sprint 8 — admin dashboard upgrades (2026-05-04)
+
+User asked to keep going on the admin UI gap. The existing
+``/admin`` page had basic users/challenges/audit/system tabs but
+no webhook management, no audit pagination/filters, and a
+hard-coded "ok" system status that ignored the readiness probes.
+
+**Changes**
+
+* **Webhooks tab (new)** — full subscription CRUD via
+  ``/api/v1/webhooks``: list, create (with one-time secret
+  display banner), delete, plus an inline delivery viewer that
+  fetches ``/api/v1/webhooks/{id}/deliveries`` and exposes a
+  per-delivery replay button.
+* **Audit tab — pagination + filters** — drives the legacy
+  ``/admin/audit`` endpoint with ``page``/``per_page``/
+  ``action``/``user_id`` query params. New ``Pagination``
+  component (reused by Users tab) + filter inputs.
+* **Users tab — pagination** — same pagination component;
+  legacy ``/admin/users`` already supported the params, the UI
+  just wasn't using them.
+* **System tab — wired to real data** — replaces the hardcoded
+  "ok" tiles with a ``Promise.all(/admin/system, /readyz)`` call.
+  Renders postgres / redis / docker probe state with green/red
+  dots, the four ``db_tables`` row counts, container count,
+  version. Seed button now calls the v1
+  ``/api/v1/admin/seed`` endpoint and shows
+  ``created/skipped`` from the response.
+* **All admin write actions migrated to v1** — release, soft-
+  delete, user role/active toggles. Reads stay on legacy where
+  no v1 list endpoint exists yet (``/admin/users``,
+  ``/admin/audit``, ``/admin/system``).
+* **Webhook event vocabulary expanded** —
+  ``backend/app/schemas/v1/webhooks.py::_KNOWN_EVENTS`` picks up
+  the 11 new audit event types Sprints 6 + 7 added (password
+  reset/change, profile update, account delete, data export,
+  MFA enroll/confirm/disable/verify success/failed).
+
+**Verification (Sprint 8 gate)**
+
+- ✅ ``pytest tests/integration/test_api_v1_webhooks.py`` —
+  13/13 passing.
+- ✅ ``npm run build`` — clean, 712 kB (+8 kB for the new
+  Admin tabs).
+
 ## Awaiting
 
 Off-session work that needs a real environment or new
@@ -4188,9 +4233,9 @@ infrastructure:
 * **Production smoke** — runbook exists; needs a real TLS host
   to execute against.
 * **Email verification on register** — natural pairing with the
-  password-reset / MFA flows; not in Sprint 7 scope.
-* **Admin dashboard UI** — backend has ``/admin/*`` v1; no
-  React admin pages for user management / audit viewer / webhook
-  delivery viewer.
+  password-reset / MFA flows; not in scope this round.
+* **Challenge create/edit form** — Admin tab can release +
+  soft-delete; full author UI (POST + PATCH against
+  ``/api/v1/admin/challenges``) is the next admin-side iteration.
 
-Phase 0–12 + Sprints 1–7 in-session work shipped.
+Phase 0–12 + Sprints 1–8 in-session work shipped.
