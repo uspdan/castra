@@ -15,6 +15,7 @@ Sprint 1 ships the four most critical:
 | [`secret-rotation.md`](secret-rotation.md) | Key leaked; quarterly hygiene; pre-prod handover. |
 | [`scheduler-stuck.md`](scheduler-stuck.md) | TTL reaper / webhook retries / leaderboard cache aren't firing. |
 | [`egress-allowlist.md`](egress-allowlist.md) | Tinyproxy filter hot-reload pipeline; manual refresh; rollback to static mode. |
+| [`prod-smoke.md`](prod-smoke.md) | Post-deploy verification matrix for `make prod` against a real TLS host. |
 
 Future additions (file an issue if you hit a failure mode not
 covered):
