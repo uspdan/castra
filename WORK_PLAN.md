@@ -4048,15 +4048,93 @@ workflow already brings the docker-compose stack up.
   unless the existing browser-tests workflow's docker stack is
   reused (it is).
 
+## Sprint 6 — cleanup, notifications WS, password reset (2026-05-04)
+
+User asked to scope toward "fully functional + operationally
+helpful" with the constraint that GitHub Actions stays disabled,
+the repo stays private, and there's no plan for outside
+contributors. Three phases shipped:
+
+**Phase A — cleanup**
+
+* Moved ``.github/workflows/{backend-tests,browser-tests,
+  challenge-tests,docker-images}.yml`` to ``docs/ci-templates/``
+  (with a README explaining the parking) so they stop showing
+  failed runs while still serving as a blueprint.
+* New ADR ``docs/adr/0001-ai-honeypot-category.md`` resolving
+  the three open questions in BACKLOG.md: BYO inference URL,
+  classifier-based grading, encrypted manifest bait. Status:
+  Proposed.
+* New runbook ``docs/runbooks/prod-smoke.md`` — copy-paste-
+  executable verification matrix for ``make prod`` against a
+  real TLS host. Indexed in ``docs/runbooks/README.md``.
+
+**Phase B — notifications WebSocket broadcast**
+
+Backend was creating ``Notification`` rows but never publishing
+them to ``ws_manager``, so the frontend ``NotificationDropdown``
+only updated on page reload. New
+``backend/app/services/notifications.py::create_notification``
+helper wraps row creation + broadcast/send_to_user. Refactored
+4 call sites (flag_submission first-blood + per-flag, both
+release routers) onto the helper. Test added asserting that a
+challenge release publishes both the existing
+``challenge_released`` and the new ``notification`` envelopes.
+
+**Phase C — password reset + email**
+
+Two new v1 endpoints + supporting infrastructure:
+
+* ``POST /api/v1/auth/forgot-password`` — issues a 32-byte
+  URL-safe token (sha256-hashed at rest), emails the link,
+  returns 202 with a generic message regardless of email
+  validity (anti-enumeration). 1-hour TTL via
+  ``PASSWORD_RESET_TTL_MINUTES``.
+* ``POST /api/v1/auth/reset-password`` — redeems the token,
+  updates ``hashed_password``, marks token used. Single-use;
+  re-redeem returns 400.
+* New table ``password_reset_tokens`` (migration 011).
+* New ``services/email.py`` with three modes: aiosmtplib for
+  production, stderr-JSON for dev, in-memory capture for tests.
+* New ``services/password_reset.py`` (issue + redeem helpers).
+* SMTP_HOST/PORT/USER/PASSWORD/USE_TLS, MAIL_FROM,
+  FRONTEND_URL settings. Production fail-fast on missing
+  SMTP_HOST/MAIL_FROM/FRONTEND_URL.
+* Audit-ledger event types ``auth.password.reset.request`` +
+  ``auth.password.reset.redeem`` with matched=true|false on
+  every call so log analysis can spot enumeration attempts.
+* Frontend: new ``/forgot-password`` and ``/reset-password``
+  pages, ``authStore`` methods, "Forgot password?" link on
+  Login.
+
+10 new password-reset integration tests + 1 new
+notifications-WS test. Backend: 528 passing @ 86.24% coverage
+(was 518 / 86.12%).
+
+**Verification (Sprint 6 gate)**
+
+- ✅ ``pytest backend/tests/`` — 528 passed @ 86.24%.
+- ✅ ``npm run build`` — clean, 688 kB.
+- ✅ ``ls .github/workflows/`` — empty.
+- ✅ ``ls docs/ci-templates/ docs/adr/ docs/runbooks/prod-smoke.md`` — all present.
+
 ## Awaiting
 
 Off-session work that needs a real environment or new
 infrastructure:
 
-* **GitHub branch protection** — initial-import + Sprints 4-5
-  pushes went to ``main`` directly; subsequent work should go
-  through PRs. Set required-checks gating to ``backend-tests`` +
-  ``docker-images`` + ``browser-tests`` once the first PR cycles
-  through.
+* **MFA / 2FA** — token-based reset alone isn't enough for
+  high-assurance accounts. ``pyotp``-backed TOTP enrolment + a
+  recovery-code system is queued for Sprint 7+.
+* **Account settings page** — change password (in-app, not
+  reset-flow), display name, team. Trivial UI, just hasn't
+  been written.
+* **GDPR endpoints** — ``GET /api/v1/me/data`` export +
+  ``DELETE /api/v1/me`` account deletion. Out of Sprint 6
+  scope.
+* **AI/LLM honeypot implementation** — ADR 0001 captures the
+  design; implementation queued.
+* **Production smoke** — runbook exists; needs a real TLS host
+  to execute against.
 
-Phase 0–12 + Sprints 1–5 in-session work shipped.
+Phase 0–12 + Sprints 1–6 in-session work shipped.
