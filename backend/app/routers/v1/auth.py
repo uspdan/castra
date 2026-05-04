@@ -39,6 +39,10 @@ from app.schemas.v1.auth import (
     AuthRegisterRequest,
     AuthTokenPairResponse,
     AuthUser,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
 )
 from app.services.audit import ActorType, EventType, append as audit_append
 from app.services.audit.request_context import context_from_request
@@ -310,3 +314,156 @@ async def me_v1(
     current_user: User = Depends(get_current_user),
 ) -> AuthUser:
     return _to_auth_user(current_user)
+
+
+# ---------------------------------------------------------------------------
+# Password reset (Sprint 6)
+# ---------------------------------------------------------------------------
+@router.post(
+    "/forgot-password",
+    response_model=ForgotPasswordResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    responses={429: {"description": "Too many reset requests"}},
+)
+async def forgot_password_v1(
+    payload: ForgotPasswordRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> ForgotPasswordResponse:
+    """Issue a password-reset token and email the link.
+
+    Always returns 202 with a generic message regardless of whether
+    the email matches a real account — leaking that information
+    enables enumeration. The actual delivery happens only on a
+    real match.
+    """
+
+    from app.services.audit import (
+        ActorType,
+        EventType,
+        append as audit_append,
+    )
+    from app.services.audit.request_context import context_from_request
+    from app.services.email import send_email
+    from app.services.password_reset import issue_token
+
+    ctx = context_from_request(request)
+    settings = get_settings()
+
+    user = (
+        await db.execute(select(User).where(User.email == payload.email))
+    ).scalar_one_or_none()
+
+    if user is not None and user.is_active:
+        cleartext = await issue_token(db, user)
+        link = (
+            f"{settings.frontend_url()}/reset-password"
+            f"?token={cleartext}"
+        )
+        body = (
+            f"Hi {user.display_name or user.username},\n\n"
+            f"Someone (hopefully you) requested a password reset on "
+            f"siege-range. Click the link below to set a new password "
+            f"— it expires in "
+            f"{settings.PASSWORD_RESET_TTL_MINUTES} minutes.\n\n"
+            f"{link}\n\n"
+            f"If you didn't request this, you can safely ignore this "
+            f"email.\n"
+        )
+        await send_email(
+            to=user.email,
+            subject="Reset your siege-range password",
+            body_text=body,
+        )
+        await audit_append(
+            db,
+            event_type=EventType.AUTH_PASSWORD_RESET_REQUEST,
+            actor_type=ActorType.USER,
+            actor_id=user.id,
+            resource_type="user",
+            resource_id=user.id,
+            payload={"email": payload.email},
+            **ctx,
+        )
+    else:
+        # Audit even the no-match case so log analysis can spot
+        # enumeration attempts (high-frequency requests for
+        # nonexistent emails from the same IP).
+        await audit_append(
+            db,
+            event_type=EventType.AUTH_PASSWORD_RESET_REQUEST,
+            actor_type=ActorType.ANONYMOUS,
+            actor_id=None,
+            resource_type=None,
+            resource_id=None,
+            payload={
+                "email": payload.email,
+                "matched": False,
+            },
+            **ctx,
+        )
+
+    await db.commit()
+    return ForgotPasswordResponse(
+        message=(
+            "If an account with that email exists, a password "
+            "reset link has been sent."
+        )
+    )
+
+
+@router.post(
+    "/reset-password",
+    response_model=ResetPasswordResponse,
+    responses={400: {"description": "Invalid or expired reset token"}},
+)
+async def reset_password_v1(
+    payload: ResetPasswordRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> ResetPasswordResponse:
+    """Redeem a reset token and set a new password."""
+
+    from app.services.audit import (
+        ActorType,
+        EventType,
+        append as audit_append,
+    )
+    from app.services.audit.request_context import context_from_request
+    from app.services.password_reset import (
+        InvalidResetToken,
+        redeem_token,
+    )
+
+    try:
+        user = await redeem_token(db, payload.token, payload.new_password)
+    except InvalidResetToken as exc:
+        # Audit the failure with the reason; client gets a generic
+        # 400 so the failure mode isn't enumerable.
+        await audit_append(
+            db,
+            event_type=EventType.AUTH_PASSWORD_RESET_REDEEM,
+            actor_type=ActorType.ANONYMOUS,
+            actor_id=None,
+            resource_type=None,
+            resource_id=None,
+            payload={"matched": False, "reason": str(exc)},
+            **context_from_request(request),
+        )
+        await db.commit()
+        raise HTTPException(
+            status_code=400, detail="invalid or expired token"
+        )
+
+    await audit_append(
+        db,
+        event_type=EventType.AUTH_PASSWORD_RESET_REDEEM,
+        actor_type=ActorType.USER,
+        actor_id=user.id,
+        resource_type="user",
+        resource_id=user.id,
+        payload={"matched": True},
+        **context_from_request(request),
+    )
+    await db.commit()
+    return ResetPasswordResponse(message="Password reset successful.")

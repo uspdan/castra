@@ -81,6 +81,21 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # Sprint 6 — outbound email (password reset, future verification).
+    # All optional in dev/test; required in production via the
+    # ``_check_smtp_for_env`` model validator below.
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_USE_TLS: bool = True
+    MAIL_FROM: Optional[str] = None
+    # Public URL clients build links against (password-reset emails embed
+    # ``{FRONTEND_URL}/reset-password?token=...``). Falls back to a
+    # known dev origin when unset; required in production.
+    FRONTEND_URL: Optional[str] = None
+    PASSWORD_RESET_TTL_MINUTES: int = 60
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     @field_validator("SECRET_KEY", "ADMIN_PASSWORD")
@@ -100,6 +115,37 @@ class Settings(BaseSettings):
                 "ALLOWED_ORIGINS must be set explicitly when APP_ENV=production"
             )
         return self
+
+    @model_validator(mode="after")
+    def _check_smtp_for_env(self) -> "Settings":
+        # Production must have SMTP wired so password reset emails
+        # actually deliver. Dev/test fall back to the stderr printer
+        # in app.services.email.
+        if self.APP_ENV == "production":
+            if not self.SMTP_HOST:
+                raise ValueError(
+                    "SMTP_HOST must be set when APP_ENV=production"
+                )
+            if not self.MAIL_FROM:
+                raise ValueError(
+                    "MAIL_FROM must be set when APP_ENV=production"
+                )
+            if not self.FRONTEND_URL:
+                raise ValueError(
+                    "FRONTEND_URL must be set when APP_ENV=production"
+                )
+        return self
+
+    def frontend_url(self) -> str:
+        """Public URL the frontend is reachable on, with sensible dev fallback."""
+
+        if self.FRONTEND_URL:
+            return self.FRONTEND_URL.rstrip("/")
+        if self.APP_ENV in ("development", "test"):
+            return "http://localhost:5173"
+        # Production validator above already rejected this case;
+        # belt-and-braces.
+        return "http://localhost"
 
     def allowed_origins_list(self) -> List[str]:
         """Parsed CORS origin list. Dev falls back to local Vite/React ports."""

@@ -474,3 +474,29 @@ class SolvedFlag(Base):
     is_first_blood_flag = Column(Boolean, default=False, nullable=False)
     validator_name = Column(String(64), nullable=True)
     solved_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class PasswordResetToken(Base):
+    """Single-use token issued by ``POST /auth/forgot-password``.
+
+    Sprint 6. ``token_hash`` stores sha256(cleartext) so a DB leak
+    never exposes a usable reset link. The cleartext is emailed to
+    the user once via ``services/email.py`` and never persisted.
+    Single-use — ``redeem_token`` sets ``used_at`` on success and
+    later attempts fail validation.
+    """
+
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    token_hash = Column(String(64), nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+

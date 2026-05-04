@@ -35,6 +35,8 @@ class EventType:
     AUTH_LOGIN_FAILED: Final = "auth.login.failed"
     AUTH_LOGOUT: Final = "auth.logout"
     AUTH_REFRESH: Final = "auth.refresh"
+    AUTH_PASSWORD_RESET_REQUEST: Final = "auth.password.reset.request"
+    AUTH_PASSWORD_RESET_REDEEM: Final = "auth.password.reset.redeem"
 
     FLAG_SUBMIT_PASS: Final = "challenge.flag.submit.pass"
     FLAG_SUBMIT_FAIL: Final = "challenge.flag.submit.fail"
@@ -53,6 +55,8 @@ _ALLOWED_EVENT_TYPES: Final = frozenset(
         EventType.AUTH_LOGIN_FAILED,
         EventType.AUTH_LOGOUT,
         EventType.AUTH_REFRESH,
+        EventType.AUTH_PASSWORD_RESET_REQUEST,
+        EventType.AUTH_PASSWORD_RESET_REDEEM,
         EventType.FLAG_SUBMIT_PASS,
         EventType.FLAG_SUBMIT_FAIL,
         EventType.CHALLENGE_RELEASED,

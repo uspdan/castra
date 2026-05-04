@@ -42,3 +42,8 @@ yara-python==4.5.4
 # (and via `-e ../packages/bluerange-spec` in requirements-test.txt
 # on the host). Keeping it out of this file means `pip install -r
 # requirements.txt` works equally on host and in the build context.
+
+# Sprint 6 — outbound email (password reset). aiosmtplib speaks
+# STARTTLS + auth out of the box; works against any modern SMTP
+# server. Pinned to the same major as the rest of the async stack.
+aiosmtplib==3.0.1
