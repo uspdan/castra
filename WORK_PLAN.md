@@ -4396,15 +4396,62 @@ closed in one sprint.
 - ✅ Reference LLM container: Dockerfile present, app.py
   passes ``python -c 'import app'`` import check.
 
+## Sprint 12 — backups, CSP reporting, handbooks (2026-05-05)
+
+User said keep going. Three more operational gaps closed.
+
+**Phase A — automated DB backups**
+* New ``services/backup.py::run_backup`` shells ``pg_dump |
+  gzip`` against ``settings.DATABASE_URL``, writes to
+  ``BACKUP_DIR``, prunes files older than
+  ``BACKUP_RETENTION_DAYS``.
+* New scheduler job ``nightly_db_backup`` at 02:30 UTC.
+* On failure: structured ERROR log + global Notification with
+  type ``backup_failed`` (visible in admin
+  NotificationDropdown).
+* Two new config knobs (``BACKUP_DIR``,
+  ``BACKUP_RETENTION_DAYS``) with sensible defaults; setting
+  ``BACKUP_DIR=""`` opts out for operators with an external
+  backup system.
+* 8 new unit tests covering URL parsing, prune logic, success,
+  failure cleanup, and disabled paths.
+
+**Phase B — CSP violation reporting**
+* New ``POST /csp-report`` endpoint accepts browser violation
+  reports (both legacy ``report-uri`` and newer ``report-to``
+  shapes), logs them as structured ``csp.violation`` JSON
+  with user-agent + IP for log-shipper alerting.
+* CSP header now carries ``report-uri /csp-report`` so
+  browsers know where to send. Existing strict directives
+  unchanged.
+* 4 new integration tests.
+
+**Phase C — author + operator handbooks**
+* New ``docs/operator-handbook.md`` — Day-1 deploy + Day-2
+  ops guide: TLS, env vars, logging events to dashboard,
+  metrics, tracing, backups, MFA, upgrade procedure, runbook
+  index, file-tree map.
+* New ``docs/author-handbook.md`` — challenge-author guide:
+  manifest anatomy, profile cheat-sheet, flag-type matrix,
+  hints / prerequisites / tests, image digest pinning,
+  authoring checklist, special-case guides (LLM honeypot,
+  multi-flag, blue-team), where-to-look-in-the-codebase map.
+
+**Verification (Sprint 12 gate)**
+
+- ✅ ``pytest backend/tests/`` — 618 passed @ 86.57% (was 606
+  / 86.92%).
+- ✅ ``curl -X POST /csp-report -d '{}'`` returns 204; a
+  malformed body still returns 204.
+- ✅ Both handbooks render cleanly under any markdown viewer.
+
 ## Awaiting
 
-* **Production smoke** — runbook exists; needs a real TLS host.
-* **promtool linting in CI** — ``docs/alerts/*.yml`` should be
-  linted on every PR; not relevant while GitHub Actions stays
-  off, but the command is documented in the alerts README.
-* **OTel collector deployment** — operator-side; the
-  ``docker-compose.prod.yml`` doesn't ship one. Pointing
-  ``OTEL_EXPORTER_OTLP_ENDPOINT`` at e.g. Grafana Tempo or a
-  Jaeger collector is a deployment-time decision.
+Out-of-session / operator-side only:
 
-Phase 0–12 + Sprints 1–11 in-session work shipped.
+* **Production smoke** — runbook exists; needs a real TLS host.
+* **OTel collector deployment** — point
+  ``OTEL_EXPORTER_OTLP_ENDPOINT`` at Tempo / Jaeger / Honeycomb.
+* **promtool linting in CI** — irrelevant while Actions is off.
+
+Phase 0–12 + Sprints 1–12 in-session work shipped.

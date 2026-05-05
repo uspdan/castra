@@ -191,6 +191,58 @@ async def verify_audit_ledger():
         logger.error("audit_ledger.notify_failed", error=str(exc))
 
 
+async def nightly_db_backup():
+    """Sprint 12 Phase A — automated DB backup via pg_dump.
+
+    Reads ``settings.BACKUP_DIR`` + ``BACKUP_RETENTION_DAYS``;
+    delegates to :func:`app.services.backup.run_backup`. On
+    failure, emits a global ``Notification(type="backup_failed")``
+    so admins see it in the NotificationDropdown.
+    """
+
+    from app.config import get_settings
+    from app.services.backup import run_backup
+    from app.services.notifications import create_notification
+
+    settings = get_settings()
+    backup_dir = (settings.BACKUP_DIR or "").strip()
+    if not backup_dir:
+        logger.info("backup.skipped", reason="BACKUP_DIR empty")
+        return
+
+    result = await run_backup(
+        database_url=settings.DATABASE_URL,
+        backup_dir=backup_dir,
+        retention_days=settings.BACKUP_RETENTION_DAYS,
+    )
+
+    if result.ok:
+        return
+
+    logger.error(
+        "backup.failed",
+        error=result.error,
+        duration_s=result.duration_s,
+    )
+    try:
+        async with async_session() as db:
+            await create_notification(
+                db,
+                title="Nightly DB backup failed",
+                message=(
+                    f"pg_dump returned an error: "
+                    f"{(result.error or '?')[:200]}. "
+                    f"Inspect the api container logs and re-run "
+                    f"`make backup` manually."
+                ),
+                notification_type="backup_failed",
+                is_global=True,
+            )
+            await db.commit()
+    except Exception as exc:  # noqa: BLE001
+        logger.error("backup.notify_failed", error=str(exc))
+
+
 async def prune_old_webhook_deliveries():
     """Phase 12 (slice 7) — drop webhook_deliveries rows past retention."""
 
@@ -223,6 +275,10 @@ def setup_scheduler():
     # Sprint 10 Phase B — hourly audit-ledger tamper sweep.
     scheduler.add_job(
         verify_audit_ledger, "interval", hours=1, id="audit_verify"
+    )
+    # Sprint 12 Phase A — nightly DB backup at 02:30 UTC.
+    scheduler.add_job(
+        nightly_db_backup, "cron", hour=2, minute=30, id="db_backup"
     )
     scheduler.start()
     logger.info("Scheduler started")

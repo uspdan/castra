@@ -104,6 +104,14 @@ class Settings(BaseSettings):
     # and existing users have verified.
     REQUIRE_EMAIL_VERIFIED: bool = False
 
+    # Sprint 12 Phase A — automated DB backups. Scheduler job runs
+    # ``pg_dump`` daily and writes to ``BACKUP_DIR``; files older
+    # than ``BACKUP_RETENTION_DAYS`` are pruned. Set ``BACKUP_DIR``
+    # to an empty string to disable the job (useful when an
+    # external backup system handles it).
+    BACKUP_DIR: str = "/var/lib/siege-range/backups"
+    BACKUP_RETENTION_DAYS: int = 30
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     @field_validator("SECRET_KEY", "ADMIN_PASSWORD")

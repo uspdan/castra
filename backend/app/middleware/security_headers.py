@@ -40,7 +40,14 @@ _PERMISSIONS_POLICY: str = ", ".join(
 )
 
 
-def _build_csp(connect_src_extra: Iterable[str] = ()) -> str:
+_CSP_REPORT_PATH = "/csp-report"
+
+
+def _build_csp(
+    connect_src_extra: Iterable[str] = (),
+    *,
+    include_report_uri: bool = True,
+) -> str:
     """Strict CSP suitable for a Vite-built React SPA.
 
     - script-src 'self': Vite production builds emit hashed assets, no
@@ -51,6 +58,9 @@ def _build_csp(connect_src_extra: Iterable[str] = ()) -> str:
     - connect-src 'self': API + websocket on the same origin (nginx
       fronts both). Extra entries (e.g. wss://...) can be added by the
       caller if a future deploy splits the origin.
+
+    Sprint 12 Phase B — when ``include_report_uri`` is set, browsers
+    POST CSP violations to ``/csp-report`` so we can audit-log them.
     """
 
     connect_src = " ".join(["'self'", *connect_src_extra]).strip()
@@ -66,6 +76,12 @@ def _build_csp(connect_src_extra: Iterable[str] = ()) -> str:
         "form-action 'self'",
         "object-src 'none'",
     ]
+    if include_report_uri:
+        # ``report-uri`` is the legacy directive (still honoured by
+        # every browser); ``report-to`` requires a separate
+        # Reporting-Endpoints header which isn't worth the extra
+        # plumbing today.
+        directives.append(f"report-uri {_CSP_REPORT_PATH}")
     return "; ".join(directives)
 
 

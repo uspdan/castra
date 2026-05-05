@@ -156,3 +156,47 @@ async def metrics() -> Response:
 
     body = generate_latest()
     return Response(content=body, media_type=CONTENT_TYPE_LATEST)
+
+
+# ---------------------------------------------------------------------------
+# /csp-report — Sprint 12 Phase B
+# ---------------------------------------------------------------------------
+from fastapi import Request as _Request
+
+_CSP_LOG = structlog.get_logger("siege_range.csp")
+
+
+@router.post("/csp-report", include_in_schema=False)
+async def csp_report(request: _Request) -> Response:
+    """Browser-posted CSP violation reports.
+
+    Logs every report as a structured JSON line so log-shippers
+    can dashboard / alert on volume. Body shape varies between
+    ``report-uri`` (legacy, application/csp-report) and
+    ``report-to`` (newer, application/reports+json) — we capture
+    whatever arrived plus the user-agent + IP.
+
+    Returns 204; browsers don't parse the response body.
+    """
+
+    import json
+
+    try:
+        body_bytes = await request.body()
+        try:
+            payload = json.loads(body_bytes) if body_bytes else None
+        except json.JSONDecodeError:
+            payload = {
+                "raw": body_bytes.decode("utf-8", errors="replace")[:2000]
+            }
+
+        _CSP_LOG.warning(
+            "csp.violation",
+            payload=payload,
+            user_agent=request.headers.get("user-agent", "")[:300],
+            client_ip=getattr(request.client, "host", None),
+        )
+    except Exception as exc:  # noqa: BLE001 — never fail browsers
+        _CSP_LOG.error("csp.report_handler_failed", error=str(exc))
+
+    return Response(status_code=204)
