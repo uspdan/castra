@@ -51,8 +51,11 @@ from app.schemas.v1.auth import (
     MfaPendingResponse,
     MfaVerifyRequest,
     ProfileUpdateRequest,
+    ResendVerificationResponse,
     ResetPasswordRequest,
     ResetPasswordResponse,
+    VerifyEmailRequest,
+    VerifyEmailResponse,
 )
 from app.services.mfa import (
     InvalidMfaCode,
@@ -103,6 +106,7 @@ def _to_auth_user(user: User) -> AuthUser:
         created_at=user.created_at,
         last_login=user.last_login,
         mfa_enabled=bool(getattr(user, "mfa_enabled", False)),
+        email_verified=bool(getattr(user, "email_verified", False)),
     )
 
 
@@ -153,6 +157,51 @@ async def register_v1(
         },
         **context_from_request(request),
     )
+
+    # Sprint 9 Phase B — issue an email-verification token and email
+    # the link. Best-effort: a transient SMTP outage does NOT block
+    # registration. The user can re-request via /auth/resend-
+    # verification.
+    from app.services.email import send_email
+    from app.services.email_verification import (
+        issue_token as issue_verify_token,
+    )
+
+    settings_local = get_settings()
+    try:
+        cleartext = await issue_verify_token(db, user)
+        link = (
+            f"{settings_local.frontend_url()}/verify-email"
+            f"?token={cleartext}"
+        )
+        body = (
+            f"Hi {user.display_name or user.username},\n\n"
+            f"Welcome to siege-range. Confirm your email so you don't "
+            f"lose access to your account:\n\n"
+            f"{link}\n\n"
+            f"The link expires in 24 hours. If you didn't sign up, "
+            f"you can ignore this email.\n"
+        )
+        await send_email(
+            to=user.email,
+            subject="Confirm your siege-range email",
+            body_text=body,
+        )
+        await audit_append(
+            db,
+            event_type=EventType.AUTH_EMAIL_VERIFY_REQUEST,
+            actor_type=ActorType.USER,
+            actor_id=user.id,
+            resource_type="user",
+            resource_id=user.id,
+            payload={"reason": "register"},
+            **context_from_request(request),
+        )
+    except Exception:
+        # Don't fail register if SMTP / token issue blew up; the
+        # user can still resend via /auth/resend-verification.
+        pass
+
     await db.commit()
 
     return AuthTokenPairResponse(
@@ -832,4 +881,110 @@ async def mfa_verify_v1(
         user=_to_auth_user(user),
         access_token=access,
         refresh_token=refresh,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Email verification — Sprint 9 Phase B
+# ---------------------------------------------------------------------------
+@router.post(
+    "/verify-email",
+    response_model=VerifyEmailResponse,
+    responses={400: {"description": "Invalid or expired token"}},
+)
+async def verify_email_v1(
+    payload: VerifyEmailRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> VerifyEmailResponse:
+    """Redeem an email-verification token and flip
+    ``users.email_verified`` to True. Single-use."""
+
+    from app.services.email_verification import (
+        InvalidVerificationToken,
+        redeem_token,
+    )
+
+    try:
+        user = await redeem_token(db, payload.token)
+    except InvalidVerificationToken as exc:
+        await audit_append(
+            db,
+            event_type=EventType.AUTH_EMAIL_VERIFY_REDEEM,
+            actor_type=ActorType.ANONYMOUS,
+            actor_id=None,
+            resource_type=None,
+            resource_id=None,
+            payload={"matched": False, "reason": str(exc)},
+            **context_from_request(request),
+        )
+        await db.commit()
+        raise HTTPException(
+            status_code=400, detail="invalid or expired token"
+        )
+
+    await audit_append(
+        db,
+        event_type=EventType.AUTH_EMAIL_VERIFY_REDEEM,
+        actor_type=ActorType.USER,
+        actor_id=user.id,
+        resource_type="user",
+        resource_id=user.id,
+        payload={"matched": True},
+        **context_from_request(request),
+    )
+    await db.commit()
+    return VerifyEmailResponse(message="Email verified.")
+
+
+@router.post(
+    "/resend-verification",
+    response_model=ResendVerificationResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def resend_verification_v1(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ResendVerificationResponse:
+    """Issue a new verification token and email the link.
+
+    No-op (still 202) if the user is already verified, so callers
+    can't probe verification state with this endpoint.
+    """
+
+    from app.services.email import send_email
+    from app.services.email_verification import (
+        issue_token as issue_verify_token,
+    )
+
+    settings_local = get_settings()
+    if not current_user.email_verified:
+        cleartext = await issue_verify_token(db, current_user)
+        link = (
+            f"{settings_local.frontend_url()}/verify-email"
+            f"?token={cleartext}"
+        )
+        await send_email(
+            to=current_user.email,
+            subject="Confirm your siege-range email",
+            body_text=(
+                f"Hi {current_user.display_name or current_user.username},\n\n"
+                f"Use this link to confirm your email — expires in "
+                f"24 hours:\n\n{link}\n"
+            ),
+        )
+        await audit_append(
+            db,
+            event_type=EventType.AUTH_EMAIL_VERIFY_REQUEST,
+            actor_type=ActorType.USER,
+            actor_id=current_user.id,
+            resource_type="user",
+            resource_id=current_user.id,
+            payload={"reason": "resend"},
+            **context_from_request(request),
+        )
+        await db.commit()
+    return ResendVerificationResponse(
+        message="Verification email sent if your account is not already verified."
     )

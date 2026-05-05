@@ -1,6 +1,6 @@
 # ADR 0001: AI / LLM honeypot challenge category
 
-- **Status**: Proposed
+- **Status**: Accepted (implemented in Sprint 9 Phase C, 2026-05-05)
 - **Date**: 2026-05-04
 - **Deciders**: Daniel Hay
 - **Context tag**: blue-team training, manifest v1+

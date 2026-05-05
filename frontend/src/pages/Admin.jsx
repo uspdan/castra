@@ -2,11 +2,12 @@ import { Fragment, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Trophy, FileText, Activity, Server, Webhook, Trash2,
-  RefreshCw, Plus, ChevronLeft, ChevronRight, Search,
+  RefreshCw, Plus, ChevronLeft, ChevronRight, Search, Edit2,
 } from 'lucide-react'
 import useAuthStore from '../stores/authStore'
 import { toast } from '../stores/toastStore'
 import client from '../api/client'
+import ChallengeEditor from '../components/ChallengeEditor'
 
 const tabs = [
   { id: 'users', label: 'Users', icon: Users },
@@ -161,6 +162,8 @@ function UsersTab() {
 function ChallengesTab() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
+  const [editor, setEditor] = useState(null)
+  // editor: null | { mode: 'create' } | { mode: 'edit', initial: {...} }
 
   const load = async () => {
     setLoading(true)
@@ -193,12 +196,30 @@ function ChallengesTab() {
     }
   }
 
+  const openEdit = async (slug) => {
+    // The public catalogue endpoint hides docker_image / docker_port
+    // / docker_config by design; pull the admin-side detail which
+    // includes them.
+    try {
+      const res = await client.get(`/api/v1/admin/challenges/${slug}`)
+      setEditor({ mode: 'edit', initial: res.data })
+    } catch (err) {
+      toast({ type: 'error', message: err.response?.data?.detail || 'Could not load' })
+    }
+  }
+
   if (loading) return <Loader />
 
   return (
     <div>
-      <div className="flex justify-between mb-3">
+      <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-mono" style={{ color: 'var(--text-muted)' }}>{items.length} challenges</span>
+        <button onClick={() => setEditor({ mode: 'create' })}
+          data-testid="challenge-new"
+          className="flex items-center gap-1 text-xs px-3 py-1 rounded"
+          style={{ background: 'var(--accent-cyan)', color: 'var(--bg-primary)' }}>
+          <Plus size={12} /> New
+        </button>
       </div>
       <table className="w-full text-sm">
         <thead>
@@ -230,6 +251,10 @@ function ChallengesTab() {
                 )}
               </td>
               <td className="py-2 text-right">
+                <button onClick={() => openEdit(c.slug)} title="Edit"
+                  className="p-1 rounded mr-1" style={{ color: 'var(--text-muted)' }}>
+                  <Edit2 size={12} />
+                </button>
                 <button onClick={() => remove(c.slug)} title="Soft-delete"
                   className="p-1 rounded" style={{ color: 'var(--accent-red)' }}>
                   <Trash2 size={12} />
@@ -239,6 +264,15 @@ function ChallengesTab() {
           ))}
         </tbody>
       </table>
+
+      {editor && (
+        <ChallengeEditor
+          mode={editor.mode}
+          initial={editor.initial}
+          onClose={() => setEditor(null)}
+          onSaved={() => load()}
+        />
+      )}
     </div>
   )
 }

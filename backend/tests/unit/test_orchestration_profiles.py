@@ -14,6 +14,7 @@ def test_registered_names_are_exact() -> None:
         "default-strict",
         "egress-proxied",
         "egress-proxied-sidecar",
+        "llm-sandbox",
         "malware-sandbox",
     )
 

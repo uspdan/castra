@@ -46,6 +46,8 @@ class EventType:
     AUTH_MFA_DISABLE: Final = "auth.mfa.disable"
     AUTH_MFA_VERIFY_SUCCESS: Final = "auth.mfa.verify.success"
     AUTH_MFA_VERIFY_FAILED: Final = "auth.mfa.verify.failed"
+    AUTH_EMAIL_VERIFY_REQUEST: Final = "auth.email.verify.request"
+    AUTH_EMAIL_VERIFY_REDEEM: Final = "auth.email.verify.redeem"
 
     FLAG_SUBMIT_PASS: Final = "challenge.flag.submit.pass"
     FLAG_SUBMIT_FAIL: Final = "challenge.flag.submit.fail"
@@ -75,6 +77,8 @@ _ALLOWED_EVENT_TYPES: Final = frozenset(
         EventType.AUTH_MFA_DISABLE,
         EventType.AUTH_MFA_VERIFY_SUCCESS,
         EventType.AUTH_MFA_VERIFY_FAILED,
+        EventType.AUTH_EMAIL_VERIFY_REQUEST,
+        EventType.AUTH_EMAIL_VERIFY_REDEEM,
         EventType.FLAG_SUBMIT_PASS,
         EventType.FLAG_SUBMIT_FAIL,
         EventType.CHALLENGE_RELEASED,

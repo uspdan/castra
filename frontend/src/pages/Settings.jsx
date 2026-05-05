@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Save, Key, ShieldAlert, Download, Trash2, ShieldCheck } from 'lucide-react'
+import { Save, Key, ShieldAlert, Download, Trash2, ShieldCheck, Mail, CheckCircle2 } from 'lucide-react'
 import useAuthStore from '../stores/authStore'
 import { toast } from '../stores/toastStore'
 import client from '../api/client'
@@ -26,6 +26,7 @@ export default function Settings() {
         </p>
       </header>
 
+      <EmailSection user={user} />
       <ProfileSection user={user} setUser={setUser} />
       <PasswordSection />
       <MfaSection user={user} setUser={setUser} />
@@ -504,5 +505,55 @@ function Field({ label, children }) {
       </span>
       {children}
     </label>
+  )
+}
+
+
+// -----------------------------------------------------------------------------
+// Email verification — Sprint 9 Phase B
+// -----------------------------------------------------------------------------
+function EmailSection({ user }) {
+  const verified = !!user?.email_verified
+  const [busy, setBusy] = useState(false)
+
+  const handleResend = async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      await client.post('/api/v1/auth/resend-verification')
+      toast({
+        type: 'success',
+        message: "Verification email sent. Check your inbox.",
+      })
+    } catch (err) {
+      toast({ type: 'error', message: err.response?.data?.detail || 'Resend failed' })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Card title="Email" icon={<Mail size={14} />} accent={verified ? 'cyan' : 'red'}>
+      {verified ? (
+        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--accent-green)' }}>
+          <CheckCircle2 size={16} /> {user?.email} verified.
+        </div>
+      ) : (
+        <>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <strong>{user?.email}</strong> is not yet verified. Check your inbox for the confirmation link, or resend below.
+          </p>
+          <button
+            onClick={handleResend}
+            disabled={busy}
+            data-testid="settings-resend-verification"
+            className="px-4 py-2 rounded text-sm font-bold disabled:opacity-50"
+            style={{ background: 'var(--accent-cyan)', color: 'var(--bg-primary)' }}
+          >
+            {busy ? 'Sending...' : 'Resend verification email'}
+          </button>
+        </>
+      )}
+    </Card>
   )
 }

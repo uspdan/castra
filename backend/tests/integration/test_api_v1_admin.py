@@ -355,6 +355,56 @@ class TestUpdateUserV1:
 
 
 # ---------------------------------------------------------------------------
+# Challenge detail (admin-side editor population)
+# ---------------------------------------------------------------------------
+class TestGetChallengeDetailV1:
+    async def test_returns_full_admin_shape(
+        self, client, user_factory, auth_headers, challenge_factory
+    ):
+        from app.models import UserRole
+
+        admin = await user_factory(role=UserRole.admin)
+        await challenge_factory(slug="adm-detail-1", points=200)
+        r = await client.get(
+            "/api/v1/admin/challenges/adm-detail-1",
+            headers=auth_headers(admin),
+        )
+        assert r.status_code == 200, r.text
+        body = r.json()
+        # Locked extra=forbid + includes docker fields the public
+        # detail intentionally hides.
+        assert "docker_image" in body
+        assert "docker_port" in body
+        assert "docker_config" in body
+        assert "prerequisite_ids" in body
+        assert "hints" in body
+        assert "solve_count" in body
+        assert body["slug"] == "adm-detail-1"
+        assert body["points"] == 200
+
+    async def test_requires_admin(
+        self, client, user_factory, auth_headers, challenge_factory
+    ):
+        operator = await user_factory()
+        await challenge_factory(slug="adm-detail-2")
+        r = await client.get(
+            "/api/v1/admin/challenges/adm-detail-2",
+            headers=auth_headers(operator),
+        )
+        assert r.status_code == 403
+
+    async def test_404_unknown(self, client, user_factory, auth_headers):
+        from app.models import UserRole
+
+        admin = await user_factory(role=UserRole.admin)
+        r = await client.get(
+            "/api/v1/admin/challenges/no-such-slug",
+            headers=auth_headers(admin),
+        )
+        assert r.status_code == 404
+
+
+# ---------------------------------------------------------------------------
 # Multi-flag flags
 # ---------------------------------------------------------------------------
 class TestAddChallengeFlagV1:

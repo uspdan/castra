@@ -29,6 +29,7 @@ _USER_FIELDS = {
     "created_at",
     "last_login",
     "mfa_enabled",
+    "email_verified",
 }
 
 _TOKEN_PAIR_FIELDS = {"user", "access_token", "refresh_token", "token_type"}

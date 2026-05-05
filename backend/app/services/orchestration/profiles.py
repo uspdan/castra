@@ -137,11 +137,35 @@ _EGRESS_PROXIED_SIDECAR = ContainerProfile(
 )
 
 
+# Sprint 9 Phase C — AI/LLM honeypot challenges. Functionally a thin
+# variant of ``egress-proxied``: the challenge container can reach the
+# inference endpoint via the egress allowlist (operator-supplied
+# OpenAI-compatible URL) and nothing else. ttl is shorter (LLM
+# challenges should be quick), cap_drop / read_only stay maximal.
+_LLM_SANDBOX = ContainerProfile(
+    name="llm-sandbox",
+    seccomp_profile="default-strict",
+    mem_limit="512m",
+    cpu_quota=100_000,
+    cpu_period=100_000,
+    pids_limit=128,
+    tmpfs=_DEFAULT_TMPFS,
+    ttl_seconds_max=1_800,
+    network_mode="egress-proxied",
+    egress_allowlist_required=True,
+    cap_drop=("ALL",),
+    cap_add=(),
+    security_opt=("no-new-privileges:true",),
+    read_only=True,
+)
+
+
 PROFILES: Final[Mapping[str, ContainerProfile]] = {
     _DEFAULT_STRICT.name: _DEFAULT_STRICT,
     _MALWARE_SANDBOX.name: _MALWARE_SANDBOX,
     _EGRESS_PROXIED.name: _EGRESS_PROXIED,
     _EGRESS_PROXIED_SIDECAR.name: _EGRESS_PROXIED_SIDECAR,
+    _LLM_SANDBOX.name: _LLM_SANDBOX,
 }
 
 

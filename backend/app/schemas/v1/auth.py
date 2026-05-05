@@ -40,6 +40,10 @@ class AuthUser(BaseModel):
     # render the right MFA UI (enrol vs disable). False until the
     # user finishes the confirm step.
     mfa_enabled: bool = False
+    # Sprint 9 Phase B — flipped True when the user redeems an
+    # email-verification token. Exposed so the frontend can show
+    # an "unverified" banner / nudge.
+    email_verified: bool = False
 
 
 class AuthRegisterRequest(BaseModel):
@@ -284,3 +288,24 @@ class MfaVerifyRequest(BaseModel):
 
     mfa_pending_token: str = Field(min_length=1, max_length=4096)
     code: str = Field(min_length=6, max_length=8)
+
+
+# ---------------------------------------------------------------------------
+# Email verification — Sprint 9 Phase B
+# ---------------------------------------------------------------------------
+class VerifyEmailRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    token: str = Field(min_length=1, max_length=512)
+
+
+class VerifyEmailResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    message: str
+
+
+class ResendVerificationResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    message: str

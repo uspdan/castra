@@ -48,6 +48,7 @@ FlagType = Literal[
     "chain_of_custody",
     "attack_chain",
     "cloud_misconfig",
+    "llm_signal",
 ]
 
 
@@ -211,6 +212,39 @@ class CloudMisconfigFlag(_BaseFlag):
     allow_extra: bool = False
 
 
+class LlmSignalFlag(_BaseFlag):
+    """LLM honeypot signal flag (ADR 0001 / Sprint 9 Phase C).
+
+    Player POSTs a captured LLM transcript; the validator regex-
+    matches against ``patterns`` and considers the flag captured
+    when at least ``min_matches`` patterns hit anywhere in the
+    transcript. Bait secrecy is intentionally out of scope at the
+    manifest level — patterns ride in plaintext for self-hosted
+    deployments. The encrypted-bundle path described in ADR 0001
+    is queued for a future iteration when private-challenge-set
+    distribution becomes a concern.
+    """
+
+    type: Literal["llm_signal"] = "llm_signal"
+    patterns: List[str] = Field(min_length=1, max_length=32)
+    case_sensitive: bool = False
+    min_matches: int = Field(default=1, ge=1, le=32)
+
+    @field_validator("patterns")
+    @classmethod
+    def _patterns_compile(cls, v: List[str]) -> List[str]:
+        import re
+
+        for p in v:
+            if not isinstance(p, str) or not p:
+                raise ValueError("patterns entries must be non-empty strings")
+            try:
+                re.compile(p)
+            except re.error as exc:
+                raise ValueError(f"pattern does not compile: {p!r}: {exc}") from exc
+        return v
+
+
 Flag = Union[
     ExactFlag,
     RegexFlag,
@@ -220,6 +254,7 @@ Flag = Union[
     ChainOfCustodyFlag,
     AttackChainFlag,
     CloudMisconfigFlag,
+    LlmSignalFlag,
 ]
 """Discriminated union of all first-party flag types.
 

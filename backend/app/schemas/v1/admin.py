@@ -114,6 +114,37 @@ class AdminChallengeResponse(BaseModel):
     created_at: datetime
 
 
+class AdminChallengeDetailResponse(BaseModel):
+    """Full admin-side view of a challenge — includes the docker
+    fields the v1 public detail endpoint intentionally hides.
+
+    Used by the admin Challenge editor to pre-populate the form.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: int = Field(ge=1)
+    slug: str
+    title: str
+    description: str
+    category: str
+    team: str
+    difficulty: int = Field(ge=1, le=5)
+    points: int = Field(ge=1)
+    docker_image: str
+    docker_port: int = Field(ge=1, le=65_535)
+    docker_config: Dict[str, Any]
+    prerequisite_ids: List[int]
+    hints: List[Dict[str, Any]]
+    skills: List[str]
+    mitre_techniques: List[str]
+    is_released: bool
+    is_active: bool
+    released_at: Optional[datetime] = None
+    created_at: datetime
+    solve_count: int = Field(ge=0)
+
+
 # ---------------------------------------------------------------------------
 # User role / status updates
 # ---------------------------------------------------------------------------

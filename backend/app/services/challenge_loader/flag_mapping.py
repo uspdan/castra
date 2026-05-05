@@ -23,6 +23,7 @@ from bluerange_spec import (
     ChainOfCustodyFlag,
     CloudMisconfigFlag,
     ExactFlag,
+    LlmSignalFlag,
     MultiPartFlag,
     RegexFlag,
     SigmaRuleFlag,
@@ -155,5 +156,18 @@ def flag_to_dispatch(flag) -> FlagDispatchArgs:
             label=flag.label,
             value_hash=None,
             config=config,
+        )
+    if isinstance(flag, LlmSignalFlag):
+        return FlagDispatchArgs(
+            flag_id=flag.id,
+            flag_type="llm_signal",
+            points=flag.points,
+            label=flag.label,
+            value_hash=None,
+            config={
+                "patterns": list(flag.patterns),
+                "case_sensitive": flag.case_sensitive,
+                "min_matches": flag.min_matches,
+            },
         )
     raise TypeError(f"unsupported flag type: {type(flag).__name__}")

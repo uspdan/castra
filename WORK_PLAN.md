@@ -4223,19 +4223,71 @@ hard-coded "ok" system status that ignored the readiness probes.
 - ✅ ``npm run build`` — clean, 712 kB (+8 kB for the new
   Admin tabs).
 
+## Sprint 9 — author form + email verify + LLM honeypot (2026-05-05)
+
+User picked all three queued items in one sprint.
+
+**Phase A — challenge author form**
+* New ``ChallengeEditor.jsx`` modal handles create + edit.
+* Admin → Challenges tab gains "New" button + per-row Edit icon.
+* New backend endpoint ``GET /api/v1/admin/challenges/{slug}``
+  returns the full admin-only detail (docker fields the public
+  endpoint hides). New ``AdminChallengeDetailResponse`` schema.
+* 3 new integration tests.
+
+**Phase B — email verification**
+* Migration 013: ``users.email_verified`` + ``email_verification_tokens``.
+* New ``services/email_verification.py``; register-flow now
+  best-effort issues a token + emails the link via existing
+  ``services/email.py``.
+* ``POST /api/v1/auth/verify-email`` and
+  ``POST /api/v1/auth/resend-verification``.
+* AuthUser shape gains ``email_verified``. Login NOT gated on it
+  yet; operator opt-in is a future flag.
+* Frontend ``/verify-email`` page; Settings gains an Email
+  section nudging unverified users + offering resend.
+* Audit events: ``auth.email.verify.request`` / ``.redeem``.
+* 7 new integration tests.
+
+**Phase C — LLM honeypot validator + reference challenge**
+ADR 0001 status flips Proposed → Accepted.
+
+* New validator ``app/validators/llm_signal.py`` regex-matches a
+  captured LLM transcript; ``min_matches`` patterns must hit.
+  Reuses the regex validator's re2/re fallback.
+* Entry-point registration in ``backend/pyproject.toml``.
+* New container profile ``llm-sandbox`` (thin variant of
+  ``egress-proxied`` with a tighter TTL ceiling).
+* New ``LlmSignalFlag`` in the spec with pattern-compile
+  validation; JSON schema regenerated via ``make regen-schema``.
+  Allowlist validation widened to accept the three egress
+  profiles (``egress-proxied`` / ``egress-proxied-sidecar`` /
+  ``llm-sandbox``).
+* New flag mapping so the loader converts spec → DB row
+  end-to-end.
+* Reference challenge
+  ``examples/challenges/llm-customer-pii/manifest.yaml`` —
+  prompt-injection / PII-leak with a 4-case harness test
+  matrix.
+* Operator runbook
+  ``docs/runbooks/llm-honeypot-operator.md``.
+* 13 new unit tests in ``test_validators_llm_signal.py``.
+
+**Verification (Sprint 9 gate)**
+
+- ✅ ``pytest backend/tests/`` — 583 passed @ 86.89% (was 564 /
+  86.64%).
+- ✅ ``pytest packages/bluerange-spec/tests/`` — 38/38.
+- ✅ ``npm run build`` — clean.
+
 ## Awaiting
 
-Off-session work that needs a real environment or new
-infrastructure:
+* **Production smoke** — runbook exists; needs a real TLS host.
+* **Login gate on email_verified** — operator opt-in config flag
+  for a future sprint; default off.
+* **LLM honeypot challenge container image** — the reference
+  manifest declares ``image: siege/llm-customer-support`` but
+  the actual Dockerfile + FastAPI service is challenge-author
+  work, not platform code.
 
-* **AI/LLM honeypot implementation** — ADR 0001 captures the
-  design; implementation queued.
-* **Production smoke** — runbook exists; needs a real TLS host
-  to execute against.
-* **Email verification on register** — natural pairing with the
-  password-reset / MFA flows; not in scope this round.
-* **Challenge create/edit form** — Admin tab can release +
-  soft-delete; full author UI (POST + PATCH against
-  ``/api/v1/admin/challenges``) is the next admin-side iteration.
-
-Phase 0–12 + Sprints 1–8 in-session work shipped.
+Phase 0–12 + Sprints 1–9 in-session work shipped.

@@ -65,6 +65,13 @@ class User(Base):
     mfa_enabled = Column(
         Boolean, default=False, nullable=False, server_default="false"
     )
+    # Sprint 9 Phase B — set True when the user redeems an
+    # email-verification token. Login is NOT gated on this today;
+    # operator opt-in via a future config flag will make verified
+    # mandatory.
+    email_verified = Column(
+        Boolean, default=False, nullable=False, server_default="false"
+    )
 
     solves = relationship("Solve", back_populates="user", lazy="selectin")
     instances = relationship("ChallengeInstance", back_populates="user", lazy="selectin")
@@ -527,5 +534,29 @@ class MfaRecoveryCode(Base):
         index=True,
     )
     code_hash = Column(String(64), nullable=False, unique=True, index=True)
+    used_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class EmailVerificationToken(Base):
+    """Single-use token issued by ``POST /auth/register`` (and by
+    ``POST /auth/resend-verification``).
+
+    Sprint 9 Phase B. Same hash-at-rest discipline as
+    ``PasswordResetToken``: cleartext is mailed once, sha256 hash
+    lives in this table.
+    """
+
+    __tablename__ = "email_verification_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    token_hash = Column(String(64), nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
     used_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)

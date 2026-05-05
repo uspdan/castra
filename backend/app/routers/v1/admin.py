@@ -37,6 +37,7 @@ from app.models import (
 )
 from app.schemas.v1.admin import (
     AdminChallengeCreateRequest,
+    AdminChallengeDetailResponse,
     AdminChallengeFlagRequest,
     AdminChallengeFlagResponse,
     AdminChallengeResponse,
@@ -300,6 +301,65 @@ async def delete_challenge_v1(
     await db.commit()
     await db.refresh(chal)
     return _to_challenge_response(chal)
+
+
+# ---------------------------------------------------------------------------
+# Admin challenge detail (Sprint 9 — populates the editor form)
+# ---------------------------------------------------------------------------
+@router.get(
+    "/challenges/{slug}",
+    response_model=AdminChallengeDetailResponse,
+    responses={
+        403: {"description": "Admin role required"},
+        404: {"description": "Challenge not found"},
+    },
+)
+async def get_challenge_detail_v1(
+    slug: str,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AdminChallengeDetailResponse:
+    """Admin-side full challenge view including docker fields.
+
+    The public ``GET /api/v1/challenges/{slug}`` deliberately hides
+    docker_image / docker_port / docker_config so competitors can't
+    inspect challenge internals. The admin editor needs them.
+    """
+
+    chal = (
+        await db.execute(select(Challenge).where(Challenge.slug == slug))
+    ).scalars().first()
+    if not chal:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+
+    solve_count = (
+        await db.execute(
+            select(func.count(Solve.id)).where(Solve.challenge_id == chal.id)
+        )
+    ).scalar() or 0
+
+    return AdminChallengeDetailResponse(
+        id=chal.id,
+        slug=chal.slug,
+        title=chal.title,
+        description=chal.description,
+        category=chal.category,
+        team=chal.team.value if chal.team else "red",
+        difficulty=chal.difficulty,
+        points=chal.points,
+        docker_image=chal.docker_image,
+        docker_port=chal.docker_port,
+        docker_config=dict(chal.docker_config or {}),
+        prerequisite_ids=list(chal.prerequisite_ids or []),
+        hints=list(chal.hints or []),
+        skills=list(chal.skills or []),
+        mitre_techniques=list(chal.mitre_techniques or []),
+        is_released=bool(chal.is_released),
+        is_active=bool(chal.is_active),
+        released_at=chal.released_at,
+        created_at=chal.created_at,
+        solve_count=int(solve_count),
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -30,7 +30,15 @@ _IMAGE_RE = re.compile(
 _FQDN_RE = re.compile(
     r"^(?=.{1,253}$)(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))+$"
 )
-_EGRESS_PROFILE_NAME = "egress-proxied"
+# Profiles that legitimately accept an ``egress_allowlist`` — i.e.
+# launchers that route the challenge container through a per-FQDN
+# allowlist. ``egress-proxied`` is the original Phase-9 shared-proxy
+# variant; ``egress-proxied-sidecar`` (Sprint 5 follow-up) and
+# ``llm-sandbox`` (Sprint 9 Phase C, ADR 0001) are functionally
+# equivalent from the manifest author's perspective.
+_EGRESS_PROFILE_NAMES = frozenset(
+    {"egress-proxied", "egress-proxied-sidecar", "llm-sandbox"}
+)
 
 
 class Container(BaseModel):
@@ -93,9 +101,10 @@ class Container(BaseModel):
     def _allowlist_only_with_egress_profile(self) -> "Container":
         if (
             self.egress_allowlist is not None
-            and self.profile != _EGRESS_PROFILE_NAME
+            and self.profile not in _EGRESS_PROFILE_NAMES
         ):
             raise ValueError(
-                "egress_allowlist is only valid when profile='egress-proxied'"
+                "egress_allowlist is only valid when profile is one of "
+                f"{sorted(_EGRESS_PROFILE_NAMES)}"
             )
         return self

@@ -504,6 +504,71 @@
       "title": "Hint",
       "type": "object"
     },
+    "LlmSignalFlag": {
+      "additionalProperties": false,
+      "description": "LLM honeypot signal flag (ADR 0001 / Sprint 9 Phase C).\n\nPlayer POSTs a captured LLM transcript; the validator regex-\nmatches against ``patterns`` and considers the flag captured\nwhen at least ``min_matches`` patterns hit anywhere in the\ntranscript. Bait secrecy is intentionally out of scope at the\nmanifest level \u2014 patterns ride in plaintext for self-hosted\ndeployments. The encrypted-bundle path described in ADR 0001\nis queued for a future iteration when private-challenge-set\ndistribution becomes a concern.",
+      "properties": {
+        "case_sensitive": {
+          "default": false,
+          "title": "Case Sensitive",
+          "type": "boolean"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]$|^[a-z0-9]$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "min_matches": {
+          "default": 1,
+          "maximum": 32,
+          "minimum": 1,
+          "title": "Min Matches",
+          "type": "integer"
+        },
+        "patterns": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "title": "Patterns",
+          "type": "array"
+        },
+        "points": {
+          "maximum": 100000,
+          "minimum": 0,
+          "title": "Points",
+          "type": "integer"
+        },
+        "type": {
+          "const": "llm_signal",
+          "default": "llm_signal",
+          "title": "Type"
+        }
+      },
+      "required": [
+        "id",
+        "points",
+        "patterns"
+      ],
+      "title": "LlmSignalFlag",
+      "type": "object"
+    },
     "MultiPartFlag": {
       "additionalProperties": false,
       "properties": {
@@ -903,6 +968,9 @@
           },
           {
             "$ref": "#/$defs/CloudMisconfigFlag"
+          },
+          {
+            "$ref": "#/$defs/LlmSignalFlag"
           }
         ]
       },

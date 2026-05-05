@@ -32,6 +32,8 @@ yara_rule = "app.validators.yara_rule:YaraRuleValidator"
 chain_of_custody = "app.validators.chain_of_custody:ChainOfCustodyValidator"
 attack_chain = "app.validators.attack_chain:AttackChainValidator"
 cloud_misconfig = "app.validators.cloud_misconfig:CloudMisconfigValidator"
+# Sprint 9 Phase C — AI/LLM honeypot (ADR 0001).
+llm_signal = "app.validators.llm_signal:LlmSignalValidator"
 
 [tool.setuptools.packages.find]
 include = ["app*"]
