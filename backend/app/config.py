@@ -96,6 +96,14 @@ class Settings(BaseSettings):
     FRONTEND_URL: Optional[str] = None
     PASSWORD_RESET_TTL_MINUTES: int = 60
 
+    # Sprint 10 Phase C — opt-in login gate. When True,
+    # ``POST /api/v1/auth/login`` returns 403 with
+    # ``detail="email not verified"`` for users whose
+    # ``email_verified`` is False. Default off so existing
+    # deployments aren't broken; flip on after SMTP is wired
+    # and existing users have verified.
+    REQUIRE_EMAIL_VERIFIED: bool = False
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     @field_validator("SECRET_KEY", "ADMIN_PASSWORD")

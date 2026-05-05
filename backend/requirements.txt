@@ -51,3 +51,8 @@ aiosmtplib==3.0.1
 # Sprint 7 Phase C — MFA / TOTP. pyotp generates and verifies
 # RFC 6238 codes; tiny pure-python lib with no dependencies.
 pyotp==2.9.0
+
+# Sprint 10 Phase A — Prometheus /metrics. Tiny pure-python lib;
+# the FastAPI middleware below records request count + latency
+# histogram per (method, route, status_code).
+prometheus-client==0.20.0

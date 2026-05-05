@@ -278,6 +278,28 @@ async def login_v1(
         await db.commit()
         raise HTTPException(status_code=403, detail="Account is disabled")
 
+    # Sprint 10 Phase C — operator opt-in: refuse login until the
+    # user has clicked through their verification email.
+    settings_for_gate = get_settings()
+    if (
+        settings_for_gate.REQUIRE_EMAIL_VERIFIED
+        and not user.email_verified
+    ):
+        await audit_append(
+            db,
+            event_type=EventType.AUTH_LOGIN_FAILED,
+            actor_type=ActorType.USER,
+            actor_id=user.id,
+            resource_type="user",
+            resource_id=user.id,
+            payload={"email": payload.email, "reason": "email_not_verified"},
+            **ctx,
+        )
+        await db.commit()
+        raise HTTPException(
+            status_code=403, detail="email not verified"
+        )
+
     await clear_failed_logins(payload.email, redis_client)
 
     # MFA short-circuit: if the user has MFA enabled we return a

@@ -4280,14 +4280,73 @@ ADR 0001 status flips Proposed → Accepted.
 - ✅ ``pytest packages/bluerange-spec/tests/`` — 38/38.
 - ✅ ``npm run build`` — clean.
 
+## Sprint 10 — operational hardening (2026-05-05)
+
+User picked the operational layer for Sprint 10. Four phases.
+
+**Phase A — Prometheus ``/metrics``**
+* New ``app/middleware/metrics.py`` with the RED triad — counter
+  ``http_requests_total{method, route, status}``, histogram
+  ``http_request_duration_seconds{method, route}``, gauge
+  ``http_requests_in_progress{method}``. ``route`` is the FastAPI
+  route template (e.g. ``/api/v1/challenges/{slug}``) so
+  cardinality stays bounded.
+* New ``GET /metrics`` on the health router emits the standard
+  Prometheus exposition format.
+* Middleware skips ``/metrics`` itself so scrape traffic doesn't
+  inflate counters.
+* New runtime dep: ``prometheus-client==0.20.0``.
+* 4 new integration tests.
+
+**Phase B — audit ledger tamper-detection scheduler job**
+* New ``scheduler.verify_audit_ledger`` runs hourly. Re-walks the
+  hash chain via the existing ``app.tools.audit_verify._verify``
+  helper.
+* On a finding: emits a global ``Notification`` with type
+  ``audit_tamper`` (visible immediately in the
+  NotificationDropdown via the Sprint-6 WS broadcast helper) +
+  structured ``ERROR`` log line for log-shipper alerting.
+* Operational failure (DB unreachable) is logged, never raises.
+* 3 new integration tests.
+
+**Phase C — ``REQUIRE_EMAIL_VERIFIED`` login gate**
+* New config flag (default ``False``).
+* When ``True`` and the user's ``email_verified`` is ``False``,
+  ``POST /api/v1/auth/login`` returns 403 with detail
+  ``"email not verified"``. Audit row records reason
+  ``email_not_verified``.
+* 3 new integration tests covering off / on-blocked /
+  on-verified-passes paths.
+
+**Phase D — scoreboard Redis cache**
+* New ``services/scoreboard_cache.py`` wraps
+  ``compute_scoreboard`` with a 60-second TTL Redis cache keyed
+  on ``(team_filter, limit)``. Graceful degradation: any Redis
+  failure logs WARN and falls through to live computation.
+  ``ttl_seconds=0`` disables caching for debugging.
+* ``GET /api/v1/scoreboard`` migrated to the cached wrapper.
+* 7 new integration tests including corrupt-cache fallback,
+  Redis-down degradation, and TTL=0 bypass.
+
+**Verification (Sprint 10 gate)**
+
+- ✅ ``pytest backend/tests/`` — 600 passed @ 86.93% (was 583 /
+  86.89%).
+- ✅ ``curl /metrics`` returns valid Prometheus exposition.
+- ✅ ``curl /api/v1/scoreboard`` twice → second call hits Redis
+  (verified via ``test_scoreboard_cache.py::test_returns_cache_on_hit``).
+
 ## Awaiting
 
 * **Production smoke** — runbook exists; needs a real TLS host.
-* **Login gate on email_verified** — operator opt-in config flag
-  for a future sprint; default off.
-* **LLM honeypot challenge container image** — the reference
-  manifest declares ``image: siege/llm-customer-support`` but
-  the actual Dockerfile + FastAPI service is challenge-author
+* **LLM honeypot challenge container image** — challenge-author
   work, not platform code.
+* **OpenTelemetry tracing** — ``/metrics`` covers the RED data
+  plane; spans/traces would complete CLAUDE.md §14.3. Future
+  sprint.
+* **Alert definitions** — Prometheus rules for the new metrics
+  (``http_request_duration_seconds`` p99, ``audit_tamper``
+  notification rate). One per failure mode in
+  ``docs/alerts/``. Future sprint.
 
-Phase 0–12 + Sprints 1–9 in-session work shipped.
+Phase 0–12 + Sprints 1–10 in-session work shipped.

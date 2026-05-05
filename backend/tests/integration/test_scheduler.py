@@ -394,6 +394,96 @@ class TestWebhookSchedulerJobs:
 
 
 # ---------------------------------------------------------------------------
+# verify_audit_ledger — Sprint 10 Phase B
+# ---------------------------------------------------------------------------
+class TestVerifyAuditLedger:
+    async def test_clean_chain_no_notification(
+        self, _bootstrap_env, monkeypatch
+    ):
+        from app.services import scheduler
+
+        async def _fake_verify():
+            return {
+                "ok": True,
+                "rows_checked": 5,
+                "tail_seq": 5,
+                "tail_hash": "abcd",
+                "findings": [],
+            }
+
+        import app.tools.audit_verify as av_mod
+        monkeypatch.setattr(av_mod, "_verify", _fake_verify)
+        # Should not raise; returns silently on OK.
+        await scheduler.verify_audit_ledger()
+
+    async def test_tamper_emits_notification(
+        self, _bootstrap_env, monkeypatch
+    ):
+        from app.database import async_session
+        from app.models import Notification
+        from app.services import scheduler
+        from sqlalchemy import delete
+
+        async def _fake_verify():
+            return {
+                "ok": False,
+                "rows_checked": 5,
+                "tail_seq": 5,
+                "tail_hash": "abcd",
+                "findings": [
+                    {"kind": "hash_mismatch", "seq": 3, "row_id": 3}
+                ],
+            }
+
+        import app.tools.audit_verify as av_mod
+        monkeypatch.setattr(av_mod, "_verify", _fake_verify)
+
+        async with async_session() as db:
+            await db.execute(
+                delete(Notification).where(
+                    Notification.notification_type == "audit_tamper"
+                )
+            )
+            await db.commit()
+
+        await scheduler.verify_audit_ledger()
+
+        async with async_session() as db:
+            from sqlalchemy import select
+            rows = (
+                await db.execute(
+                    select(Notification).where(
+                        Notification.notification_type == "audit_tamper"
+                    )
+                )
+            ).scalars().all()
+        assert len(rows) >= 1
+        assert "tamper" in rows[-1].title.lower()
+
+        # Cleanup so other tests don't see the notification.
+        async with async_session() as db:
+            await db.execute(
+                delete(Notification).where(
+                    Notification.notification_type == "audit_tamper"
+                )
+            )
+            await db.commit()
+
+    async def test_operational_failure_swallowed(
+        self, _bootstrap_env, monkeypatch
+    ):
+        from app.services import scheduler
+
+        async def _boom():
+            raise RuntimeError("db down")
+
+        import app.tools.audit_verify as av_mod
+        monkeypatch.setattr(av_mod, "_verify", _boom)
+        # Must not raise.
+        await scheduler.verify_audit_ledger()
+
+
+# ---------------------------------------------------------------------------
 # setup_scheduler — registers all expected jobs
 # ---------------------------------------------------------------------------
 class TestSetupScheduler:
@@ -420,6 +510,7 @@ class TestSetupScheduler:
             "notification_cleanup",
             "webhook_retry",
             "webhook_prune",
+            "audit_verify",
         }
         assert started["n"] == 1
 

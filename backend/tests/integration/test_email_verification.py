@@ -160,3 +160,83 @@ class TestResendVerification:
         # Same response shape (no enumeration).
         assert r.status_code == 202
         assert CAPTURED_EMAILS == []
+
+
+# ---------------------------------------------------------------------------
+# Sprint 10 Phase C — login gate
+# ---------------------------------------------------------------------------
+class TestRequireEmailVerifiedGate:
+    async def test_default_off_unverified_login_succeeds(
+        self, client, user_factory
+    ):
+        await user_factory(
+            email="default@gate.local",
+            username="defaultgate",
+            password="GoodPass1!",
+        )
+        # email_verified=False by default; gate is off; login OK.
+        r = await client.post(
+            "/api/v1/auth/login",
+            json={"email": "default@gate.local", "password": "GoodPass1!"},
+        )
+        assert r.status_code == 200
+        assert "access_token" in r.json()
+
+    async def test_gate_on_unverified_blocked(
+        self, client, user_factory, monkeypatch
+    ):
+        from app.config import get_settings
+
+        await user_factory(
+            email="gated@gate.local",
+            username="gateduser",
+            password="GoodPass1!",
+        )
+        monkeypatch.setattr(
+            get_settings(), "REQUIRE_EMAIL_VERIFIED", True, raising=False
+        )
+        try:
+            r = await client.post(
+                "/api/v1/auth/login",
+                json={
+                    "email": "gated@gate.local",
+                    "password": "GoodPass1!",
+                },
+            )
+            assert r.status_code == 403
+            assert "verified" in r.json()["detail"].lower()
+        finally:
+            monkeypatch.setattr(
+                get_settings(), "REQUIRE_EMAIL_VERIFIED", False, raising=False
+            )
+
+    async def test_gate_on_verified_passes(
+        self, client, user_factory, db_session, monkeypatch
+    ):
+        from app.config import get_settings
+
+        user = await user_factory(
+            email="verified@gate.local",
+            username="verifieduser",
+            password="GoodPass1!",
+        )
+        user.email_verified = True
+        db_session.add(user)
+        await db_session.commit()
+
+        monkeypatch.setattr(
+            get_settings(), "REQUIRE_EMAIL_VERIFIED", True, raising=False
+        )
+        try:
+            r = await client.post(
+                "/api/v1/auth/login",
+                json={
+                    "email": "verified@gate.local",
+                    "password": "GoodPass1!",
+                },
+            )
+            assert r.status_code == 200
+        finally:
+            monkeypatch.setattr(
+                get_settings(), "REQUIRE_EMAIL_VERIFIED", False, raising=False
+            )

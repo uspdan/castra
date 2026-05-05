@@ -110,6 +110,61 @@ async def retry_failed_webhooks():
         logger.error("Webhook retry failed", error=str(e))
 
 
+async def verify_audit_ledger():
+    """Sprint 10 Phase B — periodic audit-ledger tamper detection.
+
+    Re-walks the hash chain via :mod:`app.tools.audit_verify` and,
+    on a finding, emits a global ``Notification`` + ``ws_manager``
+    broadcast tagged ``audit_tamper`` so admins see it on the
+    NotificationDropdown immediately. The structured ``ERROR`` log
+    line is the secondary signal for log-shipper alerting.
+
+    Best-effort: an operational failure (DB unreachable) is logged
+    but doesn't crash the scheduler.
+    """
+
+    from app.tools.audit_verify import _verify
+    from app.services.notifications import create_notification
+
+    try:
+        report = await _verify()
+    except Exception as exc:  # noqa: BLE001 — log + continue
+        logger.error("Audit verify scheduler crashed", error=str(exc))
+        return
+
+    if report["ok"]:
+        logger.info(
+            "audit_ledger.verify_ok",
+            rows_checked=report["rows_checked"],
+            tail_seq=report["tail_seq"],
+        )
+        return
+
+    logger.error(
+        "audit_ledger.tamper_detected",
+        finding_count=len(report["findings"]),
+        rows_checked=report["rows_checked"],
+        first_finding=report["findings"][0] if report["findings"] else None,
+    )
+
+    try:
+        async with async_session() as db:
+            await create_notification(
+                db,
+                title="Audit ledger tamper detected",
+                message=(
+                    f"{len(report['findings'])} finding(s) across "
+                    f"{report['rows_checked']} ledger rows. Run "
+                    f"`python -m app.tools.audit_verify --json` to inspect."
+                ),
+                notification_type="audit_tamper",
+                is_global=True,
+            )
+            await db.commit()
+    except Exception as exc:  # noqa: BLE001
+        logger.error("audit_ledger.notify_failed", error=str(exc))
+
+
 async def prune_old_webhook_deliveries():
     """Phase 12 (slice 7) — drop webhook_deliveries rows past retention."""
 
@@ -138,6 +193,10 @@ def setup_scheduler():
     scheduler.add_job(
         prune_old_webhook_deliveries,
         "cron", hour=4, minute=0, id="webhook_prune",
+    )
+    # Sprint 10 Phase B — hourly audit-ledger tamper sweep.
+    scheduler.add_job(
+        verify_audit_ledger, "interval", hours=1, id="audit_verify"
     )
     scheduler.start()
     logger.info("Scheduler started")

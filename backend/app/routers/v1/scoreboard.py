@@ -11,8 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models import User
 from app.schemas.v1.scoreboard import ScoreboardEntry, ScoreboardResponse
-from app.services.api_v1 import compute_scoreboard
 from app.services.auth import get_current_user
+from app.services.scoreboard_cache import get_cached_scoreboard
 
 router = APIRouter()
 
@@ -24,7 +24,7 @@ async def scoreboard_v1(
     _viewer: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ScoreboardResponse:
-    rows = await compute_scoreboard(db, team_filter=team, limit=limit)
+    rows = await get_cached_scoreboard(db, team_filter=team, limit=limit)
     return ScoreboardResponse(
         entries=[
             ScoreboardEntry(

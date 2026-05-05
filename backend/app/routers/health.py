@@ -137,3 +137,22 @@ async def readyz(response: Response) -> dict[str, Any]:
     report = await _cached_report()
     response.status_code = 200 if report["ok"] else 503
     return report
+
+
+# ---------------------------------------------------------------------------
+# /metrics — Sprint 10 Phase A
+# ---------------------------------------------------------------------------
+@router.get("/metrics", include_in_schema=False)
+async def metrics() -> Response:
+    """Prometheus exposition format.
+
+    Counters / histograms / gauges live in
+    :mod:`app.middleware.metrics` and are populated by
+    :class:`PrometheusMetricsMiddleware`. Returns text in the
+    standard exposition format for ``prometheus`` to scrape.
+    """
+
+    from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+
+    body = generate_latest()
+    return Response(content=body, media_type=CONTENT_TYPE_LATEST)

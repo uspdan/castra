@@ -139,6 +139,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Siege Range API", version="2.4.1", lifespan=lifespan)
 
 from app.middleware.logging_mw import LoggingMiddleware
+from app.middleware.metrics import PrometheusMetricsMiddleware
 from app.middleware.security_headers import REDACTEDHeadersMiddleware
 
 # Middleware order: outer-most runs last on the response. We want the
@@ -147,6 +148,10 @@ from app.middleware.security_headers import REDACTEDHeadersMiddleware
 # inner-most relative to LoggingMiddleware).
 app.add_middleware(REDACTEDHeadersMiddleware, is_production=_settings.is_production)
 app.add_middleware(LoggingMiddleware)
+# Prometheus metrics — outermost, so it sees the actual response
+# status code Starlette returns to the client (after any later
+# middleware mutates it).
+app.add_middleware(PrometheusMetricsMiddleware)
 
 _allowed_origins = _settings.allowed_origins_list()
 if not _allowed_origins:
