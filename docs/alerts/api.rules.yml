@@ -1,0 +1,103 @@
+# Prometheus alerting rules — API surface.
+#
+# Sprint 11 Phase A. These ride on the metrics
+# ``app/middleware/metrics.py`` exports under ``/metrics``
+# (Sprint 10 Phase A). Operators load this file via
+# ``rule_files`` in their Prometheus config:
+#
+#     rule_files:
+#       - /etc/prometheus/rules/*.yml
+#
+# Every rule carries a ``runbook_url`` annotation pointing at a
+# concrete recovery procedure under ``docs/runbooks/``. CLAUDE.md
+# §14.4 mandates this — alerts without a runbook turn into
+# pager-noise.
+
+groups:
+  - name: siege-range.api
+    interval: 30s
+    rules:
+      # ─────────────────────────────────────────────────────────
+      # Error rate
+      # ─────────────────────────────────────────────────────────
+      - alert: SiegeApiHighErrorRate
+        expr: |
+          sum by (route) (
+            rate(http_requests_total{status=~"5.."}[5m])
+          )
+          /
+          sum by (route) (
+            rate(http_requests_total[5m])
+          )
+          > 0.01
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "5xx rate > 1% on {{ $labels.route }} for 5 min"
+          description: |
+            Route {{ $labels.route }} is returning ≥ 1% 5xx
+            responses over the last 5 minutes. Likely upstream
+            (DB / Redis / docker) failure or a regression in the
+            last deploy. Check ``/readyz`` first.
+          runbook_url: "../runbooks/rollback.md"
+
+      # ─────────────────────────────────────────────────────────
+      # Latency SLO (CLAUDE.md §16.1: synchronous API p99 ≤ 1s)
+      # ─────────────────────────────────────────────────────────
+      - alert: SiegeApiSlowP99
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum by (route, le) (
+              rate(http_request_duration_seconds_bucket[5m])
+            )
+          ) > 1
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: "p99 latency > 1s on {{ $labels.route }} for 10 min"
+          description: |
+            Route {{ $labels.route }} p99 latency exceeded the
+            CLAUDE.md §16.1 1-second SLO over the last 10
+            minutes. Inspect slow queries (Postgres
+            ``pg_stat_statements``) and Redis latency.
+          runbook_url: "../runbooks/scheduler-stuck.md"
+
+      # ─────────────────────────────────────────────────────────
+      # Saturation — concurrent in-flight requests
+      # ─────────────────────────────────────────────────────────
+      - alert: SiegeApiHighConcurrency
+        expr: |
+          sum(http_requests_in_progress) > 200
+        for: 5m
+        labels:
+          severity: warn
+        annotations:
+          summary: "≥ 200 concurrent requests in flight for 5 min"
+          description: |
+            The API is processing more than 200 requests
+            concurrently. Either real traffic spike or a slow
+            downstream causing pile-up. Compare with
+            ``http_request_duration_seconds`` p99 and resource
+            limits in ``docker-compose.prod.yml``.
+          runbook_url: "../runbooks/rollback.md"
+
+      # ─────────────────────────────────────────────────────────
+      # Liveness scrape failure — Prometheus can't reach /metrics
+      # ─────────────────────────────────────────────────────────
+      - alert: SiegeApiDown
+        expr: up{job="siege-range-api"} == 0
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: "Prometheus cannot scrape siege-range API"
+          description: |
+            The ``up`` gauge has been 0 for 2 minutes. Either the
+            API container is crashing, the network path to
+            Prometheus is broken, or ``/metrics`` is returning
+            non-200. ``docker compose ps`` + ``docker compose
+            logs api --tail 100`` is the first move.
+          runbook_url: "../runbooks/rollback.md"

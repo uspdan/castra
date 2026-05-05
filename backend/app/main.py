@@ -138,6 +138,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Siege Range API", version="2.4.1", lifespan=lifespan)
 
+# Sprint 11 Phase C — opt-in OpenTelemetry tracing. No-op when
+# OTEL_EXPORTER_OTLP_ENDPOINT is unset. Failure to configure
+# (missing dep, bad endpoint) logs WARN and degrades to disabled
+# — the platform must always boot.
+from app.database import engine as _db_engine
+from app.observability.tracing import configure_tracing
+
+configure_tracing(app, _db_engine)
+
 from app.middleware.logging_mw import LoggingMiddleware
 from app.middleware.metrics import PrometheusMetricsMiddleware
 from app.middleware.security_headers import REDACTEDHeadersMiddleware

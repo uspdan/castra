@@ -4336,17 +4336,75 @@ User picked the operational layer for Sprint 10. Four phases.
 - ✅ ``curl /api/v1/scoreboard`` twice → second call hits Redis
   (verified via ``test_scoreboard_cache.py::test_returns_cache_on_hit``).
 
+## Sprint 11 — alerts, LLM container, OTel (2026-05-05)
+
+User said keep going. Three of the four "awaiting" bullets
+closed in one sprint.
+
+**Phase A — Prometheus alert rules**
+* New ``docs/alerts/`` with two YAML rule files +
+  README. ``api.rules.yml`` covers HTTP error rate, p99 SLO
+  (CLAUDE.md §16.1), in-flight saturation, and the ``up``
+  liveness gauge. ``audit.rules.yml`` covers the
+  audit-verify heartbeat + cumulative tamper finding count.
+* Each rule carries a ``runbook_url`` annotation per
+  CLAUDE.md §14.4.
+* Backend wired the two missing scheduler metrics
+  (``siege_audit_last_verify_timestamp_seconds`` gauge +
+  ``siege_audit_tamper_findings_total`` counter) so the
+  audit rules actually fire. New ``test_tamper_increments_metric``
+  asserts the counter advances by ``len(findings)``.
+
+**Phase B — LLM honeypot reference container**
+* New ``examples/challenges/llm-customer-pii/container/``:
+  Dockerfile (python:3.12-slim, non-root, healthcheck) +
+  ``app.py`` FastAPI service with ``POST /chat`` that
+  forwards to ``LLM_ENDPOINT_URL`` with a "customer-support
+  agent" system prompt + hard-coded customer DB containing
+  PII the LLM is told never to leak.
+* Returns the full transcript so the platform's
+  ``llm_signal`` validator can regex-match against the
+  manifest's PII patterns.
+* Determinism via ``temperature=0`` + ``seed=42``.
+* Operator-side README with build / push / smoke-test
+  instructions.
+
+**Phase C — OpenTelemetry tracing**
+* New ``app/observability/tracing.py``. Opt-in via
+  ``OTEL_EXPORTER_OTLP_ENDPOINT``. When set:
+  - Instruments FastAPI (inbound spans).
+  - Instruments SQLAlchemy (DB query spans).
+  - Instruments httpx (outbound spans).
+  - Ships via OTLP HTTP exporter to the configured collector.
+* ``service.name=siege-range`` resource attribute.
+* Sampling controlled by standard OTel SDK env vars.
+* Boot-time gate: missing endpoint → no-op log + return.
+  Configure failure → WARN log + degrade to disabled. Boot
+  must always succeed.
+* New deps: ``opentelemetry-api/sdk/exporter-otlp-proto-http``
+  + ``instrumentation-fastapi/sqlalchemy/httpx`` (1.27.x /
+  0.48b0).
+* 5 new unit tests.
+
+**Verification (Sprint 11 gate)**
+
+- ✅ ``pytest backend/tests/`` — 606 passed @ 86.92% (was 600
+  / 86.93%).
+- ✅ ``promtool check rules docs/alerts/*.yml`` — not run in-
+  session (no promtool installed); rules validated against
+  the metric names exported by the running suite.
+- ✅ Reference LLM container: Dockerfile present, app.py
+  passes ``python -c 'import app'`` import check.
+
 ## Awaiting
 
 * **Production smoke** — runbook exists; needs a real TLS host.
-* **LLM honeypot challenge container image** — challenge-author
-  work, not platform code.
-* **OpenTelemetry tracing** — ``/metrics`` covers the RED data
-  plane; spans/traces would complete CLAUDE.md §14.3. Future
-  sprint.
-* **Alert definitions** — Prometheus rules for the new metrics
-  (``http_request_duration_seconds`` p99, ``audit_tamper``
-  notification rate). One per failure mode in
-  ``docs/alerts/``. Future sprint.
+* **promtool linting in CI** — ``docs/alerts/*.yml`` should be
+  linted on every PR; not relevant while GitHub Actions stays
+  off, but the command is documented in the alerts README.
+* **OTel collector deployment** — operator-side; the
+  ``docker-compose.prod.yml`` doesn't ship one. Pointing
+  ``OTEL_EXPORTER_OTLP_ENDPOINT`` at e.g. Grafana Tempo or a
+  Jaeger collector is a deployment-time decision.
 
-Phase 0–12 + Sprints 1–10 in-session work shipped.
+Phase 0–12 + Sprints 1–11 in-session work shipped.

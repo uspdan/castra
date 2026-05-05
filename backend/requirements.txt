@@ -56,3 +56,14 @@ pyotp==2.9.0
 # the FastAPI middleware below records request count + latency
 # histogram per (method, route, status_code).
 prometheus-client==0.20.0
+
+# Sprint 11 Phase C — OpenTelemetry tracing. Pinned to the OTel
+# 1.27.x line. Auto-instruments FastAPI inbound, SQLAlchemy DB
+# spans, and httpx outbound calls. Disabled by default; enables
+# when ``OTEL_EXPORTER_OTLP_ENDPOINT`` is set.
+opentelemetry-api==1.27.0
+opentelemetry-sdk==1.27.0
+opentelemetry-exporter-otlp-proto-http==1.27.0
+opentelemetry-instrumentation-fastapi==0.48b0
+opentelemetry-instrumentation-sqlalchemy==0.48b0
+opentelemetry-instrumentation-httpx==0.48b0

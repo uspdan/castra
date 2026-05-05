@@ -1,0 +1,82 @@
+# Prometheus alerting rules — audit ledger integrity.
+#
+# Sprint 11 Phase A. The hourly ``audit_verify`` scheduler job
+# (Sprint 10 Phase B) emits a structured ``ERROR`` log line
+# tagged ``audit_ledger.tamper_detected`` and persists a
+# ``Notification(notification_type="audit_tamper")`` row when
+# the chain fails to verify.
+#
+# Two rule shapes:
+#   1. Log-based (loki/promtail equivalent) — fire on the
+#      structured log line directly. Operators with ELK / Loki
+#      should mirror this.
+#   2. Metric-based — counter incremented in
+#      ``app/services/scheduler.py::verify_audit_ledger``.
+#
+# The metric below requires a one-line addition in the scheduler
+# job (Phase A future work). Until then, rely on the log-based
+# detection in your shipper.
+
+groups:
+  - name: siege-range.audit
+    interval: 1m
+    rules:
+      # ─────────────────────────────────────────────────────────
+      # Audit verify scheduler hasn't run on schedule.
+      # The hourly cadence means a 90-minute gap = "stuck".
+      # ─────────────────────────────────────────────────────────
+      - alert: SiegeAuditVerifyStalled
+        expr: |
+          time() - siege_audit_last_verify_timestamp_seconds > 5400
+        for: 5m
+        labels:
+          severity: warn
+        annotations:
+          summary: "Audit verify hasn't run in 90+ minutes"
+          description: |
+            The scheduled ``verify_audit_ledger`` job hasn't
+            published a heartbeat metric for over 90 minutes.
+            Either the apscheduler loop is wedged or the
+            scheduler container is restarting in a loop.
+            Inspect ``scheduler-stuck.md``.
+          runbook_url: "../runbooks/scheduler-stuck.md"
+
+      # ─────────────────────────────────────────────────────────
+      # Tamper detected.
+      # ─────────────────────────────────────────────────────────
+      - alert: SiegeAuditTamperDetected
+        expr: |
+          increase(siege_audit_tamper_findings_total[1h]) > 0
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: "Audit ledger tamper detected"
+          description: |
+            ``verify_audit_ledger`` reported one or more findings
+            in the last hour. The chain is broken — DO NOT
+            ignore. Pull the JSON report:
+            ``docker compose exec api python -m app.tools.audit_verify --json``
+            and follow the (TODO) tamper runbook.
+          runbook_url: "../runbooks/db-restore.md"
+
+# ─────────────────────────────────────────────────────────────
+# Required scheduler-side metric stubs (operator one-liner)
+# ─────────────────────────────────────────────────────────────
+# To make these rules fire correctly, the
+# ``verify_audit_ledger`` job needs to emit:
+#
+#   from prometheus_client import Counter, Gauge
+#   AUDIT_LAST_VERIFY = Gauge(
+#       "siege_audit_last_verify_timestamp_seconds",
+#       "Unix timestamp of the most recent audit verify run.",
+#   )
+#   AUDIT_TAMPER_FINDINGS = Counter(
+#       "siege_audit_tamper_findings_total",
+#       "Total tamper findings observed across all verify runs.",
+#   )
+#
+# Then on each tick: ``AUDIT_LAST_VERIFY.set_to_current_time()``
+# and on a finding: ``AUDIT_TAMPER_FINDINGS.inc(len(findings))``.
+# Wired in next sprint; the rule shapes are shipped now so
+# alert authors have a target to write against.

@@ -413,8 +413,64 @@ class TestVerifyAuditLedger:
 
         import app.tools.audit_verify as av_mod
         monkeypatch.setattr(av_mod, "_verify", _fake_verify)
-        # Should not raise; returns silently on OK.
+        # Capture pre-state so we can assert the heartbeat updated
+        # but no tamper increment.
+        before_hb = scheduler.AUDIT_LAST_VERIFY._value.get()  # type: ignore[attr-defined]
+        before_findings = scheduler.AUDIT_TAMPER_FINDINGS._value.get()  # type: ignore[attr-defined]
+
         await scheduler.verify_audit_ledger()
+
+        assert scheduler.AUDIT_LAST_VERIFY._value.get() >= before_hb  # type: ignore[attr-defined]
+        # Clean chain — finding counter must NOT advance.
+        assert (
+            scheduler.AUDIT_TAMPER_FINDINGS._value.get()  # type: ignore[attr-defined]
+            == before_findings
+        )
+
+    async def test_tamper_increments_metric(
+        self, _bootstrap_env, monkeypatch
+    ):
+        """Sprint 11 Phase A — audit alert rules read this counter."""
+
+        from app.services import scheduler
+
+        async def _fake_verify():
+            return {
+                "ok": False,
+                "rows_checked": 5,
+                "tail_seq": 5,
+                "tail_hash": "abcd",
+                "findings": [
+                    {"kind": "hash_mismatch", "seq": 3, "row_id": 3},
+                    {"kind": "seq_gap", "seq": 4, "row_id": 4},
+                ],
+            }
+
+        import app.tools.audit_verify as av_mod
+        monkeypatch.setattr(av_mod, "_verify", _fake_verify)
+        before = scheduler.AUDIT_TAMPER_FINDINGS._value.get()  # type: ignore[attr-defined]
+
+        await scheduler.verify_audit_ledger()
+
+        # Two findings → counter advances by 2.
+        assert (
+            scheduler.AUDIT_TAMPER_FINDINGS._value.get()  # type: ignore[attr-defined]
+            == before + 2
+        )
+
+        # Cleanup the notification we just created so other tests
+        # don't see it.
+        from sqlalchemy import delete as _delete
+        from app.database import async_session
+        from app.models import Notification
+
+        async with async_session() as db:
+            await db.execute(
+                _delete(Notification).where(
+                    Notification.notification_type == "audit_tamper"
+                )
+            )
+            await db.commit()
 
     async def test_tamper_emits_notification(
         self, _bootstrap_env, monkeypatch

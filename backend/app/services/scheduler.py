@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import structlog
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from prometheus_client import Counter, Gauge
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +11,18 @@ from app.database import async_session
 from app.models import Notification, Solve, Streak, User
 
 logger = structlog.get_logger()
+
+
+# Sprint 11 Phase A — audit-verify heartbeat + cumulative finding
+# count. Read by ``docs/alerts/audit.rules.yml``.
+AUDIT_LAST_VERIFY = Gauge(
+    "siege_audit_last_verify_timestamp_seconds",
+    "Unix timestamp of the most recent audit verify run.",
+)
+AUDIT_TAMPER_FINDINGS = Counter(
+    "siege_audit_tamper_findings_total",
+    "Total tamper findings observed across all verify runs.",
+)
 
 scheduler = AsyncIOScheduler()
 
@@ -119,6 +132,10 @@ async def verify_audit_ledger():
     NotificationDropdown immediately. The structured ``ERROR`` log
     line is the secondary signal for log-shipper alerting.
 
+    Sprint 11 Phase A also publishes Prometheus gauges/counters
+    that ``docs/alerts/audit.rules.yml`` reads — heartbeat
+    timestamp + cumulative finding count.
+
     Best-effort: an operational failure (DB unreachable) is logged
     but doesn't crash the scheduler.
     """
@@ -131,6 +148,15 @@ async def verify_audit_ledger():
     except Exception as exc:  # noqa: BLE001 — log + continue
         logger.error("Audit verify scheduler crashed", error=str(exc))
         return
+
+    # Sprint 11 Phase A — heartbeat + finding-count metrics for
+    # the alert rules in docs/alerts/audit.rules.yml.
+    try:
+        AUDIT_LAST_VERIFY.set_to_current_time()
+        if report["findings"]:
+            AUDIT_TAMPER_FINDINGS.inc(len(report["findings"]))
+    except Exception:  # noqa: BLE001 — never fail on metrics
+        pass
 
     if report["ok"]:
         logger.info(
