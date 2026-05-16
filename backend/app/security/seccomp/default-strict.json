@@ -81,18 +81,82 @@
       "args": [
         {
           "index": 0,
-          "value": 2080505856,
-          "valueTwo": 0,
+          "value": 268435456,
+          "valueTwo": 268435456,
           "op": "SCMP_CMP_MASKED_EQ",
-          "comment": "deny CLONE_NEWUSER|CLONE_NEWNS|CLONE_NEWPID|CLONE_NEWNET|CLONE_NEWUTS|CLONE_NEWIPC"
+          "comment": "deny clone with CLONE_NEWUSER (0x10000000) set"
         }
       ]
     },
     {
-      "names": ["clone3"],
+      "names": ["clone"],
       "action": "SCMP_ACT_ERRNO",
-      "errnoRet": 38,
-      "comment": "deny clone3 entirely; runtime falls back to clone()"
+      "errnoRet": 1,
+      "args": [
+        {
+          "index": 0,
+          "value": 131072,
+          "valueTwo": 131072,
+          "op": "SCMP_CMP_MASKED_EQ",
+          "comment": "deny clone with CLONE_NEWNS (0x00020000) set"
+        }
+      ]
+    },
+    {
+      "names": ["clone"],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "args": [
+        {
+          "index": 0,
+          "value": 536870912,
+          "valueTwo": 536870912,
+          "op": "SCMP_CMP_MASKED_EQ",
+          "comment": "deny clone with CLONE_NEWPID (0x20000000) set"
+        }
+      ]
+    },
+    {
+      "names": ["clone"],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "args": [
+        {
+          "index": 0,
+          "value": 1073741824,
+          "valueTwo": 1073741824,
+          "op": "SCMP_CMP_MASKED_EQ",
+          "comment": "deny clone with CLONE_NEWNET (0x40000000) set"
+        }
+      ]
+    },
+    {
+      "names": ["clone"],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "args": [
+        {
+          "index": 0,
+          "value": 67108864,
+          "valueTwo": 67108864,
+          "op": "SCMP_CMP_MASKED_EQ",
+          "comment": "deny clone with CLONE_NEWUTS (0x04000000) set"
+        }
+      ]
+    },
+    {
+      "names": ["clone"],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "args": [
+        {
+          "index": 0,
+          "value": 134217728,
+          "valueTwo": 134217728,
+          "op": "SCMP_CMP_MASKED_EQ",
+          "comment": "deny clone with CLONE_NEWIPC (0x08000000) set"
+        }
+      ]
     }
   ]
 }

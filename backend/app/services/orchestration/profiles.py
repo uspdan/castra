@@ -53,6 +53,12 @@ class ContainerProfile:
 _DEFAULT_TMPFS: Final[Mapping[str, str]] = {
     "/tmp": "size=64M,noexec,nosuid",
     "/var/log": "size=32M,noexec,nosuid",
+    # Most long-running server processes (apache, nginx, gunicorn,
+    # node) write pid/lock/socket files under these paths and refuse
+    # to start when the rootfs is read-only without them.
+    "/var/run": "size=8M,noexec,nosuid",
+    "/run": "size=8M,noexec,nosuid",
+    "/var/lock": "size=4M,noexec,nosuid",
 }
 
 
