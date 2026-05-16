@@ -1,4 +1,4 @@
-.PHONY: dev prod down seed test test-install test-challenges test-browser test-browser-install regen-schema render-egress-allowlist health backup restore build lint
+.PHONY: dev prod down seed challenge-images test test-install test-challenges test-browser test-browser-install regen-schema render-egress-allowlist health backup restore build lint
 
 dev:
 	docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
@@ -11,6 +11,9 @@ down:
 
 seed:
 	python scripts/seed_challenges.py
+
+challenge-images:
+	bash scripts/build_challenge_images.sh
 
 # Tests run on the host so testcontainers can spawn ephemeral Postgres+Redis
 # via the host Docker socket. The host already needs Docker for `make dev`,

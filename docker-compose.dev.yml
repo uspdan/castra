@@ -3,16 +3,41 @@ services:
     volumes:
       - ./nginx/certs:/etc/nginx/certs:ro
 
+  orchestrator:
+    # Dev only — let DinD pull base images and resolve DNS so
+    # ``scripts/build_challenge_images.sh`` can build the seed
+    # challenge images. Production keeps siege-challenges internal
+    # and expects images to arrive via a registry mirror.
+    networks:
+      siege-challenges:
+      siege-egress:
+    # Dev only — publish the launcher's port range to the host so
+    # users can ``curl http://localhost:<port>`` against launched
+    # challenges. Production routes via an ingress/proxy instead.
+    ports:
+      - "10000-10049:10000-10049"
+
   api:
     volumes:
       - ./backend/app:/app/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --workers 1
     environment:
       - LOG_LEVEL=debug
+      # Dev only — accept un-pinned challenge images. Production
+      # leaves this true so Phase 9's digest enforcement still bites.
+      - REQUIRE_IMAGE_DIGEST=false
 
   dashboard:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
     volumes:
       - ./frontend/src:/app/src
+    environment:
+      # Force vite to use polling for file events — bind-mounted
+      # volumes don't always deliver inotify reliably on Linux hosts.
+      - CHOKIDAR_USEPOLLING=true
 
   db:
     ports:

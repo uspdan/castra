@@ -8,7 +8,7 @@ export default function CompetitionBanner() {
   const [timeLeft, setTimeLeft] = useState('')
 
   useEffect(() => {
-    client.get('/competitions', { params: { active: true } }).then((res) => {
+    client.get('/competitions/', { params: { active: true } }).then((res) => {
       const active = Array.isArray(res.data) ? res.data.find((c) => c.is_active) : null
       if (active) setComp(active)
     }).catch(() => {})

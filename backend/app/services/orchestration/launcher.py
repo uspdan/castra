@@ -41,10 +41,13 @@ from app.services.orchestration.forbidden import enforce_no_forbidden
 
 logger = structlog.get_logger()
 
-_PORT_MIN = 10_000
-_PORT_MAX = 60_000
 _LAUNCH_LOCK_TTL_SEC = 30
 _MAX_ACTIVE_INSTANCES_PER_USER = 3
+
+
+def _port_range() -> tuple[int, int]:
+    s = get_settings()
+    return s.INSTANCE_PORT_MIN, s.INSTANCE_PORT_MAX
 
 
 class MissingImageDigest(ValueError):
@@ -70,14 +73,18 @@ def _resolve_profile(challenge: Challenge) -> profiles.ContainerProfile:
     return profiles.get(name)  # raises UnknownProfile on miss
 
 
-def _resolve_digest(challenge: Challenge) -> str:
+def _resolve_digest(challenge: Challenge) -> str | None:
     digest = (challenge.docker_config or {}).get("digest")
-    if not digest:
+    if digest:
+        return digest
+    settings = get_settings()
+    if settings.REQUIRE_IMAGE_DIGEST:
         raise MissingImageDigest(
             f"challenge {challenge.slug!r} has no container.digest; "
             "Phase 9 refuses to launch un-pinned images"
         )
-    return digest
+    # Dev path — caller will skip ``_verify_post_pull_digest`` too.
+    return None
 
 
 def _verify_post_pull_digest(
@@ -142,10 +149,11 @@ async def _check_user_caps(db: AsyncSession, user_id: int, challenge: Challenge)
 
 
 async def _allocate_port(redis_client) -> int:
+    port_min, port_max = _port_range()
     port = await redis_client.incr("siege:next_port")
-    if port < _PORT_MIN or port > _PORT_MAX:
-        await redis_client.set("siege:next_port", _PORT_MIN)
-        port = _PORT_MIN
+    if port < port_min or port > port_max:
+        await redis_client.set("siege:next_port", port_min)
+        port = port_min
     return int(port)
 
 
@@ -165,7 +173,7 @@ def _build_run_kwargs(
     challenge: Challenge,
     host_port: int,
     expires_at: datetime,
-    digest: str,
+    digest: str | None,
 ) -> dict[str, Any]:
     seccomp_json = load_profile(profile.seccomp_profile)
     import json as _json  # local: we only need the dump call here
@@ -190,7 +198,7 @@ def _build_run_kwargs(
         "ports": {f"{challenge.docker_port}/tcp": host_port},
         "labels": {
             "siege.profile": profile.name,
-            "siege.digest": digest,
+            "siege.digest": digest or "",
             "siege.slug": challenge.slug,
             "siege.expires": expires_at.isoformat(),
         },
@@ -253,7 +261,7 @@ async def launch_instance(
                 raise
             sidecar_container_id = launched.container_id
 
-        image_ref = _image_ref(challenge, digest)
+        image_ref = _image_ref(challenge, digest) if digest else challenge.docker_image
         run_kwargs = _build_run_kwargs(
             profile=profile,
             image_ref=image_ref,
@@ -279,9 +287,12 @@ async def launch_instance(
         # Phase 12 (slice 11): post-pull digest verification. If the
         # daemon resolved an image whose ``RepoDigests`` does not
         # include our pinned ref, kill the container and reject the
-        # launch — the caller maps the exception to 409.
+        # launch — the caller maps the exception to 409. Skipped when
+        # the dev escape hatch (``REQUIRE_IMAGE_DIGEST=false``) is on
+        # and the manifest didn't carry a digest in the first place.
         try:
-            _verify_post_pull_digest(container, expected_image_ref=image_ref)
+            if digest is not None:
+                _verify_post_pull_digest(container, expected_image_ref=image_ref)
         except PostPullDigestMismatch:
             try:
                 container.stop(timeout=2)

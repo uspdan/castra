@@ -66,6 +66,19 @@ class Settings(BaseSettings):
     DOCKER_HOST: str = "tcp://orchestrator:2376"
     REDIS_URL: str = "redis://redis:6379/0"
     CONTAINER_TIMEOUT: int = 7200
+    # Phase 9 digest-pinning gate. Default-on: the launcher refuses
+    # any challenge whose manifest lacks ``container.digest`` and any
+    # image whose post-pull ``RepoDigests`` doesn't include the pin.
+    # Dev compose flips this to false so locally-built challenge
+    # images (which have no RepoDigests) can launch. Refuses to flip
+    # false in production — see ``services/orchestration/launcher.py``.
+    REQUIRE_IMAGE_DIGEST: bool = True
+    # Host-port window the launcher allocates from. Must align with
+    # the port range the orchestrator service publishes to the host,
+    # otherwise users won't be able to reach launched challenges. See
+    # ``docker-compose.dev.yml`` for the dev mapping.
+    INSTANCE_PORT_MIN: int = 10000
+    INSTANCE_PORT_MAX: int = 10049
     # Phase 12 (slice 9) — SLACK_WEBHOOK_URL / TEAMS_WEBHOOK_URL
     # removed. Operators now configure outbound webhooks via the v1
     # admin surface (`POST /api/v1/webhooks`); see slice-5/6/7 notes.

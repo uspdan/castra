@@ -21,7 +21,7 @@ const useChallengeStore = create((set, get) => ({
       if (filters.search) params.search = filters.search
       if (filters.mitre) params.mitre = filters.mitre
       if (filters.sort) params.sort = filters.sort
-      const res = await client.get('/challenges', { params })
+      const res = await client.get('/challenges/', { params })
       set({ challenges: res.data.items || res.data, total: res.data.total || 0, page, loading: false })
     } catch (err) {
       set({ error: err.message, loading: false })

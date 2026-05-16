@@ -4545,6 +4545,80 @@ upstream package churn + healthcheck / dev-mount drift.
   reload``) is enough for in-place writes but not for
   inode-swapping editors.
 
+**Phase G — nginx Location rewrite**
+* FastAPI emits ``Location: http://localhost/<path>`` on
+  trailing-slash 307s. Behind nginx those are wrong on
+  three axes: missing the ``/api/`` prefix, dropping the
+  published port (``$host`` strips it), and pointing at
+  the upstream's view of the world. Browsers followed
+  the redirect to a dead URL.
+* Added ``proxy_redirect ~^https?://[^/]+(/.*)$ /api$1;``
+  to both ``location /api/`` blocks. Any absolute Location
+  from upstream now collapses to a same-host,
+  ``/api``-prefixed path. Belt-and-braces with the two
+  trailing-slash call-site fixes below.
+* Side fixes (defensive — avoid the redirect round-trip):
+  ``frontend/src/stores/challengeStore.js`` and
+  ``frontend/src/components/CompetitionBanner.jsx``
+  now call ``/challenges/`` and ``/competitions/``
+  (trailing slash) — the canonical FastAPI form.
+
+**Phase H — dashboard dev-mode hot reload**
+* ``docker-compose.dev.yml`` mounted ``./frontend/src``
+  into the dashboard container, but the Dockerfile has
+  no explicit ``target:`` and the default build picks
+  the *production* stage (compiled static files served
+  by an embedded nginx). The bind mount was a no-op —
+  every frontend edit required ``docker compose build
+  dashboard``.
+* Override now sets ``build.target: development`` and
+  ``CHOKIDAR_USEPOLLING=true``. Vite serves on :5173
+  inside the container with HMR watching the bind-
+  mounted ``/app/src``. Save → reload in <1s.
+
+**Phase I — orchestrator dev outbound + port publish**
+* DinD on ``siege-challenges`` (``internal: true``)
+  couldn't pull a base image to build any challenge —
+  no DNS, no default route, no path to Docker Hub.
+* ``docker-compose.dev.yml`` attaches the orchestrator
+  to ``siege-egress`` as a second NIC in dev, giving it
+  outbound. Production keeps the network internal and
+  expects images via a registry mirror (still TODO —
+  flagged below).
+* Same override publishes the launcher's host-port
+  window (``10000-10049``) so users can curl/browse
+  launched challenges from the host. Production routes
+  through an ingress instead.
+
+**Phase J — challenge-image builder**
+* New ``scripts/build_challenge_images.sh`` shells into
+  the orchestrator container, walks
+  ``/challenges/<slug>/Dockerfile`` (already bind-
+  mounted), and runs ``docker build -t siege/<slug>:latest``
+  for each. Idempotent; failures are captured to
+  ``/tmp/build-<slug>.log`` with a per-challenge tail.
+  All 12 seed challenges build clean against base
+  images on Docker Hub.
+* New ``make challenge-images`` target.
+
+**Phase K — digest gate + port-range config**
+* New setting ``REQUIRE_IMAGE_DIGEST: bool = True``.
+  Launcher's ``_resolve_digest`` now returns ``None`` when
+  the flag is off and the manifest has no digest; the
+  post-pull RepoDigests verification is skipped on the
+  same path. Production default unchanged — the gate
+  still bites for any deployment that doesn't
+  explicitly opt out.
+* Dev compose sets ``REQUIRE_IMAGE_DIGEST=false`` so
+  locally-built images (which have no RepoDigests
+  without a registry push) can launch.
+* New settings ``INSTANCE_PORT_MIN`` / ``INSTANCE_PORT_MAX``
+  (defaults 10000 / 10049) replace the hard-coded
+  ``_PORT_MIN`` / ``_PORT_MAX`` constants. Kept the
+  values aligned with the orchestrator's dev port-
+  publish window so allocations are reachable from the
+  host out of the box.
+
 **Verification (Sprint 13 gate)**
 - ✅ ``make dev`` builds clean from an empty
   builder cache and brings every container to ``healthy``
@@ -4564,6 +4638,18 @@ upstream package churn + healthcheck / dev-mount drift.
   the upgrade handshake now reaches FastAPI through
   nginx end-to-end. Previously it was reaching the
   upstream as a plain HTTP request and 404'ing.
+- ✅ ``curl http://localhost:3000/api/challenges`` (no
+  trailing slash) is followed cleanly by the browser:
+  nginx's ``proxy_redirect`` rewrites the upstream
+  ``Location: http://localhost/challenges/`` to
+  ``/api/challenges/``, which the browser hits same-
+  origin and gets the 200 with all 12 challenges.
+- ✅ ``make challenge-images`` builds 12/12 inside DinD.
+- ✅ ``POST /api/instances/sql-injection-101/launch``
+  returns ``200`` with ``status: running`` and a host-
+  reachable port in the published 10000–10049 window.
+  Port allocation is verified by ``docker port
+  seige-range-orchestrator-1``.
 
 **Sibling tech debt surfaced (NOT fixed)**
 
@@ -4579,6 +4665,37 @@ upstream package churn + healthcheck / dev-mount drift.
   affected, but the nginx pattern likely repeats for any
   future IPv6-listening service. Worth a one-pass audit
   of all healthchecks if/when an IPv6 deploy lands.
+* **Seed challenges crash inside the default-strict
+  seccomp profile.** Phase 13 made launches reach the
+  orchestrator; the orchestrator successfully starts
+  ``siege/<slug>:latest``; the container then dies in
+  <1s with ``fork: Operation not permitted``. Root cause:
+  ``backend/app/security/seccomp/default-strict.json``
+  denies ``clone3`` outright (``errnoRet: 38``) with a
+  comment "runtime falls back to clone()" — but
+  modern glibc (≥2.34) doesn't fall back when
+  ``CAP_SYS_ADMIN`` is dropped; it surfaces EPERM to the
+  caller. Apache/PHP/node-style challenge images can't
+  fork to handle requests. Fix is one of (a) allow
+  ``clone3`` in default-strict with the same masked-eq
+  check the ``clone`` rule has (semantically trickier
+  because clone3 takes a ``struct clone_args*``, not
+  flags), (b) add a permissive ``challenge-runtime``
+  profile and route legacy seed challenges to it via the
+  seeder, or (c) split profiles into "analysis tool"
+  vs "interactive challenge" tracks per the security
+  model doc. (a) is the smallest change; (c) is the
+  honest one. Out of Sprint 13's boot-fix scope.
+* **No challenge-image distribution path for prod.**
+  Phase 13 unblocked dev by pulling base images from
+  Docker Hub through the orchestrator's second NIC and
+  building inside DinD. Production keeps DinD network-
+  internal and assumes images arrive via a registry
+  mirror — but there is no such mirror in the compose
+  stack and no documented build/push pipeline. Likely
+  Sprint 14: stand up a local registry, push pinned
+  ``siege/<slug>@sha256:...`` images, restore the
+  ``REQUIRE_IMAGE_DIGEST=true`` posture in prod.
 
 ## Awaiting
 
