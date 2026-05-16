@@ -1,0 +1,3 @@
+2026-05-15T10:02:11Z host=DEVBOX-3 path="C:\Program Files\corp\corp-tool.exe" packer_detected="" verdict=clean signed_by="Corp Engineering"
+2026-05-15T10:02:12Z host=DEVBOX-3 path="C:\ProgramData\Updates\REDACTED" packer_detected="upx" verdict=suspicious signed_by="<UNSIGNED>" entropy=7.94
+2026-05-15T10:02:13Z host=DEVBOX-3 path="C:\Users\dev\Downloads\setup.msi" packer_detected="" verdict=clean signed_by="Microsoft Corporation"

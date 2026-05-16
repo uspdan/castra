@@ -1,0 +1,4 @@
+2026-05-15T09:32:14Z host=DEVBOX-3 EID=4624 LogonType=2 AccountName=CORP\dev SourceIP=127.0.0.1
+2026-05-15T09:35:09Z host=DEVBOX-3 EID=4688 NewProcessName="C:\Windows\System32\wevtutil.exe" CommandLine="wevtutil cl REDACTED" AccountName=CORP\dev
+2026-05-15T09:35:11Z host=DEVBOX-3 EID=1102 Channel=REDACTED ClearedBy=CORP\dev message="The audit log was cleared."
+2026-05-15T09:35:42Z host=DEVBOX-3 EID=4624 LogonType=2 AccountName=CORP\dev SourceIP=127.0.0.1

@@ -1,0 +1,112 @@
+# ATT&CK TA0005 — Defense Evasion mini-campaign.
+#
+# Five evasion behaviours observed on a single compromised host
+# (DEVBOX-3) post-foothold. Hunter has to spot them all.
+
+slug: tier-2-defense-evasion
+title: "Tier 2: Defense Evasion"
+description: |
+  DEVBOX-3 looked clean to the SOC dashboard, but a second-pass
+  audit caught five separate evasion behaviours. The malware author
+  did most of the right things; the corpus shows the few mistakes
+  that gave each technique away. Name them.
+category: Threat Hunting
+team: blue
+difficulty: 4
+points: 500
+flag: "CTF{REDACTED}"
+tactic_id: TA0005
+docker_port: 2222
+profile: default-strict
+
+techniques:
+  - id: T1070.006
+    description: |
+      Timestomp — attacker rewrites NTFS MFT timestamps on the
+      backdoor binary to mimic a legitimate Windows file.
+    question:
+      prompt: |
+        Which backdoor binary had its NTFS Modified timestamp
+        rewritten to match the calc.exe creation date? (Full
+        path or filename — answer with the filename only,
+        including extension.)
+      hint: |
+        mft_audit.log lines tagged `timestamp_mismatch` —
+        Modified < Created is the giveaway.
+      answer: REDACTED
+
+  - id: T1070.001
+    description: |
+      Indicator Removal — attacker runs `wevtutil cl REDACTED`
+      to clear the REDACTED event log.
+    question:
+      prompt: |
+        Which Windows event channel did the attacker clear?
+        (One word: System / REDACTED / Application / etc.)
+      hint: |
+        EID 1102 fires when an audit log is cleared and
+        records the channel.
+      answer: REDACTED
+
+  - id: T1218.011
+    description: |
+      Signed Binary Proxy Execution — rundll32.exe loads a
+      malicious DLL from disk.
+    question:
+      prompt: |
+        What is the full path of the DLL that rundll32.exe
+        loaded? (Full path as in sysmon.json.)
+      hint: |
+        Sysmon EID 1 process_creation; rundll32 invocations
+        with non-standard DLL paths are the focus.
+      answer: REDACTED
+
+  - id: T1027.002
+    description: |
+      Obfuscated/Software-Packing — UPX-packed payload uploaded
+      and decompressed in memory.
+    question:
+      prompt: |
+        What packer signature did the file scanner identify on
+        the suspect binary? (Just the packer name, lowercase.)
+      hint: |
+        av_scan_report.log — each entry has a `packer_detected`
+        field. There's only one non-empty one.
+      answer: upx
+
+  - id: T1036.005
+    description: |
+      Masquerading — attacker copies their backdoor next to a
+      Microsoft binary and gives it a Microsoft-like description.
+    question:
+      prompt: |
+        What is the *display name* (Description field, including
+        casing) the attacker stamped onto their masquerading
+        binary's PE resources?
+      hint: |
+        pe_scan.log — compare the on-disk Description vs the
+        signer. The one with a Microsoft-sounding Description
+        but a non-Microsoft signer is the masquerade.
+      answer: REDACTED
+
+logs:
+  mft_audit.log: |
+    2026-05-15T09:11:02Z host=DEVBOX-3 path="C:\Windows\System32\calc.exe" Created="2024-04-08T07:00:00Z" Modified="2024-04-08T07:00:00Z" Accessed="2026-05-14T22:18:01Z" signed_by="Microsoft Windows"
+    2026-05-15T09:11:02Z host=DEVBOX-3 path="C:\ProgramData\Updates\REDACTED" Created="2026-05-15T08:42:11Z" Modified="2024-04-08T07:00:00Z" Accessed="2026-05-15T08:55:01Z" signed_by="<UNSIGNED>" tags="timestamp_mismatch"
+    2026-05-15T09:11:02Z host=DEVBOX-3 path="C:\Users\dev\helper.bat" Created="2026-05-14T14:00:00Z" Modified="2026-05-14T14:00:11Z" Accessed="2026-05-14T14:00:11Z" signed_by="<n/a>"
+  security_log.log: |
+    2026-05-15T09:32:14Z host=DEVBOX-3 EID=4624 LogonType=2 AccountName=CORP\dev SourceIP=127.0.0.1
+    2026-05-15T09:35:09Z host=DEVBOX-3 EID=4688 NewProcessName="C:\Windows\System32\wevtutil.exe" CommandLine="wevtutil cl REDACTED" AccountName=CORP\dev
+    2026-05-15T09:35:11Z host=DEVBOX-3 EID=1102 Channel=REDACTED ClearedBy=CORP\dev message="The audit log was cleared."
+    2026-05-15T09:35:42Z host=DEVBOX-3 EID=4624 LogonType=2 AccountName=CORP\dev SourceIP=127.0.0.1
+  sysmon.json: |
+    {"host":"DEVBOX-3","EventID":1,"UtcTime":"2026-05-15T09:48:11Z","Image":"C:\\Windows\\System32\\rundll32.exe","CommandLine":"rundll32.exe C:\\ProgramData\\Updates\\helper.dll,InitHelper","User":"CORP\\dev","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+    {"host":"DEVBOX-3","EventID":1,"UtcTime":"2026-05-15T09:48:14Z","Image":"C:\\Windows\\System32\\rundll32.exe","CommandLine":"rundll32.exe shell32.dll,Control_RunDLL","User":"CORP\\dev","ParentImage":"C:\\Windows\\explorer.exe"}
+  av_scan_report.log: |
+    2026-05-15T10:02:11Z host=DEVBOX-3 path="C:\Program Files\corp\corp-tool.exe" packer_detected="" verdict=clean signed_by="Corp Engineering"
+    2026-05-15T10:02:12Z host=DEVBOX-3 path="C:\ProgramData\Updates\REDACTED" packer_detected="upx" verdict=suspicious signed_by="<UNSIGNED>" entropy=7.94
+    2026-05-15T10:02:13Z host=DEVBOX-3 path="C:\Users\dev\Downloads\setup.msi" packer_detected="" verdict=clean signed_by="Microsoft Corporation"
+  pe_scan.log: |
+    2026-05-15T10:18:01Z host=DEVBOX-3 path="C:\Windows\System32\rundll32.exe" Description="Windows host process (Rundll32)" CompanyName="Microsoft Corporation" signer="Microsoft Windows"
+    2026-05-15T10:18:02Z host=DEVBOX-3 path="C:\ProgramData\Updates\REDACTED" Description="REDACTED" CompanyName="Microsoft Corporation" signer="<UNSIGNED>"
+    2026-05-15T10:18:03Z host=DEVBOX-3 path="C:\Program Files\corp\corp-tool.exe" Description="Corp Engineering Tool v3.4" CompanyName="Corp Engineering Ltd" signer="Corp Engineering"

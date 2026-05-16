@@ -1,0 +1,3 @@
+2026-05-15T10:18:01Z host=DEVBOX-3 path="C:\Windows\System32\rundll32.exe" Description="Windows host process (Rundll32)" CompanyName="Microsoft Corporation" signer="Microsoft Windows"
+2026-05-15T10:18:02Z host=DEVBOX-3 path="C:\ProgramData\Updates\REDACTED" Description="REDACTED" CompanyName="Microsoft Corporation" signer="<UNSIGNED>"
+2026-05-15T10:18:03Z host=DEVBOX-3 path="C:\Program Files\corp\corp-tool.exe" Description="Corp Engineering Tool v3.4" CompanyName="Corp Engineering Ltd" signer="Corp Engineering"

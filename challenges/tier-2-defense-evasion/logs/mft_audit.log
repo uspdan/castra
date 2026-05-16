@@ -1,0 +1,3 @@
+2026-05-15T09:11:02Z host=DEVBOX-3 path="C:\Windows\System32\calc.exe" Created="2024-04-08T07:00:00Z" Modified="2024-04-08T07:00:00Z" Accessed="2026-05-14T22:18:01Z" signed_by="Microsoft Windows"
+2026-05-15T09:11:02Z host=DEVBOX-3 path="C:\ProgramData\Updates\REDACTED" Created="2026-05-15T08:42:11Z" Modified="2024-04-08T07:00:00Z" Accessed="2026-05-15T08:55:01Z" signed_by="<UNSIGNED>" tags="timestamp_mismatch"
+2026-05-15T09:11:02Z host=DEVBOX-3 path="C:\Users\dev\helper.bat" Created="2026-05-14T14:00:00Z" Modified="2026-05-14T14:00:11Z" Accessed="2026-05-14T14:00:11Z" signed_by="<n/a>"

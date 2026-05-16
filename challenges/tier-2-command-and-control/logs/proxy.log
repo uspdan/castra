@@ -1,0 +1,5 @@
+2026-05-15T10:00:11Z host=HOST-C user="" dst=REDACTED verb=GET ua="curl/8.4" bytes=242 verdict=allow
+2026-05-15T10:01:25Z host=HOST-C user="" dst=REDACTED verb=POST ua="curl/8.4" bytes=1882 verdict=allow
+2026-05-15T10:02:40Z host=HOST-C user="" dst=REDACTED verb=GET ua="curl/8.4" bytes=242 verdict=allow
+2026-05-15T10:00:00Z host=HOST-A user=svc_app dst=REDACTED verb=POST ua="Mozilla/5.0 (compat)" bytes=512 verdict=allow
+2026-05-15T10:03:55Z host=HOST-X user=engineering dst=api.github.com verb=GET ua="git/2.42" bytes=8124 verdict=allow

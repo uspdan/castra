@@ -1,0 +1,34 @@
+{
+  "title": "Tier 2: Command and Control",
+  "slug": "tier-2-command-and-control",
+  "description": "Five compromised hosts in five business units each picked a\ndifferent way to talk to their handler. You have summarised pcap\nflow tables, DNS query logs, and a proxy log. Identify the C2\ntechnique used by each host.",
+  "category": "Threat Hunting",
+  "team": "blue",
+  "difficulty": 4,
+  "points": 500,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "Start with the log file referenced in question 1's hint.",
+      "cost": 50
+    }
+  ],
+  "skills": [
+    "Threat Hunting",
+    "Log Analysis",
+    "MITRE ATT&CK",
+    "Incident Response"
+  ],
+  "mitre_techniques": [
+    "T1071.001",
+    "T1071.004",
+    "T1102.002",
+    "T1573.002",
+    "T1090.002"
+  ],
+  "docker_image": "siege/tier-2-command-and-control:latest",
+  "docker_port": 2222,
+  "docker_config": {
+    "profile": "default-strict"
+  }
+}

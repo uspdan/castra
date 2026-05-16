@@ -1,0 +1,101 @@
+"""Loopback validator for Tier 2: Command and Control (tier-2-command-and-control).
+
+Factory-generated. The canonical answers are baked in below. Listens
+on 127.0.0.1:5000 inside the challenge container — only reachable
+from within (the orchestrator publishes only the SSH port).
+"""
+
+import re
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
+
+FLAG = "CTF{REDACTED}"
+
+QUESTIONS = {
+    "1": {
+        "prompt": "Which fully-qualified domain is HOST-A beaconing to? (Bare\ndomain, no scheme.)",
+        "hint": "flows.csv host=HOST-A \u2014 look for periodic ~500 byte POSTs\nwith a regular cadence.",
+        "answer": "REDACTED",
+        "technique": "T1071.001"
+    },
+    "2": {
+        "prompt": "What is the second-level domain HOST-B is using for DNS\ntunnelling? (e.g. `dnsc2.example`.)",
+        "hint": "dns_queries.log \u2014 many long subdomain labels under the\nsame parent, all TXT records.",
+        "answer": "REDACTED",
+        "technique": "T1071.004"
+    },
+    "3": {
+        "prompt": "Which web-service host is HOST-C using for bidirectional\ncomms? (Bare host name as it appears in the proxy log.)",
+        "hint": "proxy.log \u2014 find the host with both GET and POST traffic\nfrom HOST-C where the user-agent isn't a normal browser.",
+        "answer": "REDACTED",
+        "technique": "T1102.002"
+    },
+    "4": {
+        "prompt": "What is the JA3 hash recorded for the suspicious TLS\nclient HOST-D is using? (32-char hex string, lowercase.)",
+        "hint": "flows.csv lines with host=HOST-D and proto=tls have a\nja3 field. Cross-reference against the known-good list\nin known_good_ja3.txt \u2014 one JA3 isn't there.",
+        "answer": "REDACTED",
+        "technique": "T1573.002"
+    },
+    "5": {
+        "prompt": "What is the residential IP HOST-E is using as its\nexternal proxy hop? (Format x.x.x.x.)",
+        "hint": "flows.csv host=HOST-E \u2014 the only direct upstream IP\noutside the corp /16 range, and its rDNS resolves to\na residential ISP block.",
+        "answer": "REDACTED",
+        "technique": "T1090.002"
+    }
+}
+
+
+def _normalise(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "").strip().lower())
+
+
+@app.route("/questions")
+def questions():
+    return jsonify(
+        {qid: {"prompt": q["prompt"], "hint": q["hint"]} for qid, q in QUESTIONS.items()}
+    )
+
+
+@app.route("/validate", methods=["POST"])
+def validate():
+    data = request.get_json(force=True, silent=True) or {}
+    qid = str(data.get("question", "")).strip()
+    submitted = data.get("answer", "")
+
+    q = QUESTIONS.get(qid)
+    if q is None:
+        return jsonify({"error": f"no such question: {qid!r}"}), 404
+
+    correct = _normalise(submitted) == _normalise(q["answer"])
+    return jsonify({"question": qid, "correct": correct})
+
+
+@app.route("/reveal", methods=["POST"])
+def reveal():
+    data = request.get_json(force=True, silent=True) or {}
+    answers = data.get("answers") or {}
+
+    missing, wrong = [], []
+    for qid, q in QUESTIONS.items():
+        a = answers.get(qid)
+        if a is None or a == "":
+            missing.append(qid)
+        elif _normalise(a) != _normalise(q["answer"]):
+            wrong.append(qid)
+
+    if missing or wrong:
+        return jsonify(
+            {
+                "correct": False,
+                "missing": missing,
+                "wrong": wrong,
+                "message": "Flag is revealed only when every answer is correct.",
+            }
+        )
+
+    return jsonify({"correct": True, "flag": FLAG})
+
+
+if __name__ == "__main__":
+    app.run(host="127.0.0.1", port=5000, debug=False)

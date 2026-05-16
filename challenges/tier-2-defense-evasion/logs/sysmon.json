@@ -1,0 +1,2 @@
+{"host":"DEVBOX-3","EventID":1,"UtcTime":"2026-05-15T09:48:11Z","Image":"C:\\Windows\\System32\\rundll32.exe","CommandLine":"rundll32.exe C:\\ProgramData\\Updates\\helper.dll,InitHelper","User":"CORP\\dev","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+{"host":"DEVBOX-3","EventID":1,"UtcTime":"2026-05-15T09:48:14Z","Image":"C:\\Windows\\System32\\rundll32.exe","CommandLine":"rundll32.exe shell32.dll,Control_RunDLL","User":"CORP\\dev","ParentImage":"C:\\Windows\\explorer.exe"}

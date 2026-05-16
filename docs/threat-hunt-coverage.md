@@ -39,16 +39,16 @@ output, light hand-tuning. One per tactic. 14 total.
 |--------|-----|--------|----------------------|
 | Reconnaissance | TA0043 | ⏳ planned | T1595.002, T1589.002, T1592, T1591.001, T1596.005 |
 | Resource Development | TA0042 | ⏳ planned | T1583.001, T1585.001, T1586.001, T1588.002 |
-| Initial Access | TA0001 | ⏳ planned | T1566.001, T1190, T1133, T1078.004, T1195.002 |
+| Initial Access | TA0001 | ✅ shipped (`tier-2-initial-access`) | T1566.001, T1190, T1078, T1133, T1195.002 |
 | Execution | TA0002 | ⏳ planned | T1059.001, T1059.003, T1053.005, T1106, T1204.002 |
-| Persistence | TA0003 | ⏳ planned | T1547.001, T1543.003, T1098.001, T1136.001, T1505.003 |
+| Persistence | TA0003 | ✅ shipped (`tier-2-persistence`) | T1547.001, T1053.005, T1543.003, T1546.003, T1197 |
 | Privilege Escalation | TA0004 | ⏳ planned | T1548.001, T1055.001, T1134.001, T1078.003 |
-| Defense Evasion | TA0005 | ⏳ planned | T1070.004, T1027, T1218.011, T1140, T1562.001 |
-| Credential Access | TA0006 | ⏳ planned | T1003.001, T1110.001, T1555.003, T1558.003, T1552.004 |
+| Defense Evasion | TA0005 | ✅ shipped (`tier-2-defense-evasion`) | T1070.006, T1070.001, T1218.011, T1027.002, T1036.005 |
+| Credential Access | TA0006 | ✅ shipped (`tier-2-credential-access`) | T1003.001, T1558.003, T1003.006, T1555.003, T1552.004 |
 | Discovery | TA0007 | ⏳ planned | T1018, T1083, T1087.002, T1057, T1135 |
 | Lateral Movement | TA0008 | ✅ shipped (`tier-2-lateral-movement`) | T1021.001, T1021.002, T1047, T1053.005, T1021.003 |
 | Collection | TA0009 | ⏳ planned | T1005, T1056.001, T1119, T1115, T1074.001 |
-| Command and Control | TA0011 | ⏳ planned | T1071.001, T1071.004, T1573.002, T1572, T1090.002 |
+| Command and Control | TA0011 | ✅ shipped (`tier-2-command-and-control`) | T1071.001, T1071.004, T1102.002, T1573.002, T1090.002 |
 | Exfiltration | TA0010 | ⏳ planned | T1041, T1048.003, T1567.002, T1029, T1020 |
 | Impact | TA0040 | ⏳ planned | T1486, T1490, T1485, T1561.001, T1496 |
 
@@ -98,7 +98,7 @@ different gap to fill.
 ## Coverage targets (Sprint 14+ goal)
 
 * **Tier 1:** 8 narrative actor scenarios complete (1/8 ✅).
-* **Tier 2:** 14 tactic mini-campaigns complete (1/14 ✅).
+* **Tier 2:** 14 tactic mini-campaigns complete (6/14 ✅).
 * **ATT&CK technique floor:** every Enterprise tactic has ≥ 1
   technique covered by ≥ 1 scenario (currently 7/14 tactics
   touched via the APT41 scenario).

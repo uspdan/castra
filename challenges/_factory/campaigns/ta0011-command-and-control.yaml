@@ -1,0 +1,121 @@
+# ATT&CK TA0011 — Command and Control mini-campaign.
+#
+# Five compromised hosts each beacon in a different way. Hunter
+# walks pcap-extracted summaries, DNS query log, and proxy log
+# to identify each technique.
+
+slug: tier-2-command-and-control
+title: "Tier 2: Command and Control"
+description: |
+  Five compromised hosts in five business units each picked a
+  different way to talk to their handler. You have summarised pcap
+  flow tables, DNS query logs, and a proxy log. Identify the C2
+  technique used by each host.
+category: Threat Hunting
+team: blue
+difficulty: 4
+points: 500
+flag: "CTF{REDACTED}"
+tactic_id: TA0011
+docker_port: 2222
+profile: default-strict
+
+techniques:
+  - id: T1071.001
+    description: |
+      Web Protocols (HTTPS POST) — classic beacon, ~500 byte
+      POSTs every 60 seconds to a cloud-fronted domain.
+    question:
+      prompt: |
+        Which fully-qualified domain is HOST-A beaconing to? (Bare
+        domain, no scheme.)
+      hint: |
+        flows.csv host=HOST-A — look for periodic ~500 byte POSTs
+        with a regular cadence.
+      answer: REDACTED
+
+  - id: T1071.004
+    description: |
+      DNS Tunneling — HOST-B exfiltrates data inside subdomain
+      labels of TXT queries to its own NS.
+    question:
+      prompt: |
+        What is the second-level domain HOST-B is using for DNS
+        tunnelling? (e.g. `dnsc2.example`.)
+      hint: |
+        dns_queries.log — many long subdomain labels under the
+        same parent, all TXT records.
+      answer: REDACTED
+
+  - id: T1102.002
+    description: |
+      Bidirectional Communication via Web Service — HOST-C beacons
+      via a public pastebin / GitHub Gist style service rather
+      than a dedicated domain.
+    question:
+      prompt: |
+        Which web-service host is HOST-C using for bidirectional
+        comms? (Bare host name as it appears in the proxy log.)
+      hint: |
+        proxy.log — find the host with both GET and POST traffic
+        from HOST-C where the user-agent isn't a normal browser.
+      answer: REDACTED
+
+  - id: T1573.002
+    description: |
+      Encrypted Channel — Asymmetric Crypto — HOST-D talks over
+      a custom TLS that doesn't match common JA3 fingerprints.
+    question:
+      prompt: |
+        What is the JA3 hash recorded for the suspicious TLS
+        client HOST-D is using? (32-char hex string, lowercase.)
+      hint: |
+        flows.csv lines with host=HOST-D and proto=tls have a
+        ja3 field. Cross-reference against the known-good list
+        in known_good_ja3.txt — one JA3 isn't there.
+      answer: REDACTED
+
+  - id: T1090.002
+    description: |
+      External Proxy — HOST-E reaches the internet only through a
+      single hop that itself sits at a residential ISP, with all
+      C2 hops looking like normal HTTP through that proxy.
+    question:
+      prompt: |
+        What is the residential IP HOST-E is using as its
+        external proxy hop? (Format x.x.x.x.)
+      hint: |
+        flows.csv host=HOST-E — the only direct upstream IP
+        outside the corp /16 range, and its rDNS resolves to
+        a residential ISP block.
+      answer: REDACTED
+
+logs:
+  flows.csv: |
+    timestamp,host,dst_host,dst_ip,proto,bytes,note
+    2026-05-15T10:00:00Z,HOST-A,REDACTED,198.51.100.27,https,512,POST
+    2026-05-15T10:01:00Z,HOST-A,REDACTED,198.51.100.27,https,498,POST
+    2026-05-15T10:02:00Z,HOST-A,REDACTED,198.51.100.27,https,514,POST
+    2026-05-15T10:03:00Z,HOST-A,REDACTED,198.51.100.27,https,520,POST
+    2026-05-15T10:00:11Z,HOST-D,svc.encrypted-channel.example,REDACTED,tls,2412,ja3=REDACTED
+    2026-05-15T10:01:01Z,HOST-D,svc.encrypted-channel.example,REDACTED,tls,2392,ja3=REDACTED
+    2026-05-15T10:05:32Z,HOST-B,ns1.REDACTED,198.51.100.99,udp/53,182,QUERY
+    2026-05-15T10:12:14Z,HOST-E,REDACTED,REDACTED,http,1842,rdns=cable-203-0-113-144.isp.example
+    2026-05-15T10:12:28Z,HOST-E,REDACTED,REDACTED,http,1714,rdns=cable-203-0-113-144.isp.example
+  dns_queries.log: |
+    2026-05-15T10:05:32Z host=HOST-B type=TXT qname=ZGF0YV9wYXNzd29yZHNfYmFzZTY0.REDACTED
+    2026-05-15T10:05:34Z host=HOST-B type=TXT qname=Y29udGludWVfZXhmaWxfY2h1bms.REDACTED
+    2026-05-15T10:05:36Z host=HOST-B type=TXT qname=ZW5kX29mX21lc3NhZ2VfYXRfMTA1MA.REDACTED
+    2026-05-15T10:07:11Z host=HOST-A type=A qname=REDACTED
+    2026-05-15T10:08:18Z host=HOST-C type=A qname=REDACTED
+  proxy.log: |
+    2026-05-15T10:00:11Z host=HOST-C user="" dst=REDACTED verb=GET ua="curl/8.4" bytes=242 verdict=allow
+    2026-05-15T10:01:25Z host=HOST-C user="" dst=REDACTED verb=POST ua="curl/8.4" bytes=1882 verdict=allow
+    2026-05-15T10:02:40Z host=HOST-C user="" dst=REDACTED verb=GET ua="curl/8.4" bytes=242 verdict=allow
+    2026-05-15T10:00:00Z host=HOST-A user=svc_app dst=REDACTED verb=POST ua="Mozilla/5.0 (compat)" bytes=512 verdict=allow
+    2026-05-15T10:03:55Z host=HOST-X user=engineering dst=api.github.com verb=GET ua="git/2.42" bytes=8124 verdict=allow
+  known_good_ja3.txt: |
+    771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-21,29-23-24,0
+    771,4865-4866-4867-49196-49195-49200-49199-52393-52392-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27,29-23-24,0
+    # known-good fingerprints captured from corp-managed Chrome / Edge / Firefox installs over the last 90 days.
+    # If a JA3 is NOT in this file, it's worth a second look.
