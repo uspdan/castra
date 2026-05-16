@@ -1,0 +1,29 @@
+2026-05-03 09:17:34 ERROR ASP.NET 4.0.30319.0 - Event code: 3005
+    An unhandled exception has occurred.
+    Process ID: 8842
+    Process name: REDACTED
+    Application ID: /LM/W3SVC/1/ROOT/owa
+    URL: /owa/auth/Current/themes/resources/logoff.aspx
+    Stack trace at:
+       Microsoft.Exchange.Configuration.Auth.OwaAuthenticationModule.OnPostAuthenticate(...)
+    Note: This pattern is associated with REDACTED (ProxyLogon) SSRF probing.
+
+2026-05-03 09:17:55 WARN  IIS - 404.0 - Not Found
+    Path: /aspnet_client/system_web/exchange_diagnostic_v15.aspx
+    Reason: Attacker enumerating writable .aspx upload locations.
+
+2026-05-03 09:17:58 INFO  Exchange Setup - new file written
+    Path: C:\inetpub\wwwroot\uploads\REDACTED
+    Size: 412 bytes
+    Source process: REDACTED (PID 8842)
+    Hint: This file was not created by an authorised deployment job.
+
+2026-05-03 09:18:14 INFO  IIS - 200 OK
+    Path: /uploads/REDACTED
+    Verb: POST
+    First successful invocation of the newly-created file.
+
+2026-05-03 10:34:53 WARN  Outbound HTTPS upload from REDACTED child process
+    Destination: REDACTED
+    Size: 2.1 MB
+    Hint: Reputation engine flagged the domain as 'unknown / first contact'.

@@ -43,8 +43,12 @@ backups/
 # Certs
 nginx/certs/
 
-# Logs
+# Logs (runtime debug spew, not part of source)
 *.log
+# … but challenge log corpora ARE source. They're hand-authored
+# synthetic data the hunter must analyse; without them the
+# challenge doesn't work.
+!challenges/**/logs/*.log
 .memory-backups/
 .env.local
 .env.*.local

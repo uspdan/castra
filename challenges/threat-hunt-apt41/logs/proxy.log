@@ -1,0 +1,14 @@
+timestamp,src_ip,host,user_agent,bytes_sent,bytes_received,verdict
+2026-05-03T09:11:01Z,10.20.0.42,www.contoso.com,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0",2114,98231,allow
+2026-05-03T09:11:32Z,10.20.0.42,login.microsoftonline.com,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0",1245,38214,allow
+2026-05-03T09:13:18Z,10.20.0.55,outlook.office.com,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0",4218,124982,allow
+2026-05-03T09:25:11Z,10.20.0.99,REDACTED,"REDACTED",182,512,allow
+2026-05-03T09:35:42Z,10.20.0.99,REDACTED,"REDACTED",184,512,allow
+2026-05-03T09:45:18Z,10.20.0.99,REDACTED,"REDACTED",181,512,allow
+2026-05-03T09:55:02Z,10.20.0.99,REDACTED,"REDACTED",183,512,allow
+2026-05-03T10:05:14Z,10.20.0.99,REDACTED,"REDACTED",182,512,allow
+2026-05-03T10:15:03Z,10.20.0.99,REDACTED,"REDACTED",185,512,allow
+2026-05-03T10:25:11Z,10.20.0.99,REDACTED,"REDACTED",184,512,allow
+2026-05-03T10:34:51Z,10.20.0.99,REDACTED,"REDACTED",2148123,1402,allow
+2026-05-03T10:42:18Z,10.20.0.55,outlook.office.com,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0",3914,118821,allow
+2026-05-03T11:01:22Z,10.20.0.71,api.salesforce.com,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0",1582,42218,allow

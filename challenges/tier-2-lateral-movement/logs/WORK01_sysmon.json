@@ -1,0 +1,2 @@
+{"host":"WORK01","EventID":1,"UtcTime":"2026-05-12T08:45:11Z","Image":"C:\\Windows\\System32\\mstsc.exe","CommandLine":"mstsc /v:FILE01.corp.local","User":"CORP\\jsmith","ParentImage":"C:\\Windows\\explorer.exe"}
+{"host":"WORK01","EventID":1,"UtcTime":"2026-05-12T08:46:02Z","Image":"C:\\Windows\\System32\\REDACTED","CommandLine":"cmd /c net use \\\\FILE01\\IPC$ /user:CORP\\svc_backup Winter2024!","User":"CORP\\jsmith","ParentImage":"C:\\Windows\\explorer.exe"}

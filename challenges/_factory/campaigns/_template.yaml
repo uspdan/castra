@@ -1,0 +1,43 @@
+# ATT&CK tactic mini-campaign template.
+#
+# Copy to <tactic-id>-<short-slug>.yaml, fill in, then run
+# `python3 challenges/_factory/generate.py <this-yaml>`.
+
+# ── identity ──────────────────────────────────────────────────────────────
+slug: tier-2-EXAMPLE                       # used as filename + image tag
+title: "Tier 2: EXAMPLE TACTIC"
+description: |
+  One-paragraph briefing the player sees in the challenge listing.
+category: Threat Hunting
+team: blue
+difficulty: 3                              # 1..5
+points: 350
+flag: "CTF{REDACTED}"           # must match validator
+tactic_id: TA0XXX                          # MITRE ATT&CK tactic
+docker_port: 2222
+profile: default-strict                    # default-strict | suid-allowed
+
+# ── techniques chained in the campaign ────────────────────────────────────
+# Each entry yields one log artefact and one investigation question.
+techniques:
+  - id: T1XXX.YYY
+    description: |
+      One-line summary of what this technique looks like in the
+      synthetic log corpus.
+    question:
+      prompt: |
+        Investigative question the hunter must answer. Phrase
+        precisely so a definitive answer exists.
+      hint: |
+        Short hint shown alongside the question. Point at the right
+        log file, not at the answer itself.
+      answer: "canonical answer string"
+
+# ── log corpus to stage ───────────────────────────────────────────────────
+# Filename (under challenges/<slug>/logs/) → multi-line content.
+# Authors usually mix hand-written narrative log lines with a
+# small amount of generated noise.
+logs:
+  example.log: |
+    2026-05-16T10:00:00Z host1 example: log line 1
+    2026-05-16T10:00:05Z host1 example: log line 2 with IOC: <ANSWER>
