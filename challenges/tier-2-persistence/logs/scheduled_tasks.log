@@ -1,0 +1,3 @@
+2026-05-14T11:35:14Z host=WORK02 action=create taskName="\Microsoft\Windows\WindowsUpdate\Scheduled Start" trigger=daily runAs=SYSTEM author="Microsoft Corporation"
+2026-05-14T11:51:08Z host=WORK02 action=create taskName="REDACTED" trigger="daily 03:30" runAs=SYSTEM binPath="C:\ProgramData\Updater\wsupdate.exe" author="msmith"
+2026-05-14T12:14:42Z host=WORK02 action=delete taskName="\Adobe\Acrobat Update Task" reason="orphaned"

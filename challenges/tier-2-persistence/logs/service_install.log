@@ -1,0 +1,3 @@
+2026-05-14T11:54:22Z host=WORK02 EventID=7045 ServiceName=WSearchIndexer DisplayName="Windows Search Indexer" ImagePath="C:\Windows\System32\SearchIndexer.exe" StartType=Auto serviceAccount=LocalSystem
+2026-05-14T11:55:11Z host=WORK02 EventID=7045 ServiceName=REDACTED DisplayName="Performance Counter DLL Host" ImagePath="C:\ProgramData\Updater\svchost-helper.exe" StartType=Auto serviceAccount=LocalSystem signer="<UNSIGNED>"
+2026-05-14T13:18:00Z host=WORK02 EventID=7045 ServiceName=SlackUpdater DisplayName="Slack auto-update" ImagePath="C:\Users\msmith\AppData\Local\slack\update.exe" StartType=Demand serviceAccount=LocalSystem

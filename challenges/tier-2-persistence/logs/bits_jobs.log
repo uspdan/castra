@@ -1,0 +1,3 @@
+2026-05-14T11:42:11Z host=WORK02 op=jobCreated JobID={E91A...} DisplayName="Windows Update Setup" RemoteName="http://download.windowsupdate.com/d/msdownload/update/v3/static/trustedr/en/setup.exe" Owner=NT_AUTHORITY\SYSTEM Priority=Foreground
+2026-05-14T12:08:39Z host=WORK02 op=jobCreated JobID={A2B4...} DisplayName="REDACTED" RemoteName="http://cdn-svchost.io/upd/svchost-helper.exe" Owner="CORP\msmith" Priority=Foreground LifecycleHours=720
+2026-05-14T12:34:01Z host=WORK02 op=jobCreated JobID={F71C...} DisplayName="OneDrive Updater" RemoteName="https://oneclient.sfx.ms/Win/Installers/" Owner="CORP\msmith" Priority=Normal

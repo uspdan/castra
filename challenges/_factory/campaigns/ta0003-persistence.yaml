@@ -1,0 +1,110 @@
+# ATT&CK TA0003 — Persistence mini-campaign.
+#
+# After initial access, the attacker plants five different
+# persistence mechanisms on WORK02. The hunter is given Sysmon
+# + registry + scheduled-task + WMI subscription + BITS logs
+# and must name each technique.
+
+slug: tier-2-persistence
+title: "Tier 2: Persistence"
+description: |
+  EDR caught a single foothold on WORK02 but the attacker had a
+  window of about an hour before the host was isolated. Five
+  separate persistence mechanisms were planted in that window —
+  pick them apart from the logs.
+category: Threat Hunting
+team: blue
+difficulty: 3
+points: 400
+flag: "CTF{REDACTED}"
+tactic_id: TA0003
+docker_port: 2222
+profile: default-strict
+
+techniques:
+  - id: T1547.001
+    description: |
+      Registry Run Keys — backdoor binary registered under
+      HKCU\Software\Microsoft\Windows\CurrentVersion\Run.
+    question:
+      prompt: |
+        What registry value name did the attacker create under the
+        Run key? (Just the value name, exact case.)
+      hint: |
+        registry_audit.log — RegistryValueSet events with
+        TargetObject ending in `\Run\<name>`.
+      answer: REDACTED
+
+  - id: T1053.005
+    description: |
+      Scheduled Task — daily task that re-launches the backdoor at
+      03:30 if killed.
+    question:
+      prompt: |
+        What is the exact name of the scheduled task the attacker
+        created? (As shown in scheduled_tasks.log.)
+      hint: |
+        Filter to action=create.
+      answer: REDACTED
+
+  - id: T1543.003
+    description: |
+      Windows Service — a SYSTEM service that auto-starts at boot
+      and runs the backdoor binary.
+    question:
+      prompt: |
+        What is the service name (not the display name) the
+        attacker installed? (As shown in service_install.log.)
+      hint: |
+        Look for an install event with binPath pointing at a
+        non-standard location like C:\ProgramData\…
+      answer: REDACTED
+
+  - id: T1546.003
+    description: |
+      Event Triggered Execution — WMI subscription that fires on
+      a process-create matching REDACTED.
+    question:
+      prompt: |
+        What is the name of the WMI EventConsumer the attacker
+        registered? (As stored in WMI repository.)
+      hint: |
+        wmi_subscriptions.log — look for the consumer record paired
+        with a __EventFilter and __FilterToConsumerBinding.
+      answer: REDACTED
+
+  - id: T1197
+    description: |
+      BITS Jobs — long-lived BITS download job pointing at attacker
+      infrastructure that re-fetches the backdoor on a schedule.
+    question:
+      prompt: |
+        What is the BITS job display name (DisplayName field)
+        the attacker created? (Exact string.)
+      hint: |
+        bits_jobs.log — focus on the entry whose RemoteName host
+        doesn't match any approved Microsoft / corp domain.
+      answer: REDACTED
+
+logs:
+  registry_audit.log: |
+    2026-05-14T11:22:01Z host=WORK02 EventID=4657 action=RegistryValueSet TargetObject="HKLM\Software\Microsoft\Windows\CurrentVersion\Run\OneDriveUpdate" Value="C:\Program Files\Microsoft OneDrive\OneDriveUpdater.exe" SID=S-1-5-18
+    2026-05-14T11:48:32Z host=WORK02 EventID=4657 action=RegistryValueSet TargetObject="HKCU\Software\Microsoft\Windows\CurrentVersion\Run\REDACTED" Value="C:\ProgramData\Updater\wsupdate.exe" SID=S-1-5-21-1234-5678-9012-1101 user=CORP\msmith
+    2026-05-14T13:02:15Z host=WORK02 EventID=4657 action=RegistryValueSet TargetObject="HKCU\Software\Microsoft\Windows\CurrentVersion\Run\Slack" Value="C:\Users\msmith\AppData\Local\slack\slack.exe" SID=S-1-5-21-1234-5678-9012-1101 user=CORP\msmith
+  scheduled_tasks.log: |
+    2026-05-14T11:35:14Z host=WORK02 action=create taskName="\Microsoft\Windows\WindowsUpdate\Scheduled Start" trigger=daily runAs=SYSTEM author="Microsoft Corporation"
+    2026-05-14T11:51:08Z host=WORK02 action=create taskName="REDACTED" trigger="daily 03:30" runAs=SYSTEM binPath="C:\ProgramData\Updater\wsupdate.exe" author="msmith"
+    2026-05-14T12:14:42Z host=WORK02 action=delete taskName="\Adobe\Acrobat Update Task" reason="orphaned"
+  service_install.log: |
+    2026-05-14T11:54:22Z host=WORK02 EventID=7045 ServiceName=WSearchIndexer DisplayName="Windows Search Indexer" ImagePath="C:\Windows\System32\SearchIndexer.exe" StartType=Auto serviceAccount=LocalSystem
+    2026-05-14T11:55:11Z host=WORK02 EventID=7045 ServiceName=REDACTED DisplayName="Performance Counter DLL Host" ImagePath="C:\ProgramData\Updater\svchost-helper.exe" StartType=Auto serviceAccount=LocalSystem signer="<UNSIGNED>"
+    2026-05-14T13:18:00Z host=WORK02 EventID=7045 ServiceName=SlackUpdater DisplayName="Slack auto-update" ImagePath="C:\Users\msmith\AppData\Local\slack\update.exe" StartType=Demand serviceAccount=LocalSystem
+  wmi_subscriptions.log: |
+    2026-05-14T12:02:48Z host=WORK02 op=registerFilter name="REDACTED_Filter" query="SELECT * FROM __InstanceCreationEvent WITHIN 5 WHERE TargetInstance ISA 'Win32_Process' AND TargetInstance.Name = 'REDACTED'"
+    2026-05-14T12:02:49Z host=WORK02 op=registerConsumer name="REDACTED" type="CommandLineEventConsumer" commandLine="C:\ProgramData\Updater\wsupdate.exe /silent"
+    2026-05-14T12:02:50Z host=WORK02 op=registerBinding filter="REDACTED_Filter" consumer="REDACTED"
+    2026-05-14T12:14:11Z host=WORK02 op=registerConsumer name="MSFT_DefenderTelemetry" type="CommandLineEventConsumer" commandLine="C:\Program Files\Windows Defender\MpCmdRun.exe -ScanType 3"
+  bits_jobs.log: |
+    2026-05-14T11:42:11Z host=WORK02 op=jobCreated JobID={E91A...} DisplayName="Windows Update Setup" RemoteName="http://download.windowsupdate.com/d/msdownload/update/v3/static/trustedr/en/setup.exe" Owner=NT_AUTHORITY\SYSTEM Priority=Foreground
+    2026-05-14T12:08:39Z host=WORK02 op=jobCreated JobID={A2B4...} DisplayName="REDACTED" RemoteName="http://cdn-svchost.io/upd/svchost-helper.exe" Owner="CORP\msmith" Priority=Foreground LifecycleHours=720
+    2026-05-14T12:34:01Z host=WORK02 op=jobCreated JobID={F71C...} DisplayName="OneDrive Updater" RemoteName="https://oneclient.sfx.ms/Win/Installers/" Owner="CORP\msmith" Priority=Normal

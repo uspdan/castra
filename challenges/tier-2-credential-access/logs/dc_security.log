@@ -1,0 +1,4 @@
+2026-05-15T10:42:18Z DC01 EID=4769 ServiceName=MSSQLSvc/sqlsrv01.corp.local TicketEncryptionType=REDACTED TicketOptions=0x40810000 ClientAddress=10.20.0.45 User=CORP\jhoffman
+2026-05-15T10:42:19Z DC01 EID=4769 ServiceName=HTTP/intranet.corp.local TicketEncryptionType=REDACTED TicketOptions=0x40810000 ClientAddress=10.20.0.45 User=CORP\jhoffman
+2026-05-15T10:42:20Z DC01 EID=4769 ServiceName=cifs/fileserver.corp.local TicketEncryptionType=aes256_hmac TicketOptions=0x40810000 ClientAddress=10.20.0.45 User=CORP\jhoffman
+2026-05-15T10:58:14Z DC01 EID=REDACTED ObjectServer=DS ObjectType=domainDNS ObjectName=DC=corp,DC=local ObjectAccess="DS-Replication-Get-Changes,DS-Replication-Get-Changes-All" User=REDACTED ClientAddress=10.20.0.45

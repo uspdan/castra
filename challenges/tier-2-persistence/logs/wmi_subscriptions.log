@@ -1,0 +1,4 @@
+2026-05-14T12:02:48Z host=WORK02 op=registerFilter name="REDACTED_Filter" query="SELECT * FROM __InstanceCreationEvent WITHIN 5 WHERE TargetInstance ISA 'Win32_Process' AND TargetInstance.Name = 'REDACTED'"
+2026-05-14T12:02:49Z host=WORK02 op=registerConsumer name="REDACTED" type="CommandLineEventConsumer" commandLine="C:\ProgramData\Updater\wsupdate.exe /silent"
+2026-05-14T12:02:50Z host=WORK02 op=registerBinding filter="REDACTED_Filter" consumer="REDACTED"
+2026-05-14T12:14:11Z host=WORK02 op=registerConsumer name="MSFT_DefenderTelemetry" type="CommandLineEventConsumer" commandLine="C:\Program Files\Windows Defender\MpCmdRun.exe -ScanType 3"
