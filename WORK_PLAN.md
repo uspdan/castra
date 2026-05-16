@@ -4519,6 +4519,32 @@ upstream package churn + healthcheck / dev-mount drift.
   ``/api/`` prefix, FastAPI's v1 router consumes the
   second) matches the frontend Axios client behaviour.
 
+**Phase F — WebSocket upgrade headers**
+* ``Layout.jsx`` showed ``OFFLINE`` once the frontend
+  loaded. The ``useWebSocket`` hook connects to
+  ``ws://<host>/api/ws?token=…``. That path fell through
+  to the existing ``location /api/`` block, which has no
+  WebSocket upgrade plumbing — no
+  ``proxy_http_version 1.1`` / ``Upgrade`` / ``Connection
+  "upgrade"`` headers — so the handshake silently
+  degraded to a regular HTTP proxy. The dedicated
+  ``location /ws`` block was correct but unreached.
+* Added an exact-match
+  ``location = /api/ws`` in both the ``:80`` and
+  ``:443`` server blocks, mirroring the existing
+  ``/ws`` block (rewrite ``^/api/(.*) /$1`` →
+  ``/ws`` upstream, plus full upgrade headers and 24-h
+  read/send timeouts). Left the bare ``/ws`` block in
+  place — services hitting the API directly (e.g.,
+  challenge containers) still reach it.
+* The bind-mounted single-file ``nginx.conf`` (a
+  classic Docker limitation: editor saves replace the
+  inode, the bind keeps pointing at the old one) needed
+  a one-time ``docker restart seige-range-nginx-1`` to
+  pick up the new config. Reload-by-signal (``nginx -s
+  reload``) is enough for in-place writes but not for
+  inode-swapping editors.
+
 **Verification (Sprint 13 gate)**
 - ✅ ``make dev`` builds clean from an empty
   builder cache and brings every container to ``healthy``
@@ -4533,6 +4559,11 @@ upstream package churn + healthcheck / dev-mount drift.
 - ✅ ``curl /api/api/v1/challenges`` returns 401
   (auth-required) confirming the v1 router is reachable
   through nginx end-to-end.
+- ✅ ``websockets.connect('ws://nginx/api/ws?token=x')``
+  rejects with ``HTTP 403`` (invalid token), confirming
+  the upgrade handshake now reaches FastAPI through
+  nginx end-to-end. Previously it was reaching the
+  upstream as a plain HTTP request and 404'ing.
 
 **Sibling tech debt surfaced (NOT fixed)**
 
