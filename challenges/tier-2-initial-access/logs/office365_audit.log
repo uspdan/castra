@@ -1,0 +1,5 @@
+2026-05-10T08:12:01Z user=REDACTED op=Send subject="Q2 board pack" status=ok
+2026-05-10T13:42:18Z user=marcus.bell@corp.local op=MailItemsAccessed item="vendor-invoice.xlsx" macro=false status=ok
+2026-05-11T09:14:33Z user=REDACTED op=MailItemsAccessed item="VAT-receipt-2026Q2.xlsm" macro=true macroAction=WordOrExcelMacroEnabled childProcess="powershell.exe -enc JAB..." status=ok
+2026-05-11T09:14:55Z user=REDACTED op=ChildProcess image="powershell.exe" parent="EXCEL.EXE" status=ok
+2026-05-11T11:02:11Z user=carla.reyes@corp.local op=Send subject="Status update" status=ok

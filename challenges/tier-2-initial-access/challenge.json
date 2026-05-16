@@ -1,0 +1,34 @@
+{
+  "title": "Tier 2: Initial Access",
+  "slug": "tier-2-initial-access",
+  "description": "Five separate environments \u2014 corporate Office 365, a public web\nserver, an SSO portal, a VPN gateway, and a software supply\nchain \u2014 each had one suspicious event in the last week. For\neach environment, identify which ATT&CK technique was used for\ninitial access.",
+  "category": "Threat Hunting",
+  "team": "blue",
+  "difficulty": 3,
+  "points": 400,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "Start with the log file referenced in question 1's hint.",
+      "cost": 50
+    }
+  ],
+  "skills": [
+    "Threat Hunting",
+    "Log Analysis",
+    "MITRE ATT&CK",
+    "Incident Response"
+  ],
+  "mitre_techniques": [
+    "T1566.001",
+    "T1190",
+    "T1078",
+    "T1133",
+    "T1195.002"
+  ],
+  "docker_image": "siege/tier-2-initial-access:latest",
+  "docker_port": 2222,
+  "docker_config": {
+    "profile": "default-strict"
+  }
+}

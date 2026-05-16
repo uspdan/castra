@@ -1,0 +1,8 @@
+2026-05-09T03:42:11Z src=REDACTED dst=vpn.corp.local:443 action=RST reason=closed_port
+2026-05-09T03:42:12Z src=REDACTED dst=vpn.corp.local:22 action=RST reason=closed_port
+2026-05-09T03:42:13Z src=REDACTED dst=vpn.corp.local:80 action=RST reason=closed_port
+2026-05-09T03:42:15Z src=REDACTED dst=vpn.corp.local:8443 action=RST reason=closed_port
+2026-05-09T03:42:18Z src=REDACTED dst=vpn.corp.local:1194 action=ALLOW
+2026-05-09T03:42:20Z src=REDACTED user=svc_legacy result=auth_success mfa=disabled
+2026-05-09T04:18:55Z src=REDACTED user=svc_legacy result=tunnel_established assigned_ip=10.50.0.42
+2026-05-09T11:02:14Z src=192.0.2.18 user=engineering result=auth_success mfa=ok
