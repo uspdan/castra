@@ -59,6 +59,11 @@ _DEFAULT_TMPFS: Final[Mapping[str, str]] = {
     "/var/run": "size=8M,noexec,nosuid",
     "/run": "size=8M,noexec,nosuid",
     "/var/lock": "size=4M,noexec,nosuid",
+    # nginx writes proxy buffers, client uploads, fastcgi temp here.
+    # Stock nginx images create the subtree at install time but it's
+    # lost under read-only rootfs; remount as tmpfs so the daemon
+    # can start.
+    "/var/cache/nginx": "size=32M,noexec,nosuid",
 }
 
 

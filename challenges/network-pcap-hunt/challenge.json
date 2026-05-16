@@ -16,5 +16,5 @@
   "skills": ["Packet Analysis", "Wireshark", "Network Forensics"],
   "mitre_techniques": ["T1040"],
   "docker_image": "siege/network-pcap-hunt:latest",
-  "docker_port": 80
+  "docker_port": 8080
 }
