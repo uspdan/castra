@@ -74,7 +74,15 @@ _DEFAULT_STRICT = ContainerProfile(
     network_mode="bridge-isolated",
     egress_allowlist_required=False,
     cap_drop=("ALL",),
-    cap_add=(),
+    # CHOWN/SETGID/SETUID let multi-process servers (apache, nginx)
+    # drop to a non-root account at startup. CAP_SYS_CHROOT lets
+    # sshd's privsep child chroot into /run/sshd. NET_BIND_SERVICE
+    # is not granted — challenges bind high ports instead. This
+    # set matches the read-write-server expectations of the
+    # bundled seed challenges; pure analysis tools that don't need
+    # to fork into helpers can override with an even tighter
+    # profile if added later.
+    cap_add=("CHOWN", "SETGID", "SETUID", "SYS_CHROOT"),
     security_opt=("no-new-privileges:true",),
     read_only=True,
 )
@@ -166,12 +174,50 @@ _LLM_SANDBOX = ContainerProfile(
 )
 
 
+# For challenges that *intentionally* teach SUID / privilege-boundary
+# escalation inside the sandbox (e.g. ``suid-privesc``). Drops
+# ``no-new-privileges`` so SUID binaries can actually elevate within
+# the container — without it the SUID bit is silently ignored and
+# the challenge has no working solution path. All other defenses
+# (cap_drop, seccomp deny-list, read-only rootfs, internal network,
+# pids_limit) remain. The escalation stays *inside* the container;
+# the orchestrator's outer sandbox boundary is unaffected.
+_SUID_ALLOWED = ContainerProfile(
+    name="suid-allowed",
+    seccomp_profile="default-strict",
+    mem_limit="512m",
+    cpu_quota=100_000,
+    cpu_period=100_000,
+    pids_limit=256,
+    # /tmp is exec-able here — the canonical SUID/PATH-hijack
+    # workflow writes a wrapper script into /tmp and re-invokes
+    # the SUID binary with PATH=/tmp:$PATH. With noexec the
+    # exploit path is unreachable and the challenge has no
+    # working solution.
+    tmpfs={
+        "/tmp": "size=64M,exec,nosuid",
+        "/var/log": "size=32M,noexec,nosuid",
+        "/var/run": "size=8M,noexec,nosuid",
+        "/run": "size=8M,noexec,nosuid",
+        "/var/lock": "size=4M,noexec,nosuid",
+    },
+    ttl_seconds_max=7_200,
+    network_mode="bridge-isolated",
+    egress_allowlist_required=False,
+    cap_drop=("ALL",),
+    cap_add=("CHOWN", "SETGID", "SETUID", "SYS_CHROOT"),
+    security_opt=(),
+    read_only=True,
+)
+
+
 PROFILES: Final[Mapping[str, ContainerProfile]] = {
     _DEFAULT_STRICT.name: _DEFAULT_STRICT,
     _MALWARE_SANDBOX.name: _MALWARE_SANDBOX,
     _EGRESS_PROXIED.name: _EGRESS_PROXIED,
     _EGRESS_PROXIED_SIDECAR.name: _EGRESS_PROXIED_SIDECAR,
     _LLM_SANDBOX.name: _LLM_SANDBOX,
+    _SUID_ALLOWED.name: _SUID_ALLOWED,
 }
 
 

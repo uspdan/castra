@@ -3,10 +3,12 @@
 import json
 import os
 
-# Two primes that multiply to a ~256-bit modulus
-# These are roughly 128-bit primes
-p = 338947817762649041627042079649009501637
-q = 290245986740159562528702598831140273467
+# Two primes that multiply to a ~256-bit modulus — small enough that
+# yafu / msieve / cado-nfs / fermat-factoring all crack the modulus in
+# under a minute on a laptop. The previous values were composite, so
+# phi(n) != (p-1)(q-1) and decryption never recovered the flag.
+p = 338947817762649041627042079649009501639
+q = 290245986740159562528702598831140273469
 
 n = p * q  # ~256-bit modulus
 phi = (p - 1) * (q - 1)

@@ -7,10 +7,13 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Setup SSH
-RUN mkdir /var/run/sshd
-RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
-RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+# Setup SSH on a high port so cap_drop=ALL can still bind it
+# (port 22 would need CAP_NET_BIND_SERVICE which the orchestrator
+# strips). /run/sshd is recreated by the entrypoint each launch
+# because /run is a fresh tmpfs under the read-only rootfs profile.
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#Port 22/Port 2222/' /etc/ssh/sshd_config
 
 # Create CTF user
 RUN useradd -m -s /bin/bash ctfuser && \
@@ -35,6 +38,6 @@ RUN gcc -o /usr/local/bin/siege-backup /tmp/siege-backup.c && \
     chmod u+s /usr/local/bin/siege-backup && \
     rm /tmp/siege-backup.c
 
-EXPOSE 22
+EXPOSE 2222
 
-CMD ["/usr/sbin/sshd", "-D"]
+CMD ["sh", "-c", "mkdir -p /run/sshd && exec /usr/sbin/sshd -D"]
