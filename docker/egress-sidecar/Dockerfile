@@ -7,8 +7,8 @@
 # hot-reload pipeline needed.
 FROM alpine:3.19
 
-RUN apk add --no-cache tinyproxy=1.11.1-r2 ca-certificates \
-    && adduser -D -u 1001 tinyproxy \
+RUN apk add --no-cache tinyproxy=1.11.2-r0 ca-certificates \
+    && (id tinyproxy >/dev/null 2>&1 || adduser -D -u 1001 tinyproxy) \
     && mkdir -p /var/log/tinyproxy /var/run/tinyproxy /etc/tinyproxy \
     && chown -R tinyproxy:tinyproxy /var/log/tinyproxy /var/run/tinyproxy /etc/tinyproxy
 

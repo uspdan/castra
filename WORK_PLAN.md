@@ -4445,6 +4445,110 @@ User said keep going. Three more operational gaps closed.
   malformed body still returns 204.
 - ✅ Both handbooks render cleanly under any markdown viewer.
 
+## Sprint 13 — boot regressions (2026-05-16)
+
+11 days after Sprint 12. Bringing the stack up cold with
+``make dev`` surfaced five unrelated regressions blocking
+boot. None touch in-session functionality; all are rot from
+upstream package churn + healthcheck / dev-mount drift.
+
+**Phase A — egress-proxy build (Alpine 3.19 churn)**
+* ``docker/egress-proxy/Dockerfile`` and
+  ``docker/egress-sidecar/Dockerfile`` pinned
+  ``tinyproxy=1.11.1-r2``. Alpine community repo replaced it
+  with ``1.11.2-r0``; the new package also creates the
+  ``tinyproxy`` user during ``pre-install``, so the
+  follow-up ``adduser`` collided.
+* Bumped pin to ``1.11.2-r0`` and made adduser idempotent
+  (``id tinyproxy || adduser …``). Still pinned exactly per
+  CLAUDE.md §3.4.
+
+**Phase B — Python dep ranges (pysigma transitive bumps)**
+* ``pysigma==1.3.3`` (kept pinned for the blue-team
+  validators) tightened its ranges: now requires
+  ``jinja2>=3.1.6`` and ``pyyaml>=6.0.3``. Our pins
+  ``jinja2==3.1.3`` and ``pyyaml==6.0.1`` were too old →
+  ``ResolutionImpossible``.
+* Bumped to ``jinja2==3.1.6`` (also closes
+  CVE-2025-27516, server-side template-injection in
+  Jinja2 sandbox) and ``pyyaml==6.0.3``. Both are pure
+  upgrades — no API surface changes.
+
+**Phase C — dev cert mount**
+* ``nginx/nginx.conf`` always defines a ``listen 443 ssl``
+  block (Sprint 1 — operators drop certs in
+  ``nginx/certs/``). The ``:80`` listener and ``:443``
+  share one config; nginx fails at config-load if either
+  cert file is missing.
+* Prod compose already mounts ``./nginx/certs``. Dev
+  compose did not, so a clean ``make dev`` ran nginx
+  with no certs → ``[emerg] cannot load certificate`` →
+  no listener came up at all.
+* Added the same read-only mount to
+  ``docker-compose.dev.yml``. Operators run
+  ``bash scripts/generate_certs.sh`` once to populate the
+  dir (script already existed). README will pick this up
+  in the next docs pass.
+
+**Phase D — nginx healthcheck (IPv4-only listener)**
+* nginx listens IPv4-only (``listen 80`` / ``listen 443
+  ssl``, no ``[::]:`` form). The Docker healthcheck used
+  ``wget … http://localhost:80/health``; busybox wget in
+  alpine resolves ``localhost`` to IPv6 first → connection
+  refused → container marked unhealthy while traffic was
+  fine.
+* Switched the healthcheck to ``http://127.0.0.1:80/health``.
+  Chose IPv4 over adding ``listen [::]:80`` because the
+  rest of the stack is IPv4-only by design.
+
+**Phase E — seed script (legacy paths)**
+* ``scripts/seed_challenges.py`` still posted to
+  ``/auth/login`` (legacy) and ``/challenges`` /
+  ``/challenges/{slug}/release`` (legacy write paths that
+  the Phase 12 slice 21 front-door migration retired).
+  Auth succeeded — login still lives at both
+  ``/auth/login`` and ``/api/v1/auth/login`` — but
+  challenge creation 404'd against the legacy router
+  (now read-only) → 0/12 seeded.
+* Pointed all three calls at
+  ``/api/v1/auth/login``,
+  ``/api/v1/admin/challenges``,
+  ``/api/v1/admin/challenges/{slug}/release``. Kept the
+  ``API_URL`` default of ``http://localhost:3000/api`` so
+  the doubled-``/api/`` URL pattern (nginx strips one
+  ``/api/`` prefix, FastAPI's v1 router consumes the
+  second) matches the frontend Axios client behaviour.
+
+**Verification (Sprint 13 gate)**
+- ✅ ``make dev`` builds clean from an empty
+  builder cache and brings every container to ``healthy``
+  (nginx / api / db / redis / orchestrator /
+  docker-proxy / egress-proxy).
+- ✅ ``curl http://localhost:3000/`` → 200 (frontend
+  index).
+- ✅ ``curl http://localhost:3000/api/readyz`` → 200 with
+  ``postgres``, ``redis``, ``docker`` all probing green.
+- ✅ ``scripts/seed_challenges.py`` — 12 created / 12
+  released against a fresh DB.
+- ✅ ``curl /api/api/v1/challenges`` returns 401
+  (auth-required) confirming the v1 router is reachable
+  through nginx end-to-end.
+
+**Sibling tech debt surfaced (NOT fixed)**
+
+* The ``/api/api/v1/...`` doubled-prefix is functional but
+  ugly; rooted in the Axios baseURL of ``/api`` plus a
+  v1-router prefix of ``/api/v1`` plus nginx
+  ``rewrite ^/api/(.*) /$1``. Cleaning it up means
+  picking one of three approaches (baseURL=``/``, drop
+  the prefix from the v1 router, or stop the rewrite)
+  and migrating call sites. Out of scope for a boot fix
+  — flagged for a future slice.
+* ``redis-cli`` healthcheck and ``pg_isready`` are not
+  affected, but the nginx pattern likely repeats for any
+  future IPv6-listening service. Worth a one-pass audit
+  of all healthchecks if/when an IPv6 deploy lands.
+
 ## Awaiting
 
 Out-of-session / operator-side only:
@@ -4454,4 +4558,4 @@ Out-of-session / operator-side only:
   ``OTEL_EXPORTER_OTLP_ENDPOINT`` at Tempo / Jaeger / Honeycomb.
 * **promtool linting in CI** — irrelevant while Actions is off.
 
-Phase 0–12 + Sprints 1–12 in-session work shipped.
+Phase 0–12 + Sprints 1–13 in-session work shipped.

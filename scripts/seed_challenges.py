@@ -46,7 +46,7 @@ def authenticate(base_url: str, email: str, password: str) -> str:
     info(f"Authenticating as {BOLD}{email}{RESET} ...")
     try:
         resp = requests.post(
-            f"{base_url}/auth/login",
+            f"{base_url}/api/v1/auth/login",
             json={"email": email, "password": password},
             timeout=10,
         )
@@ -75,7 +75,7 @@ def create_challenge(base_url: str, headers: dict, challenge: dict) -> bool:
     slug = challenge.get("slug", challenge.get("name", "unknown"))
     try:
         resp = requests.post(
-            f"{base_url}/challenges",
+            f"{base_url}/api/v1/admin/challenges",
             json=challenge,
             headers=headers,
             timeout=15,
@@ -99,7 +99,7 @@ def release_challenge(base_url: str, headers: dict, slug: str) -> bool:
     """Release (publish) a challenge by slug."""
     try:
         resp = requests.post(
-            f"{base_url}/challenges/{slug}/release",
+            f"{base_url}/api/v1/admin/challenges/{slug}/release",
             headers=headers,
             timeout=10,
         )
@@ -122,7 +122,7 @@ def main() -> None:
     print(f"\n{BOLD}{CYAN}=== Siege Range CTF - Challenge Seeder ==={RESET}\n")
 
     # ── Configuration ────────────────────────────────────────────────────
-    base_url = os.getenv("API_URL", "http://localhost:3000/api")
+    base_url = os.getenv("API_URL", "http://localhost:3000/api").rstrip("/")
     admin_email = os.getenv("ADMIN_EMAIL", "admin@siege.local")
     admin_password = os.getenv("ADMIN_PASSWORD", "Admin123!@#")
 
