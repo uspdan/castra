@@ -45,12 +45,12 @@ output, light hand-tuning. One per tactic. 14 total.
 | Privilege Escalation | TA0004 | ⏳ planned | T1548.001, T1055.001, T1134.001, T1078.003 |
 | Defense Evasion | TA0005 | ✅ shipped (`tier-2-defense-evasion`) | T1070.006, T1070.001, T1218.011, T1027.002, T1036.005 |
 | Credential Access | TA0006 | ✅ shipped (`tier-2-credential-access`) | T1003.001, T1558.003, T1003.006, T1555.003, T1552.004 |
-| Discovery | TA0007 | ⏳ planned | T1018, T1083, T1087.002, T1057, T1135 |
+| Discovery | TA0007 | ✅ shipped (`tier-2-discovery`) | T1018, T1083, T1087.002, T1057, T1135 |
 | Lateral Movement | TA0008 | ✅ shipped (`tier-2-lateral-movement`) | T1021.001, T1021.002, T1047, T1053.005, T1021.003 |
 | Collection | TA0009 | ⏳ planned | T1005, T1056.001, T1119, T1115, T1074.001 |
 | Command and Control | TA0011 | ✅ shipped (`tier-2-command-and-control`) | T1071.001, T1071.004, T1102.002, T1573.002, T1090.002 |
-| Exfiltration | TA0010 | ⏳ planned | T1041, T1048.003, T1567.002, T1029, T1020 |
-| Impact | TA0040 | ⏳ planned | T1486, T1490, T1485, T1561.001, T1496 |
+| Exfiltration | TA0010 | ✅ shipped (`tier-2-exfiltration`) | T1041, T1048.003, T1567.002, T1029, T1020 |
+| Impact | TA0040 | ✅ shipped (`tier-2-impact`) | T1486, T1490, T1561.001, T1485, T1531 |
 
 ## D3FEND coverage (defensive-counter side)
 
@@ -98,7 +98,7 @@ different gap to fill.
 ## Coverage targets (Sprint 14+ goal)
 
 * **Tier 1:** 8 narrative actor scenarios complete (1/8 ✅).
-* **Tier 2:** 14 tactic mini-campaigns complete (6/14 ✅).
+* **Tier 2:** 14 tactic mini-campaigns complete (9/14 ✅).
 * **ATT&CK technique floor:** every Enterprise tactic has ≥ 1
   technique covered by ≥ 1 scenario (currently 7/14 tactics
   touched via the APT41 scenario).

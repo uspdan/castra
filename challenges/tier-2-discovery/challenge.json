@@ -1,0 +1,34 @@
+{
+  "title": "Tier 2: Discovery",
+  "slug": "tier-2-discovery",
+  "description": "The attacker landed quietly on SRVR-04 and spent twenty minutes\nmapping the environment before doing anything else. Reconstruct\nthe discovery chain from a single Sysmon JSONL stream.",
+  "category": "Threat Hunting",
+  "team": "blue",
+  "difficulty": 2,
+  "points": 350,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "Start with the log file referenced in question 1's hint.",
+      "cost": 50
+    }
+  ],
+  "skills": [
+    "Threat Hunting",
+    "Log Analysis",
+    "MITRE ATT&CK",
+    "Incident Response"
+  ],
+  "mitre_techniques": [
+    "T1018",
+    "T1083",
+    "T1087.002",
+    "T1057",
+    "T1135"
+  ],
+  "docker_image": "siege/tier-2-discovery:latest",
+  "docker_port": 2222,
+  "docker_config": {
+    "profile": "default-strict"
+  }
+}

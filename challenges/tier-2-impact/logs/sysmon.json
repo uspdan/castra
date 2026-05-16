@@ -1,0 +1,2 @@
+{"host":"BACKUP-2","EventID":1,"UtcTime":"2026-05-15T15:08:42Z","Image":"C:\\Windows\\System32\\REDACTED","CommandLine":"REDACTED delete shadows /all /quiet","User":"NT AUTHORITY\\SYSTEM","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+{"host":"BACKUP-2","EventID":1,"UtcTime":"2026-05-15T15:08:48Z","Image":"C:\\Windows\\System32\\wbadmin.exe","CommandLine":"wbadmin.exe delete catalog -quiet","User":"NT AUTHORITY\\SYSTEM","ParentImage":"C:\\Windows\\System32\\REDACTED"}

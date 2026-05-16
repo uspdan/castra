@@ -1,0 +1,4 @@
+2026-05-15T15:01:11Z host=FILE-01 event=file_renamed before="C:\Shares\hr\onboarding.docx" after="C:\Shares\hr\onboarding.docxREDACTED"
+2026-05-15T15:01:13Z host=FILE-01 event=file_renamed before="C:\Shares\hr\offboarding.docx" after="C:\Shares\hr\offboarding.docxREDACTED"
+2026-05-15T15:01:14Z host=FILE-01 event=file_created path="C:\Shares\hr\HOW_TO_RESTORE.txt" size=2148 contents_hint="ransom note"
+2026-05-15T15:02:08Z host=FILE-01 event=file_renamed before="C:\Shares\finance\Q1-report.xlsx" after="C:\Shares\finance\Q1-report.xlsxREDACTED"

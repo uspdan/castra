@@ -1,0 +1,98 @@
+# ATT&CK TA0007 — Discovery mini-campaign.
+
+slug: tier-2-discovery
+title: "Tier 2: Discovery"
+description: |
+  The attacker landed quietly on SRVR-04 and spent twenty minutes
+  mapping the environment before doing anything else. Reconstruct
+  the discovery chain from a single Sysmon JSONL stream.
+category: Threat Hunting
+team: blue
+difficulty: 2
+points: 350
+flag: "CTF{REDACTED}"
+tactic_id: TA0007
+docker_port: 2222
+profile: default-strict
+
+techniques:
+  - id: T1018
+    description: |
+      Remote System Discovery — net view + nltest /dclist to map
+      hosts and domain controllers.
+    question:
+      prompt: |
+        Which built-in Windows binary did the attacker use to list
+        the domain controllers? (Just the filename, e.g. foo.exe.)
+      hint: |
+        Look for arguments like /dclist.
+      answer: REDACTED
+
+  - id: T1083
+    description: |
+      File and Directory Discovery — recursive search for sensitive
+      file extensions.
+    question:
+      prompt: |
+        What file extension was the attacker hunting for in the
+        recursive find? (Format: .ext, including the dot.)
+      hint: |
+        A dir /s or where invocation with a *.* pattern.
+      answer: REDACTED
+
+  - id: T1087.002
+    description: |
+      Domain Account Discovery — net group "REDACTED"
+      enumeration.
+    question:
+      prompt: |
+        What AD group did the attacker enumerate for membership?
+        (Exact name as passed to net group, no quotes.)
+      hint: |
+        net group has the group name as its first argument.
+      answer: REDACTED
+
+  - id: T1057
+    description: |
+      Process Discovery — tasklist /v looking for AV/EDR processes.
+    question:
+      prompt: |
+        Which AV/EDR product name appeared in the tasklist output
+        the attacker dumped to disk? (Vendor product name as it
+        shows in Image Name — lowercase, e.g. `REDACTED`.)
+      hint: |
+        Sysmon FileCreate of a .txt artefact; inside, look for
+        any process from a known EDR vendor.
+      answer: REDACTED
+
+  - id: T1135
+    description: |
+      Network Share Discovery — net view \\hostname /all to
+      enumerate shares.
+    question:
+      prompt: |
+        Which remote hostname did the attacker enumerate shares on
+        immediately before moving sideways? (Hostname only, no UNC,
+        uppercase.)
+      hint: |
+        net view \\HOSTNAME /all.
+      answer: REDACTED
+
+logs:
+  sysmon.json: |
+    {"host":"SRVR-04","EventID":1,"UtcTime":"2026-05-15T14:01:11Z","Image":"C:\\Windows\\System32\\REDACTED","CommandLine":"REDACTED /dclist:corp.local","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+    {"host":"SRVR-04","EventID":1,"UtcTime":"2026-05-15T14:01:22Z","Image":"C:\\Windows\\System32\\net.exe","CommandLine":"net view","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+    {"host":"SRVR-04","EventID":1,"UtcTime":"2026-05-15T14:04:48Z","Image":"C:\\Windows\\System32\\where.exe","CommandLine":"where /r C:\\ *REDACTED","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+    {"host":"SRVR-04","EventID":1,"UtcTime":"2026-05-15T14:06:12Z","Image":"C:\\Windows\\System32\\net.exe","CommandLine":"net group \"REDACTED\" /domain","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+    {"host":"SRVR-04","EventID":1,"UtcTime":"2026-05-15T14:09:31Z","Image":"C:\\Windows\\System32\\tasklist.exe","CommandLine":"tasklist /v","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+    {"host":"SRVR-04","EventID":11,"UtcTime":"2026-05-15T14:09:34Z","Image":"C:\\Windows\\System32\\REDACTED","TargetFilename":"C:\\Users\\REDACTED\\AppData\\Local\\Temp\\procs.txt","User":"CORP\\REDACTED"}
+    {"host":"SRVR-04","EventID":1,"UtcTime":"2026-05-15T14:14:05Z","Image":"C:\\Windows\\System32\\net.exe","CommandLine":"net view \\\\REDACTED /all","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+  procs.txt: |
+    Image Name                     PID Session Name        Session#    Mem Usage Status          User Name                                              CPU Time Window Title
+    ========================= ======== ================ =========== ============ =============== ================================================== ============ ========================================
+    System                           4 Services                   0          136 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:01 N/A
+    svchost.exe                    928 Services                   0       12,348 K Unknown         NT AUTHORITY\NETWORK SERVICE                            0:01:23 N/A
+    MsMpEng.exe                   2104 Services                   0       95,512 K Unknown         NT AUTHORITY\SYSTEM                                     0:02:11 N/A
+    REDACTED                   2398 Services                   0       42,128 K Unknown         NT AUTHORITY\SYSTEM                                     0:01:42 N/A
+    explorer.exe                  4592 Console                    1       38,914 K Running         CORP\REDACTED                                               0:00:24 Explorer
+    REDACTED                       7711 Console                    1        2,148 K Running         CORP\REDACTED                                               0:00:01 Command Prompt

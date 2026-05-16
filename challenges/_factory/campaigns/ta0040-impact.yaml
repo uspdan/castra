@@ -1,0 +1,111 @@
+# ATT&CK TA0040 — Impact mini-campaign.
+
+slug: tier-2-impact
+title: "Tier 2: Impact"
+description: |
+  A ransomware-style operator went loud on five hosts in a single
+  hour. Identify the impact technique used on each affected
+  system from the available evidence.
+category: Threat Hunting
+team: blue
+difficulty: 3
+points: 450
+flag: "CTF{REDACTED}"
+tactic_id: TA0040
+docker_port: 2222
+profile: default-strict
+
+techniques:
+  - id: T1486
+    description: |
+      Data Encrypted for Impact — every file under /data is
+      replaced with REDACTED extensions and a ransom note dropped.
+    question:
+      prompt: |
+        What file extension is appended to encrypted files on
+        host FILE-01? (Format: .ext, including the dot.)
+      hint: |
+        filesystem_changes.log — file creation events.
+      answer: REDACTED
+
+  - id: T1490
+    description: |
+      Inhibit System Recovery — vssadmin delete shadows /all /quiet.
+    question:
+      prompt: |
+        Which Windows built-in did the attacker use to delete
+        shadow copies on host BACKUP-2? (Filename, lowercase.)
+      hint: |
+        sysmon.json process_creation, command line includes
+        `delete shadows`.
+      answer: REDACTED
+
+  - id: T1561.001
+    description: |
+      Disk Content Wipe — selective overwriting of high-value
+      database directories on host DB-3.
+    question:
+      prompt: |
+        What database directory on DB-3 was overwritten with
+        random data? (Full path.)
+      hint: |
+        wipe_audit.log — look for the largest write of pattern
+        `random` to a path under a database product folder.
+      answer: REDACTED
+
+  - id: T1485
+    description: |
+      Data Destruction — bulk delete of monthly accounting CSVs
+      on host FINANCE-9.
+    question:
+      prompt: |
+        How many files were deleted from FINANCE-9 in the bulk
+        delete operation? (Just the integer.)
+      hint: |
+        deletion_audit.log — single user/process responsible
+        for a count.
+      answer: 187
+
+  - id: T1531
+    description: |
+      Account Access Removal — attacker disables 12 admin accounts
+      to hamper response on host AD-1.
+    question:
+      prompt: |
+        How many admin accounts were disabled by the attacker
+        on AD-1? (Just the integer.)
+      hint: |
+        ad_changes.log — EID 4725 (account disabled) events
+        with the same actor.
+      answer: 12
+
+logs:
+  filesystem_changes.log: |
+    2026-05-15T15:01:11Z host=FILE-01 event=file_renamed before="C:\Shares\hr\onboarding.docx" after="C:\Shares\hr\onboarding.docxREDACTED"
+    2026-05-15T15:01:13Z host=FILE-01 event=file_renamed before="C:\Shares\hr\offboarding.docx" after="C:\Shares\hr\offboarding.docxREDACTED"
+    2026-05-15T15:01:14Z host=FILE-01 event=file_created path="C:\Shares\hr\HOW_TO_RESTORE.txt" size=2148 contents_hint="ransom note"
+    2026-05-15T15:02:08Z host=FILE-01 event=file_renamed before="C:\Shares\finance\Q1-report.xlsx" after="C:\Shares\finance\Q1-report.xlsxREDACTED"
+  sysmon.json: |
+    {"host":"BACKUP-2","EventID":1,"UtcTime":"2026-05-15T15:08:42Z","Image":"C:\\Windows\\System32\\REDACTED","CommandLine":"REDACTED delete shadows /all /quiet","User":"NT AUTHORITY\\SYSTEM","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+    {"host":"BACKUP-2","EventID":1,"UtcTime":"2026-05-15T15:08:48Z","Image":"C:\\Windows\\System32\\wbadmin.exe","CommandLine":"wbadmin.exe delete catalog -quiet","User":"NT AUTHORITY\\SYSTEM","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+  wipe_audit.log: |
+    2026-05-15T15:14:12Z host=DB-3 path="REDACTED" bytes_written=18421248000 pattern=random verdict=destructive_overwrite
+    2026-05-15T15:18:55Z host=DB-3 path="C:\Program Files\Microsoft SQL Server\MSSQL16\Log" bytes_written=2148000000 pattern=random verdict=destructive_overwrite
+    2026-05-15T15:22:11Z host=DB-3 path="C:\inetpub\logs" bytes_written=42148000 pattern=zero verdict=destructive_overwrite
+  deletion_audit.log: |
+    2026-05-15T15:42:11Z host=FINANCE-9 user=svc_finance process="C:\Tools\sdelete.exe" command="sdelete -p 3 -s C:\Finance\Monthly\*.csv" verdict=bulk_delete files_deleted=187
+    2026-05-15T15:48:22Z host=FINANCE-9 user=svc_finance process="C:\Tools\sdelete.exe" command="sdelete -p 3 -s C:\Finance\Audit\*.pdf" verdict=bulk_delete files_deleted=42
+  ad_changes.log: |
+    2026-05-15T15:55:01Z host=AD-1 EID=4725 TargetAccountName=alice.admin Actor=CORP\svc_compromised
+    2026-05-15T15:55:02Z host=AD-1 EID=4725 TargetAccountName=bob.admin Actor=CORP\svc_compromised
+    2026-05-15T15:55:03Z host=AD-1 EID=4725 TargetAccountName=carla.admin Actor=CORP\svc_compromised
+    2026-05-15T15:55:04Z host=AD-1 EID=4725 TargetAccountName=dan.admin Actor=CORP\svc_compromised
+    2026-05-15T15:55:05Z host=AD-1 EID=4725 TargetAccountName=eve.admin Actor=CORP\svc_compromised
+    2026-05-15T15:55:06Z host=AD-1 EID=4725 TargetAccountName=frank.admin Actor=CORP\svc_compromised
+    2026-05-15T15:55:07Z host=AD-1 EID=4725 TargetAccountName=greta.admin Actor=CORP\svc_compromised
+    2026-05-15T15:55:08Z host=AD-1 EID=4725 TargetAccountName=hank.admin Actor=CORP\svc_compromised
+    2026-05-15T15:55:09Z host=AD-1 EID=4725 TargetAccountName=ian.admin Actor=CORP\svc_compromised
+    2026-05-15T15:55:10Z host=AD-1 EID=4725 TargetAccountName=jane.admin Actor=CORP\svc_compromised
+    2026-05-15T15:55:11Z host=AD-1 EID=4725 TargetAccountName=karl.admin Actor=CORP\svc_compromised
+    2026-05-15T15:55:12Z host=AD-1 EID=4725 TargetAccountName=lara.admin Actor=CORP\svc_compromised
+    2026-05-15T16:02:48Z host=AD-1 EID=4724 TargetAccountName=alice.admin Actor=helpdesk@corp.local note=password_reset_legitimate

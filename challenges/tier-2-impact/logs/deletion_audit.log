@@ -1,0 +1,2 @@
+2026-05-15T15:42:11Z host=FINANCE-9 user=svc_finance process="C:\Tools\sdelete.exe" command="sdelete -p 3 -s C:\Finance\Monthly\*.csv" verdict=bulk_delete files_deleted=187
+2026-05-15T15:48:22Z host=FINANCE-9 user=svc_finance process="C:\Tools\sdelete.exe" command="sdelete -p 3 -s C:\Finance\Audit\*.pdf" verdict=bulk_delete files_deleted=42

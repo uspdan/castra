@@ -1,0 +1,5 @@
+2026-05-12T02:14:01Z host=LEGAL-1 event=exfil_transfer destination=ssh://attacker.example bytes=84512000
+2026-05-13T02:08:18Z host=LEGAL-1 event=exfil_transfer destination=ssh://attacker.example bytes=72148000
+2026-05-13T11:11:32Z host=LEGAL-1 event=backup_transfer destination=backup.corp.local bytes=4124000000 note=corp_backup_job
+2026-05-14T02:24:55Z host=LEGAL-1 event=exfil_transfer destination=ssh://attacker.example bytes=68291000
+2026-05-15T02:42:11Z host=LEGAL-1 event=exfil_transfer destination=ssh://attacker.example bytes=91408000

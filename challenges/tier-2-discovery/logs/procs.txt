@@ -1,0 +1,8 @@
+Image Name                     PID Session Name        Session#    Mem Usage Status          User Name                                              CPU Time Window Title
+========================= ======== ================ =========== ============ =============== ================================================== ============ ========================================
+System                           4 Services                   0          136 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:01 N/A
+svchost.exe                    928 Services                   0       12,348 K Unknown         NT AUTHORITY\NETWORK SERVICE                            0:01:23 N/A
+MsMpEng.exe                   2104 Services                   0       95,512 K Unknown         NT AUTHORITY\SYSTEM                                     0:02:11 N/A
+REDACTED                   2398 Services                   0       42,128 K Unknown         NT AUTHORITY\SYSTEM                                     0:01:42 N/A
+explorer.exe                  4592 Console                    1       38,914 K Running         CORP\REDACTED                                               0:00:24 Explorer
+REDACTED                       7711 Console                    1        2,148 K Running         CORP\REDACTED                                               0:00:01 Command Prompt
