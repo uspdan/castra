@@ -1,0 +1,25 @@
+{
+  "title": "Threat Hunt: APT41",
+  "slug": "threat-hunt-apt41",
+  "description": "An Exchange server is acting strange. Walk the logs, find the web shell, trace the process tree, and answer five investigative questions to confirm the intrusion. Educational scenario inspired by published APT41 activity.",
+  "category": "Threat Hunting",
+  "team": "blue",
+  "difficulty": 3,
+  "points": 400,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "Start with the IIS access log — look for POSTs to .aspx files in writable upload directories",
+      "cost": 75
+    },
+    {
+      "text": "Sysmon ProcessCreate events under sysmon.json reveal the post-exploitation pivot. The parent process of the malicious REDACTED is what gives the web shell away",
+      "cost": 75
+    }
+  ],
+  "skills": ["Threat Hunting", "IIS Forensics", "Sysmon", "MITRE ATT&CK", "Incident Response"],
+  "mitre_techniques": ["T1190", "T1505.003", "T1059.001", "T1071.001", "T1567.002"],
+  "docker_image": "siege/threat-hunt-apt41:latest",
+  "docker_port": 2222,
+  "docker_config": {"profile": "default-strict"}
+}

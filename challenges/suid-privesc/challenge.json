@@ -17,5 +17,5 @@
   "mitre_techniques": ["T1548.001"],
   "docker_image": "siege/suid-privesc:latest",
   "docker_port": 2222,
-  "profile": "suid-allowed"
+  "docker_config": {"profile": "suid-allowed"}
 }
