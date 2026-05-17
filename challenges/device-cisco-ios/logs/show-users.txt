@@ -1,0 +1,5 @@
+Line       User       Host(s)              Idle       Location
+0 con 0                idle                 00:42:11
+1 vty 0   REDACTED      idle                 00:00:08   REDACTED
+2 vty 1                idle                 -
+3 vty 2                idle                 -

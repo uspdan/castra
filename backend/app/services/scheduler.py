@@ -29,6 +29,7 @@ scheduler = AsyncIOScheduler()
 
 async def cleanup_expired_instances():
     from app.services.orchestrator import cleanup_expired
+    from app.services.orchestration.cleanup import sweep_orphaned_instances
     import redis.asyncio as aioredis
     from app.config import get_settings
 
@@ -39,8 +40,27 @@ async def cleanup_expired_instances():
             count = await cleanup_expired(db, redis_client)
             if count:
                 logger.info("Cleaned up expired instances", count=count)
+            # Reconcile orphans whose docker container vanished
+            # (typical after an orchestrator recreate). Cheap; idempotent.
+            orphaned = await sweep_orphaned_instances(db)
+            if orphaned:
+                logger.info("Swept orphan instances", count=orphaned)
     finally:
         await redis_client.close()
+
+
+async def reap_idle_workstations():
+    """Hourly: stop workstations whose uptime exceeds the idle
+    limit. The home volume is preserved so a reaped player loses
+    no state on next Launch.
+    """
+    from app.services import workstation as ws
+    try:
+        reaped = ws.reap_idle(max_uptime_hours=8)
+        if reaped:
+            logger.info("Reaped idle workstations", user_ids=reaped)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("workstation.reap.job_failed", error=str(exc))
 
 
 async def cache_leaderboard():
@@ -279,6 +299,11 @@ def setup_scheduler():
     # Sprint 12 Phase A — nightly DB backup at 02:30 UTC.
     scheduler.add_job(
         nightly_db_backup, "cron", hour=2, minute=30, id="db_backup"
+    )
+    # Workstation idle reaper — every hour, stop any workstation
+    # whose uptime exceeds 8h. Home volume is preserved.
+    scheduler.add_job(
+        reap_idle_workstations, "interval", hours=1, id="workstation_reap"
     )
     scheduler.start()
     logger.info("Scheduler started")

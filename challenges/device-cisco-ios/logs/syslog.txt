@@ -1,0 +1,10 @@
+May 14 03:08:11.121 UTC: %SNMP-3-AUTHFAIL: Authentication failure for SNMP req from REDACTED
+May 14 03:08:14.402 UTC: %SNMP-3-AUTHFAIL: Authentication failure for SNMP req from REDACTED
+May 14 03:08:18.811 UTC: %SNMP-3-AUTHFAIL: Authentication failure for SNMP req from REDACTED
+May 14 03:09:02.044 UTC: %SNMP-5-COLDSTART: SNMP agent on host BR-EDGE-01 is undergoing a cold start
+May 14 03:09:48.117 UTC: %SEC_LOGIN-5-LOGIN_SUCCESS: Login Success [user: REDACTED] [Source: REDACTED] [localport: 22] at 03:09:48 UTC Wed May 14 2026
+May 14 03:11:22.880 UTC: %SYS-5-CONFIG_I: Configured from console by REDACTED on vty0 (REDACTED)
+May 14 03:13:19.422 UTC: %LINK-3-UPDOWN: Interface Tunnel0, changed state to up
+May 14 03:13:20.001 UTC: %LINEPROTO-5-UPDOWN: Line protocol on Interface Tunnel0, changed state to up
+May 14 03:14:22.107 UTC: %SYS-5-CONFIG_I: Configured from console by REDACTED on vty0 (REDACTED)
+May 14 03:15:01.560 UTC: %SYS-6-LOGGINGHOST_STARTSTOP: Logging to host 10.10.0.50 stopped - CLI initiated

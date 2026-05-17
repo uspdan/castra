@@ -1,0 +1,30 @@
+#!/bin/bash
+# Wraps the device-shell — drops the hunter into a Cisco IOS-style
+# prompt against the staged device. Matches the muscle memory of
+# `ssh admin@<device>` or `telnet <device>` on a real management
+# network: pick a target by hostname, get the device CLI.
+
+set -eu
+
+target="${1:-}"
+
+if [ -z "$target" ]; then
+    cat <<'EOF'
+usage: connect <hostname>
+
+Available devices on the management network:
+  br-edge-01     Cisco 2911 ISR, IOS 15.7(3)M5 — perimeter router
+EOF
+    exit 2
+fi
+
+case "${target,,}" in
+    br-edge-01|br-edge|edge)
+        exec python3 /opt/device-shell/shell.py /opt/device-shell/ios_device.py
+        ;;
+    *)
+        echo "% Unknown host: $target" >&2
+        echo "Try: connect br-edge-01" >&2
+        exit 1
+        ;;
+esac

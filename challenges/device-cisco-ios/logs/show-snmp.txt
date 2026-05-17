@@ -1,0 +1,8 @@
+Chassis: FTX1745A0B8
+Contact: noc@example.com
+Location: DC1-rack-12
+SNMP packets input
+    12483921 - get-request packets
+SNMP communities:
+    READ-ONLY        RO
+    REDACTED        RW

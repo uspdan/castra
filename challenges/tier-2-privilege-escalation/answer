@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""`answer` — submit threat-hunt answers from the player's shell.
+
+Usage:
+  answer                       list the open questions
+  answer <id> "<value>"        submit one answer (single-shot validation)
+  answer remember <id> "<v>"   persist locally so 'answer reveal' can use it
+  answer reveal                reveal the flag once every remembered answer
+                               matches the canonical value
+
+Validator daemon listens on 127.0.0.1:5000 inside the container.
+"""
+
+import json
+import os
+import sys
+import urllib.request
+
+BASE = "http://127.0.0.1:5000"
+STORE = "/tmp/answers.json"
+
+
+def _http(path, payload=None):
+    if payload is None:
+        req = urllib.request.Request(BASE + path)
+    else:
+        body = json.dumps(payload).encode()
+        req = urllib.request.Request(
+            BASE + path,
+            data=body,
+            headers={"Content-Type": "application/json"},
+        )
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        return json.loads(resp.read())
+
+
+def _load_store():
+    if not os.path.exists(STORE):
+        return {}
+    try:
+        with open(STORE) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _save_store(d):
+    with open(STORE, "w") as f:
+        json.dump(d, f)
+
+
+def list_questions():
+    qs = _http("/questions")
+    for qid, q in sorted(qs.items()):
+        print(f"  {qid}. {q['prompt']}")
+        print(f"     hint: {q['hint']}")
+        print()
+    print("Submit one answer:        answer <id> \"<value>\"")
+    print("Remember for reveal:      answer remember <id> \"<value>\"")
+    print("Attempt to reveal flag:   answer reveal")
+
+
+def remember(qid, value):
+    store = _load_store()
+    store[str(qid)] = value
+    _save_store(store)
+    print(f"  remembered question {qid}")
+
+
+def reveal():
+    store = _load_store()
+    if not store:
+        print("Nothing remembered yet. Use 'answer remember <id> \"<value>\"' first.")
+        sys.exit(1)
+    resp = _http("/reveal", {"answers": store})
+    print(json.dumps(resp, indent=2))
+
+
+def submit(qid, value):
+    resp = _http("/validate", {"question": str(qid), "answer": value})
+    print(json.dumps(resp, indent=2))
+
+
+def main():
+    args = sys.argv[1:]
+    if not args or args[0] in ("list", "questions"):
+        list_questions()
+    elif args[0] == "reveal":
+        reveal()
+    elif args[0] == "remember":
+        if len(args) < 3:
+            print("usage: answer remember <id> <value>", file=sys.stderr)
+            sys.exit(2)
+        remember(args[1], " ".join(args[2:]))
+    else:
+        if len(args) < 2:
+            print("usage: answer <id> <value>", file=sys.stderr)
+            sys.exit(2)
+        submit(args[0], " ".join(args[1:]))
+
+
+if __name__ == "__main__":
+    main()

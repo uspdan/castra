@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eu
+target="${1:-}"
+if [ -z "$target" ]; then
+    cat <<'EOF'
+usage: connect <hostname>
+Available:
+  fs-corp-01     Windows Server 2022 — corp file server (SMB shares)
+EOF
+    exit 2
+fi
+case "${target,,}" in
+    fs-corp-01|fs|fileserver)
+        exec python3 /opt/device-shell/shell.py /opt/device-shell/winfs_device.py ;;
+    *) echo "% Unknown host: $target" >&2; exit 1 ;;
+esac

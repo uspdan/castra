@@ -1,0 +1,21 @@
+{
+  "vendor": "ti-feed-3",
+  "samples": [
+    {
+      "sha256": "REDACTED",
+      "first_seen": "2026-05-01T05:00:00Z",
+      "url": "https://updates.REDACTED/agent/win64/agent.bin",
+      "family": "Sliver",
+      "confidence": "high",
+      "cluster_match": true
+    },
+    {
+      "sha256": "44ce0eed5a3e7e9d40e3a96769e3a3b75bafda4ec5cb1b65b6f2c41ef7e3b07c",
+      "first_seen": "2026-05-09T11:00:00Z",
+      "url": "https://cdn.untrusted-bucket.example/utils.zip",
+      "family": "unknown_loader",
+      "confidence": "low",
+      "cluster_match": false
+    }
+  ]
+}

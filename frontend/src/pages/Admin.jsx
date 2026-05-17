@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Trophy, FileText, Activity, Server, Webhook, Trash2,
@@ -163,6 +163,10 @@ function ChallengesTab() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
   const [editor, setEditor] = useState(null)
+  const [search, setSearch] = useState('')
+  const [teamFilter, setTeamFilter] = useState('') // '' | 'red' | 'blue'
+  const [releaseFilter, setReleaseFilter] = useState('') // '' | 'live' | 'draft'
+  const [bulkReleasing, setBulkReleasing] = useState(false)
   // editor: null | { mode: 'create' } | { mode: 'edit', initial: {...} }
 
   const load = async () => {
@@ -208,12 +212,104 @@ function ChallengesTab() {
     }
   }
 
+  const visible = useMemo(() => {
+    const needle = search.trim().toLowerCase()
+    return items.filter((c) => {
+      if (teamFilter && c.team !== teamFilter) return false
+      if (releaseFilter === 'live' && !c.released_at) return false
+      if (releaseFilter === 'draft' && c.released_at) return false
+      if (!needle) return true
+      return (
+        (c.title || '').toLowerCase().includes(needle) ||
+        (c.slug || '').toLowerCase().includes(needle) ||
+        (c.category || '').toLowerCase().includes(needle)
+      )
+    })
+  }, [items, search, teamFilter, releaseFilter])
+
+  const draftCount = useMemo(
+    () => items.filter((c) => !c.released_at).length,
+    [items],
+  )
+
+  const releaseAllDrafts = async () => {
+    const drafts = items.filter((c) => !c.released_at)
+    if (drafts.length === 0) return
+    if (!window.confirm(`Release all ${drafts.length} unreleased challenges?`)) return
+    setBulkReleasing(true)
+    let ok = 0
+    let failed = 0
+    for (const c of drafts) {
+      try {
+        await client.post(`/api/v1/admin/challenges/${c.slug}/release`)
+        ok += 1
+      } catch {
+        failed += 1
+      }
+    }
+    setBulkReleasing(false)
+    toast({
+      type: failed ? 'error' : 'success',
+      message: failed
+        ? `Released ${ok}, failed ${failed}.`
+        : `Released ${ok} challenges.`,
+    })
+    load()
+  }
+
   if (loading) return <Loader />
+
+  const tabBtnStyle = (active) => ({
+    background: active ? 'rgba(0,200,255,0.15)' : 'var(--bg-surface)',
+    color: active ? 'var(--accent-cyan)' : 'var(--text-muted)',
+    border: '1px solid var(--border)',
+  })
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-mono" style={{ color: 'var(--text-muted)' }}>{items.length} challenges</span>
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <span className="text-sm font-mono" style={{ color: 'var(--text-muted)' }}>
+          {visible.length === items.length
+            ? `${items.length} challenges`
+            : `${visible.length} of ${items.length} shown`}
+        </span>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="search title/slug/category"
+          data-testid="challenge-search"
+          className="px-3 py-1 rounded text-xs flex-1 min-w-[200px]"
+          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+        />
+        <div className="flex gap-1">
+          {[['', 'all'], ['red', 'red'], ['blue', 'blue']].map(([v, l]) => (
+            <button key={l} onClick={() => setTeamFilter(v)}
+              data-testid={`admin-team-${l}`}
+              className="px-2 py-1 text-[10px] font-mono rounded"
+              style={tabBtnStyle(teamFilter === v)}>
+              {l}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1">
+          {[['', 'all'], ['live', 'live'], ['draft', 'draft']].map(([v, l]) => (
+            <button key={l} onClick={() => setReleaseFilter(v)}
+              data-testid={`admin-release-${l}`}
+              className="px-2 py-1 text-[10px] font-mono rounded"
+              style={tabBtnStyle(releaseFilter === v)}>
+              {l}
+            </button>
+          ))}
+        </div>
+        {draftCount > 0 && (
+          <button onClick={releaseAllDrafts} disabled={bulkReleasing}
+            data-testid="challenge-bulk-release"
+            className="text-xs px-3 py-1 rounded disabled:opacity-50"
+            style={{ background: 'var(--accent-green)', color: 'var(--bg-primary)' }}>
+            {bulkReleasing ? 'releasing…' : `release all ${draftCount} drafts`}
+          </button>
+        )}
         <button onClick={() => setEditor({ mode: 'create' })}
           data-testid="challenge-new"
           className="flex items-center gap-1 text-xs px-3 py-1 rounded"
@@ -234,7 +330,7 @@ function ChallengesTab() {
           </tr>
         </thead>
         <tbody>
-          {items.map((c) => (
+          {visible.map((c) => (
             <tr key={c.slug} style={{ borderTop: '1px solid var(--border)' }}>
               <td className="py-2" style={{ color: 'var(--text-primary)' }}>{c.title}</td>
               <td className="py-2 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{c.slug}</td>

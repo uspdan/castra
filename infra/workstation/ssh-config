@@ -1,0 +1,24 @@
+# Analyst workstation SSH config.
+#
+# The orchestrator pins each challenge's network endpoint with
+# the slug as its docker-DNS alias on the per-instance network,
+# and attaches the user's workstation to that network on launch.
+# So `ssh <slug>` from the workstation resolves to the challenge
+# container directly — no port-juggling, no remembering the
+# orchestrator's published port range.
+#
+# Every live-shell challenge runs sshd on :2222 with
+# hunter/hunter, so a single `Host *` block covers the lot.
+
+Host *
+    User hunter
+    Port 2222
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    LogLevel ERROR
+    ServerAliveInterval 30
+    ServerAliveCountMax 4
+    # Friendly short-form: `ssh dc01` → hunter@dc01:2222.
+    # `dc01` resolves via docker DNS against the per-instance
+    # network the workstation is attached to (each challenge
+    # launch attaches the workstation automatically).

@@ -1,0 +1,23 @@
+[
+  {
+    "issuer": "Let's Encrypt",
+    "san": ["updates.REDACTED"],
+    "not_before": "2026-05-04T00:00:00Z",
+    "not_after":  "2026-08-02T00:00:00Z",
+    "log_index": 1822384011
+  },
+  {
+    "issuer": "Let's Encrypt",
+    "san": ["REDACTED", "www.REDACTED"],
+    "not_before": "2026-04-25T13:00:00Z",
+    "not_after":  "2026-07-24T13:00:00Z",
+    "log_index": 1820098177
+  },
+  {
+    "issuer": "DigiCert",
+    "san": ["legit.example.com"],
+    "not_before": "2026-04-22T00:00:00Z",
+    "not_after":  "2027-04-22T00:00:00Z",
+    "log_index": 1819004822
+  }
+]

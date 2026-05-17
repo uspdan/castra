@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eu
+target="${1:-}"
+if [ -z "$target" ]; then
+    cat <<'EOF'
+usage: connect <hostname>
+Available:
+  asa-vpn-01   Cisco ASA 5516, 9.16(3)19 — perimeter / AnyConnect head-end
+EOF
+    exit 2
+fi
+case "${target,,}" in
+    asa-vpn-01|asa|vpn)
+        exec python3 /opt/device-shell/shell.py /opt/device-shell/asa_device.py ;;
+    *) echo "% Unknown host: $target" >&2; exit 1 ;;
+esac

@@ -1,0 +1,4 @@
+2026-05-15T02:08:53Z logid=0100032002 type=event subtype=system level=warning logdesc="Admin login failed" action=login status=failure user="admin" srcip=REDACTED ui="https"
+2026-05-15T02:09:01Z logid=0100032003 type=event subtype=system level=notice  logdesc="Object added" action=add user="api" cfgobj="system.admin REDACTED"
+2026-05-15T02:11:14Z logid=0100032001 type=event subtype=system level=notice  logdesc="Admin login successful" action=login status=success user="REDACTED" srcip=REDACTED ui="https" reason="passwd"
+2026-05-15T02:14:22Z logid=0100032004 type=event subtype=system level=notice  logdesc="Object attribute changed" action=edit user="REDACTED" cfgobj="vpn.ssl.web.portal full-access"

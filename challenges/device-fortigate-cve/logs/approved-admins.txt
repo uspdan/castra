@@ -1,0 +1,5 @@
+# Authorised FortiGate super_admins for FGT-PERIM-02.
+# Last reviewed: 2026-04-15 by NOC.
+admin           local         primary console login
+noc-readonly    local         NMS scrape (read-only profile)
+sso-fg-mgmt     fortiAuthn    SSO break-glass via FortiAuthenticator

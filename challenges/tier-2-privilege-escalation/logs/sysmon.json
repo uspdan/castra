@@ -1,0 +1,5 @@
+{"host":"WIN-FIN-04","EventID":7,"UtcTime":"2026-05-15T11:21:18Z","Image":"C:\\Windows\\System32\\msiexec.exe","ImageLoaded":"C:\\Users\\Public\\Documents\\REDACTED","Signed":"false"}
+{"host":"WIN-FIN-04","EventID":8,"UtcTime":"2026-05-15T11:21:20Z","SourceImage":"C:\\Users\\REDACTED\\AppData\\Local\\Temp\\stage2.exe","TargetImage":"C:\\Windows\\System32\\msiexec.exe","StartFunction":"LdrLoadDll"}
+{"host":"WIN-FIN-04","EventID":13,"UtcTime":"2026-05-15T11:18:02Z","EventType":"SetValue","TargetObject":"HKU\\REDACTED\\Software\\Classes\\ms-settings\\shell\\open\\command\\(Default)","Details":"C:\\Users\\REDACTED\\AppData\\Local\\Temp\\stage2.exe"}
+{"host":"WIN-FIN-04","EventID":1,"UtcTime":"2026-05-15T11:18:11Z","Image":"C:\\Windows\\System32\\fodhelper.exe","CommandLine":"\"C:\\Windows\\System32\\fodhelper.exe\"","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\explorer.exe","IntegrityLevel":"High"}
+{"host":"WIN-FIN-09","EventID":1,"UtcTime":"2026-05-15T11:42:55Z","Image":"C:\\Users\\REDACTED\\AppData\\Local\\Temp\\incognito.exe","CommandLine":"incognito.exe list_tokens","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\System32\\REDACTED"}

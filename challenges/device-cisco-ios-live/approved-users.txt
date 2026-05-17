@@ -1,0 +1,4 @@
+# Authorised local users for BR-EDGE-01 — last reviewed 2026-04-01.
+# Source of truth maintained by NOC.
+netops    priv-15  on-call ops
+monitor   priv-5   read-only NMS scrape account

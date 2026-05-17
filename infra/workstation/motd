@@ -1,0 +1,25 @@
+
+   ╔════════════════════════════════════════════════════════════╗
+   ║                Siege Range — Analyst Workstation           ║
+   ╚════════════════════════════════════════════════════════════╝
+
+   You are inside the siege-range network. No VPN required.
+
+   Quick reference:
+
+     seige list                  # every challenge + your status
+     seige info <slug>           # one challenge's metadata
+     seige start <slug>          # boot the target host (if not up)
+     ssh <alias>                 # open the challenge — `ssh dc01`,
+                                 #   `ssh fortigate`, `ssh exch-01`...
+                                 #   password: hunter
+     seige answer <slug> N "x"   # submit one answer
+     seige reveal <slug>         # fetch the flag once all correct
+     seige score                 # how you're doing
+
+   Tools on board: powershell, tshark, tcpdump, nmap, jq, ripgrep,
+                   curl, sshpass, python3.
+
+   Type `cat /etc/motd` any time to re-read this banner.
+   Type `exit` to disconnect (your session state persists).
+

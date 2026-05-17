@@ -1,0 +1,65 @@
+! Last configuration change at 03:14:22 UTC Wed May 14 2026 by REDACTED
+! NVRAM config last updated at 03:15:01 UTC Wed May 14 2026 by REDACTED
+!
+version 15.7
+service timestamps debug datetime msec
+service timestamps log datetime msec
+service password-encryption
+!
+hostname BR-EDGE-01
+!
+boot-start-marker
+boot system flash:c2900-universalk9-mz.SPA.157-3.M5.bin
+boot-end-marker
+!
+aaa new-model
+aaa authentication login default local
+aaa authorization exec default local
+!
+enable secret 8 $8$abcdef...redacted
+!
+username netops privilege 15 secret 8 $8$opsaccount...redacted
+username monitor privilege 5  secret 8 $8$readonly...redacted
+username REDACTED privilege 15 secret 8 $8$z9c1f-newpwd-redacted
+!
+ip access-list extended ACL-OUT
+!
+snmp-server community READ-ONLY RO
+snmp-server community REDACTED RW
+snmp-server location DC1-rack-12
+!
+interface GigabitEthernet0/0
+ description WAN
+ ip address 192.0.2.18 255.255.255.252
+ ip access-group 102 out
+ no shutdown
+!
+interface GigabitEthernet0/1
+ description LAN
+ ip address 10.10.0.1 255.255.255.0
+ ip access-group 101 in
+ no shutdown
+!
+interface Tunnel0
+ description maintenance-link
+ ip address 192.168.244.1 255.255.255.252
+ tunnel source GigabitEthernet0/0
+ tunnel destination REDACTED
+ tunnel mode gre ip
+!
+access-list 101 permit ip 10.10.0.0 0.0.0.255 any
+access-list 101 deny ip any any log
+!
+access-list 102 permit ip 10.10.0.0 0.0.0.255 198.51.100.0 0.0.0.255
+access-list 102 permit ip any host 8.8.8.8
+access-list 102 permit ip any host 1.1.1.1
+access-list 102 deny ip any any log
+!
+line vty 0 4
+ transport input ssh
+ login authentication default
+!
+ip http server
+ip http secure-server
+!
+end

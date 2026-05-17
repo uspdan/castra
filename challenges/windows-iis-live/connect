@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eu
+target="${1:-}"
+if [ -z "$target" ]; then
+    cat <<'EOF'
+usage: connect <hostname>
+Available:
+  iis-web-01     Windows Server 2019 IIS 10 — public-facing ASP.NET app
+EOF
+    exit 2
+fi
+case "${target,,}" in
+    iis-web-01|iis|web)
+        exec python3 /opt/device-shell/shell.py /opt/device-shell/iis_device.py ;;
+    *) echo "% Unknown host: $target" >&2; exit 1 ;;
+esac

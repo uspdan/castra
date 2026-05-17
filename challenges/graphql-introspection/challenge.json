@@ -1,0 +1,24 @@
+{
+  "title": "GraphQL Introspection",
+  "slug": "graphql-introspection",
+  "description": "BlogQL leaves GraphQL introspection enabled. Walk the schema, find the 'internal' field, query it.",
+  "category": "Web Exploitation",
+  "team": "red",
+  "difficulty": 2,
+  "points": 300,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "Send {\"query\":\"{ __schema { queryType { fields { name description } } } }\"} to /graphql.",
+      "cost": 25
+    },
+    {
+      "text": "The non-obvious field returns a string. Just call it directly.",
+      "cost": 50
+    }
+  ],
+  "skills": ["GraphQL", "Introspection", "API Reconnaissance"],
+  "mitre_techniques": ["T1190", "T1213"],
+  "docker_image": "siege/graphql-introspection:latest",
+  "docker_port": 5000
+}

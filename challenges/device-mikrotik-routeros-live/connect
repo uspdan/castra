@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eu
+target="${1:-}"
+if [ -z "$target" ]; then
+    cat <<'EOF'
+usage: connect <hostname>
+Available:
+  mkt-rb750     MikroTik RB750Gr3, RouterOS 7.10.1 — branch edge
+EOF
+    exit 2
+fi
+case "${target,,}" in
+    mkt-rb750|mkt|mikrotik|routeros)
+        exec python3 /opt/device-shell/shell.py /opt/device-shell/routeros_device.py ;;
+    *) echo "% Unknown host: $target" >&2; exit 1 ;;
+esac

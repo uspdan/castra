@@ -1,0 +1,19 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0a14; color: #e2e2e2; padding: 40px 20px; min-height: 100vh; }
+.container { max-width: 520px; margin: 0 auto; }
+h1 { color: #7af; margin-bottom: 4px; }
+.subtitle { color: #888; margin-bottom: 28px; font-size: 14px; }
+form { background: #181830; padding: 22px; border-radius: 10px; border: 1px solid #2c2c45; }
+input { width: 100%; padding: 10px 12px; margin-bottom: 12px; background: #0c0c18; border: 1px solid #333; color: #eee; border-radius: 6px; font-family: inherit; }
+button { width: 100%; padding: 10px; background: #1e3a8a; border: 1px solid #3b5bff; color: #fff; font-weight: 600; border-radius: 6px; cursor: pointer; }
+button:hover { background: #3b5bff; }
+.error { background: #3a1818; border: 1px solid #ff5252; padding: 12px; border-radius: 6px; margin-bottom: 16px; color: #ff9b9b; }
+.success { background: #0f3a1f; border: 1px solid #4caf50; padding: 18px; border-radius: 10px; margin-top: 18px; }
+.success h2 { color: #9be59b; margin-bottom: 8px; }
+.profile { font-family: monospace; color: #ffd966; background: #000; padding: 8px; border-radius: 4px; word-break: break-all; }
+.debug { color: #888; font-size: 13px; margin-top: 18px; }
+.debug code { background: #000; padding: 2px 6px; border-radius: 3px; color: #fa6; }
+.hint { background: #1a1a30; border: 1px solid #333; padding: 12px; border-radius: 6px; margin-top: 18px; font-size: 14px; }
+.hint summary { cursor: pointer; color: #7af; }
+.hint p { color: #aaa; margin-top: 8px; }
+.hint code { background: #000; padding: 2px 6px; border-radius: 3px; color: #fa6; font-size: 13px; }

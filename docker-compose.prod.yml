@@ -76,6 +76,13 @@ services:
     # Existing 4 CPU / 8 GB ceiling stays; orchestrator hosts
     # challenge containers and needs the headroom.
     restart: always
+    # Workstation port ranges — only bound to 127.0.0.1 in prod so
+    # nginx can proxy them at ``/workstation/<user_id>/`` behind
+    # the platform's auth. The dev compose binds 0.0.0.0 for
+    # direct browser access.
+    ports:
+      - "127.0.0.1:11000-11099:11000-11099"
+      - "127.0.0.1:11100-11199:11100-11199"
 
   docker-proxy:
     restart: always

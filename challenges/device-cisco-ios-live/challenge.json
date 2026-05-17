@@ -1,0 +1,29 @@
+{
+  "title": "Device Forensics: Cisco IOS — Live CLI",
+  "slug": "device-cisco-ios-live",
+  "description": "BR-EDGE-01 is still up. Connect to the device, run the same IOS commands you would in a real IR — show running-config, show users, show history, pipes — and reconstruct the attacker's changes.",
+  "category": "Network Device Forensics",
+  "team": "blue",
+  "difficulty": 3,
+  "points": 500,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "Start with `connect br-edge-01`. NOC creds — any user/password works. Then `enable` with the password from the briefing.",
+      "cost": 25
+    },
+    {
+      "text": "The attacker's commands are still in the vty line history buffer. `show history` after `enable`.",
+      "cost": 50
+    },
+    {
+      "text": "Pipes work: `show running-config | section interface Tunnel0`, `show running-config | include snmp`, `show running-config | include privilege`.",
+      "cost": 50
+    }
+  ],
+  "skills": ["Cisco IOS", "Live Forensics", "Network Device", "Incident Response"],
+  "mitre_techniques": ["T1078", "T1078.001", "T1133", "T1562.004", "T1021.004"],
+  "docker_image": "siege/device-cisco-ios-live:latest",
+  "docker_port": 2222,
+  "docker_config": {"profile": "default-strict"}
+}

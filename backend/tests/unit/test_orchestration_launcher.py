@@ -67,10 +67,29 @@ class _FakeContainer:
     def remove(self, force: bool = False):
         self.remove_calls.append(force)
 
+    def start(self):
+        """Post-2026-05 launcher: create -> connect-with-alias ->
+        start. No-op here."""
+        return None
+
 
 class _FakeNetwork:
     def __init__(self, name: str):
         self.name = name
+
+    def connect(self, container, **kwargs):
+        """The launcher connects the challenge container to the
+        per-instance network with the slug as a docker DNS alias.
+        Just record + no-op for the fake.
+        """
+        self.last_connect = {"container": container, **kwargs}
+
+    def disconnect(self, container, **kwargs):
+        """The launcher disconnects from the default bridge before
+        connecting to the per-instance network so the slug alias is
+        the *only* alias on the surviving endpoint.
+        """
+        return None
 
 
 class _FakeContainersAPI:
@@ -93,6 +112,13 @@ class _FakeContainersAPI:
         )
         return self.last_container
 
+    def create(self, **kwargs):
+        """Launcher post-2026-05 uses .create + .start in place of
+        .run so the slug network-alias can be set at connect time.
+        Behaviour-equivalent for the fake.
+        """
+        return self.run(**kwargs)
+
 
 class _FakeRemovableNetwork(_FakeNetwork):
     def remove(self):
@@ -114,6 +140,11 @@ class _FakeNetworksAPI:
         # cleanup path only cares that .remove() succeeds.
         if name in self._created:
             return self._created[name]
+        # The launcher disconnects ``bridge`` after .create() so the
+        # only network endpoint with an alias is the per-instance
+        # one. Provide a throwaway bridge handle for that flow.
+        if name == "bridge":
+            return _FakeRemovableNetwork("bridge")
         raise KeyError(name)
 
 
@@ -188,7 +219,11 @@ async def test_launch_uses_image_at_digest_reference(fake_client) -> None:
     assert fake_client.captured_run_kwargs["image"] == f"siege/test@{digest}"
     assert fake_client.captured_run_kwargs["read_only"] is True
     assert fake_client.captured_run_kwargs["cap_drop"] == ["ALL"]
-    assert fake_client.captured_run_kwargs["cap_add"] == []
+    # default-strict allows CHOWN/SETGID/SETUID/SYS_CHROOT so
+    # multi-process daemons (apache, nginx, sshd) can drop privs.
+    assert fake_client.captured_run_kwargs["cap_add"] == [
+        "CHOWN", "SETGID", "SETUID", "SYS_CHROOT",
+    ]
 
 
 @pytest.mark.asyncio
@@ -392,6 +427,9 @@ async def test_sidecar_profile_tears_down_sidecar_on_run_failure(
     class _BoomContainersAPI(_FakeContainersAPI):
         def run(self, **kwargs):  # noqa: D401 — same signature
             raise RuntimeError("containers.run boom")
+
+        def create(self, **kwargs):  # post-2026-05 launcher path
+            raise RuntimeError("containers.create boom")
 
     client = _FakeDockerClient()
     client.containers = _BoomContainersAPI(client.captured_run_kwargs)

@@ -95,3 +95,36 @@ build:
 
 lint:
 	docker compose exec api python -m ruff check app/
+
+# --------------------------------------------------------------------
+# Analyst workstation — the in-range jumpbox players SSH/web into
+# when they don't have VPN access to their normal toolkit.
+# --------------------------------------------------------------------
+
+workstation-build:
+	docker compose -f docker-compose.yml \
+	               -f infra/workstation/docker-compose.workstation.yml \
+	               build workstation
+
+workstation-up:
+	@grep -q '^SIEGE_WORKSTATION_PASSWORD=' .env 2>/dev/null \
+	    || { echo "set SIEGE_WORKSTATION_PASSWORD in .env first"; exit 1; }
+	docker compose -f docker-compose.yml \
+	               -f infra/workstation/docker-compose.workstation.yml \
+	               up -d workstation
+
+workstation-down:
+	docker compose -f docker-compose.yml \
+	               -f infra/workstation/docker-compose.workstation.yml \
+	               rm -sf workstation
+
+workstation-shell:
+	docker exec -it seige-workstation su - analyst
+
+# --------------------------------------------------------------------
+# Offline player bundle — for when even the seige-range public host
+# isn't reachable (air-gapped lab / customer site with no egress).
+# --------------------------------------------------------------------
+
+offline-bundle:
+	bash scripts/build-offline-bundle.sh

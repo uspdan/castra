@@ -1,0 +1,24 @@
+{
+  "title": "Second-Order SQL Injection",
+  "slug": "second-order-sqli",
+  "description": "AccountVault parameterises the INSERT but interpolates the stored username back into the UPDATE on change-password. Smuggle SQL through registration to take over admin.",
+  "category": "Web Exploitation",
+  "team": "red",
+  "difficulty": 3,
+  "points": 400,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "Registration is parameterised — but the stored value is later interpolated into a different query. What username would terminate a string literal and comment out the rest of the WHERE clause?",
+      "cost": 50
+    },
+    {
+      "text": "Register with username admin'-- and any password. Login. Call /change-password. Then login as admin with your new password.",
+      "cost": 100
+    }
+  ],
+  "skills": ["SQL Injection", "Second-Order", "Data Trust Boundaries"],
+  "mitre_techniques": ["T1190", "T1078"],
+  "docker_image": "siege/second-order-sqli:latest",
+  "docker_port": 5000
+}

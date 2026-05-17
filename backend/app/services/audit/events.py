@@ -58,6 +58,10 @@ class EventType:
     INSTANCE_RESET: Final = "instance.reset"
     INSTANCE_EXPIRED: Final = "instance.expired"
 
+    WORKSTATION_LAUNCH: Final = "workstation.launch"
+    WORKSTATION_STOP: Final = "workstation.stop"
+    WORKSTATION_ATTACHED: Final = "workstation.attached"
+
 
 _ALLOWED_EVENT_TYPES: Final = frozenset(
     {
@@ -86,6 +90,9 @@ _ALLOWED_EVENT_TYPES: Final = frozenset(
         EventType.INSTANCE_STOP,
         EventType.INSTANCE_RESET,
         EventType.INSTANCE_EXPIRED,
+        EventType.WORKSTATION_LAUNCH,
+        EventType.WORKSTATION_STOP,
+        EventType.WORKSTATION_ATTACHED,
     }
 )
 
@@ -131,6 +138,14 @@ def _validate_instance_launch(payload: dict[str, Any]) -> None:
     _require_keys(payload, ("instance_id", "challenge_slug"))
 
 
+def _validate_workstation(payload: dict[str, Any]) -> None:
+    _require_keys(payload, ("container",))
+
+
+def _validate_workstation_attached(payload: dict[str, Any]) -> None:
+    _require_keys(payload, ("container", "network", "challenge_slug"))
+
+
 _PAYLOAD_VALIDATORS: Final[dict[str, _PayloadValidator]] = {
     EventType.AUTH_REGISTER: _validate_auth_register,
     EventType.AUTH_LOGIN_SUCCESS: _validate_auth_login_success,
@@ -142,6 +157,9 @@ _PAYLOAD_VALIDATORS: Final[dict[str, _PayloadValidator]] = {
     EventType.INSTANCE_STOP: _validate_instance,
     EventType.INSTANCE_RESET: _validate_instance,
     EventType.INSTANCE_EXPIRED: _validate_instance,
+    EventType.WORKSTATION_LAUNCH: _validate_workstation,
+    EventType.WORKSTATION_STOP: _validate_workstation,
+    EventType.WORKSTATION_ATTACHED: _validate_workstation_attached,
 }
 
 

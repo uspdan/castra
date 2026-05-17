@@ -1,0 +1,184 @@
+# Network Device Forensics — Palo Alto GlobalProtect abuse.
+#
+# A PAN-OS firewall's GlobalProtect portal has one auth profile
+# missing MFA. The attacker brute-forced a VPN account against
+# that profile, logged in, and pivoted to an internal subnet via
+# an over-permissive policy. Hunter has the GlobalProtect portal
+# log, a PAN-OS XML config excerpt, the traffic log post-VPN,
+# and the system log.
+
+slug: device-paloalto-vpn
+title: "Device Forensics: GlobalProtect MFA Gap"
+description: |
+  FW-DC-01 (PA-3220, PAN-OS 10.2) had an auth-profile gap that
+  let the attacker brute-force their way through GlobalProtect.
+  Once on the VPN they crossed a policy they shouldn't have. The
+  config, the GlobalProtect log, the post-VPN traffic log, and
+  the system log are staged for you.
+category: Network Device Forensics
+team: blue
+difficulty: 3
+points: 450
+flag: "CTF{REDACTED}"
+tactic_id: DEVICE
+docker_port: 2222
+profile: default-strict
+
+techniques:
+  - id: T1556.006
+    description: |
+      Modify Authentication Process — Multi-Factor Authentication.
+      One PAN-OS authentication-profile is missing the
+      multi-factor-auth block, so users bound to that profile
+      reach the VPN with password alone.
+    question:
+      prompt: |
+        Which PAN-OS authentication profile name has no
+        multi-factor-auth block configured? (Exact name as it
+        appears in the XML.)
+      hint: |
+        config.xml — under `<authentication-profile>` look for an
+        entry where the `<multi-factor-auth>` element is absent.
+      answer: REDACTED
+
+  - id: T1110
+    description: |
+      Brute Force — a single source IP launched a password-spray
+      against the GlobalProtect portal targeting one VPN account.
+    question:
+      prompt: |
+        From which source IP did the GlobalProtect password spray
+        originate? (Format x.x.x.x.)
+      hint: |
+        globalprotect.log — count failed-login attempts by source
+        IP. One IP has 200+ in a tight time window.
+      answer: REDACTED
+
+  - id: T1078
+    description: |
+      Valid Accounts — the spray eventually succeeded against one
+      contractor VPN user who, per the auth-profile gap, isn't
+      MFA-protected.
+    question:
+      prompt: |
+        Which VPN username eventually logged in successfully after
+        the brute force? (Lowercase username only, no domain.)
+      hint: |
+        globalprotect.log — same source IP as the previous
+        question; status=auth-success.
+      answer: REDACTED
+
+  - id: T1021.001
+    description: |
+      Remote Services — Remote Desktop Protocol. Post-VPN the
+      session pivoted via RDP to a Domain Controller in the
+      internal management subnet.
+    question:
+      prompt: |
+        What is the internal destination IP the attacker hit on
+        TCP/3389 from the VPN tunnel? (Format x.x.x.x.)
+      hint: |
+        traffic.log — look for `app=ms-rdp` from the
+        GlobalProtect tunnel subnet (172.21.x.x) into the
+        management /24.
+      answer: REDACTED
+
+  - id: T1190
+    description: |
+      Exploit Public-Facing Application (policy abuse) — a single
+      PAN-OS security rule allowed gp-users -> mgmt-net for any
+      app/service, when the intent was "GP users to corp web
+      apps only".
+    question:
+      prompt: |
+        What is the name of the security rule that permitted the
+        post-VPN pivot into the management subnet? (Exact rule
+        name as it appears in the XML and the traffic log.)
+      hint: |
+        Cross-reference traffic.log's `rule=` field with the
+        `<entry name="...">` in the rulebase section of
+        config.xml.
+      answer: REDACTED
+
+logs:
+  config.xml: |
+    <config urldb="paloaltonetworks" version="10.2.0">
+      <devices>
+        <entry name="localhost.localdomain">
+          <vsys>
+            <entry name="vsys1">
+              <authentication-profile>
+                <entry name="gp-employees">
+                  <method><ldap><server-profile>corp-ldap</server-profile></ldap></method>
+                  <multi-factor-auth>
+                    <mfa-enable>yes</mfa-enable>
+                    <factors><member>okta-push</member></factors>
+                  </multi-factor-auth>
+                </entry>
+                <entry name="REDACTED">
+                  <method><ldap><server-profile>corp-ldap</server-profile></ldap></method>
+                  <!-- multi-factor-auth removed during change window 2026-03-12 to fix contractor onboarding bug. Was supposed to be reinstated. -->
+                </entry>
+                <entry name="admin-console">
+                  <method><saml-idp><server-profile>okta-saml</server-profile></saml-idp></method>
+                  <multi-factor-auth>
+                    <mfa-enable>yes</mfa-enable>
+                  </multi-factor-auth>
+                </entry>
+              </authentication-profile>
+              <rulebase>
+                <security>
+                  <rules>
+                    <entry name="gp-users-allow-internet">
+                      <from><member>gp-tunnel</member></from>
+                      <to><member>untrust</member></to>
+                      <source><member>any</member></source>
+                      <destination><member>any</member></destination>
+                      <application><member>any</member></application>
+                      <service><member>application-default</member></service>
+                      <action>allow</action>
+                    </entry>
+                    <entry name="REDACTED">
+                      <from><member>gp-tunnel</member></from>
+                      <to><member>trust</member></to>
+                      <source><member>any</member></source>
+                      <destination><member>any</member></destination>
+                      <application><member>any</member></application>
+                      <service><member>any</member></service>
+                      <action>allow</action>
+                    </entry>
+                    <entry name="employees-to-mgmt">
+                      <from><member>trust</member></from>
+                      <to><member>mgmt</member></to>
+                      <source><member>employee-workstations</member></source>
+                      <destination><member>mgmt-subnet</member></destination>
+                      <application><member>ms-rdp</member><member>ssh</member></application>
+                      <service><member>application-default</member></service>
+                      <action>allow</action>
+                    </entry>
+                  </rules>
+                </security>
+              </rulebase>
+            </entry>
+          </vsys>
+        </entry>
+      </devices>
+    </config>
+  globalprotect.log: |
+    2026-05-15T01:42:11Z portal-auth user=REDACTED source-ip=REDACTED auth-profile=REDACTED status=auth-failure reason=invalid-password
+    2026-05-15T01:42:13Z portal-auth user=REDACTED source-ip=REDACTED auth-profile=REDACTED status=auth-failure reason=invalid-password
+    2026-05-15T01:42:15Z portal-auth user=REDACTED source-ip=REDACTED auth-profile=REDACTED status=auth-failure reason=invalid-password
+    2026-05-15T01:42:17Z portal-auth user=REDACTED source-ip=REDACTED auth-profile=REDACTED status=auth-failure reason=invalid-password
+    # ... 200+ failures elided ...
+    2026-05-15T01:51:33Z portal-auth user=REDACTED source-ip=REDACTED auth-profile=REDACTED status=auth-success reason=local-pw
+    2026-05-15T01:51:34Z gateway-connect user=REDACTED public-ip=REDACTED tunnel-ip=172.21.4.18 client="GlobalProtect 6.2 Windows" status=connected
+  traffic.log: |
+    2026-05-15T01:51:55Z rule=gp-users-allow-internet src=172.21.4.18 dst=8.8.8.8 dport=53 proto=udp app=dns action=allow bytes=128
+    2026-05-15T01:52:11Z rule=gp-users-allow-internet src=172.21.4.18 dst=23.45.67.89 dport=443 proto=tcp app=ssl action=allow bytes=1882
+    2026-05-15T01:53:04Z rule=REDACTED src=172.21.4.18 dst=10.10.0.50 dport=445 proto=tcp app=smb action=allow bytes=8420
+    2026-05-15T01:53:42Z rule=REDACTED src=172.21.4.18 dst=REDACTED dport=3389 proto=tcp app=ms-rdp action=allow bytes=44288 user=REDACTED
+    2026-05-15T01:55:09Z rule=REDACTED src=172.21.4.18 dst=REDACTED dport=3389 proto=tcp app=ms-rdp action=allow bytes=512042 user=REDACTED
+  system.log: |
+    2026-05-15T01:51:33Z severity=informational subtype=auth user=REDACTED event="GlobalProtect portal user authenticated" auth-profile=REDACTED source-ip=REDACTED
+    2026-05-15T01:51:34Z severity=informational subtype=globalprotect event="user logged in" user=REDACTED portal=gp-portal vsys=vsys1
+    2026-05-15T01:52:00Z severity=warning subtype=auth event="rate of failed portal-auth from single source exceeded threshold" source-ip=REDACTED count=237 window=600s

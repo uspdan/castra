@@ -1,0 +1,24 @@
+{
+  "title": "NoSQL Injection (Mongo-style)",
+  "slug": "nosql-injection",
+  "description": "DocVault passes your JSON body straight into a Mongo-style query. Send a query operator instead of a string and walk past the password check.",
+  "category": "Web Exploitation",
+  "team": "red",
+  "difficulty": 2,
+  "points": 350,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "The body becomes the query filter. Mongo (and Mongo-likes) accept operator dicts: {\"$ne\": null}, {\"$regex\": \"^a\"}, {\"$gt\": \"\"}.",
+      "cost": 25
+    },
+    {
+      "text": "POST /login with {\"username\":\"admin\",\"password\":{\"$ne\":null}} — username equals 'admin', password is not equal to null (anything). Admin matches.",
+      "cost": 75
+    }
+  ],
+  "skills": ["NoSQL", "MongoDB", "Injection", "Authentication Bypass"],
+  "mitre_techniques": ["T1190", "T1078"],
+  "docker_image": "siege/nosql-injection:latest",
+  "docker_port": 5000
+}

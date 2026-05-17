@@ -1,0 +1,24 @@
+{
+  "title": "Command Injection",
+  "slug": "command-injection",
+  "description": "NetTools wraps ping/dig with a weak metachar blacklist. Break out of the wrapper and read /flag.txt.",
+  "category": "Web Exploitation",
+  "team": "red",
+  "difficulty": 2,
+  "points": 300,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "The blacklist strips ; | & — but not $() or backticks.",
+      "cost": 50
+    },
+    {
+      "text": "Try /ping?host=1.1.1.1$(cat${IFS}/flag.txt) — but ${IFS} contains $, careful. Pipe substitution via $() still works: $(cat /flag.txt) — and the / and . survive the filter.",
+      "cost": 100
+    }
+  ],
+  "skills": ["Command Injection", "Shell", "Filter Bypass"],
+  "mitre_techniques": ["T1190", "T1059.004"],
+  "docker_image": "siege/command-injection:latest",
+  "docker_port": 5000
+}

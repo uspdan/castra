@@ -1,0 +1,29 @@
+{
+  "title": "Device Forensics: FortiGate — Live CLI",
+  "slug": "device-fortigate-live",
+  "description": "FGT-PERIM-02 is still up. Connect to the device, run real FortiOS commands — `show system admin`, `show full-configuration`, `execute log display` — and reconstruct exactly how the attacker got in and what they changed.",
+  "category": "Network Device Forensics",
+  "team": "blue",
+  "difficulty": 4,
+  "points": 550,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "`connect fgt-perim-02`, any user/password. Start with `show system admin` and compare against ~/approved-admins.txt.",
+      "cost": 25
+    },
+    {
+      "text": "The HTTPS admin access log is exposed for this exercise as `show admin-https-log` — pipe it with `| include Forwarded`.",
+      "cost": 50
+    },
+    {
+      "text": "FortiOS pipes: `show full-configuration | section vpn ssl web portal`, `show full-configuration | section firewall address`.",
+      "cost": 50
+    }
+  ],
+  "skills": ["FortiOS", "Live Forensics", "Network Device", "Incident Response"],
+  "mitre_techniques": ["T1190", "T1078.003", "T1556", "T1098", "T1078"],
+  "docker_image": "siege/device-fortigate-live:latest",
+  "docker_port": 2222,
+  "docker_config": {"profile": "default-strict"}
+}

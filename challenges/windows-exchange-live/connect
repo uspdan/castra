@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eu
+target="${1:-}"
+if [ -z "$target" ]; then
+    cat <<'EOF'
+usage: connect <hostname>
+Available:
+  exch-01        Microsoft Exchange Server 2019 CU12 — corp mail server
+EOF
+    exit 2
+fi
+case "${target,,}" in
+    exch-01|exch|exchange)
+        exec python3 /opt/device-shell/shell.py /opt/device-shell/exch_device.py ;;
+    *) echo "% Unknown host: $target" >&2; exit 1 ;;
+esac

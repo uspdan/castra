@@ -274,9 +274,28 @@ async def launch_instance(
         )
         enforce_no_forbidden(run_kwargs)
 
+        # Create+connect+start rather than .run() so we can pin the
+        # slug as a network alias *before* the container ever has a
+        # network endpoint. This avoids the disconnect-reconnect
+        # blip we had with the post-start alias dance.
+        target_network = run_kwargs.pop("network", None)
         try:
-            container = client.containers.run(**run_kwargs)
+            container = client.containers.create(**run_kwargs)
+            if target_network:
+                try:
+                    bridge = client.networks.get("bridge")
+                    bridge.disconnect(container, force=False)
+                except Exception:
+                    pass
+                client.networks.get(target_network).connect(
+                    container, aliases=[challenge.slug]
+                )
+            container.start()
         except Exception:
+            try:
+                container.remove(force=True)  # type: ignore[possibly-unbound]
+            except Exception:
+                pass
             if sidecar_container_id is not None:
                 from app.services.orchestration import sidecar as sidecar_mod
 
@@ -308,6 +327,41 @@ async def launch_instance(
                 sidecar_mod.teardown_sidecar(client, sidecar_container_id)
             networking.remove_network(client, network.name)
             raise
+
+        # Connect the user's analyst workstation (if running) to
+        # the per-instance network so ``ssh <slug>`` resolves from
+        # inside the workstation. UX-only — never blocks the
+        # launch. Audit-emits ``workstation.attached`` on success.
+        try:
+            from app.services import workstation as ws
+            from app.services.audit import (
+                ActorType as _ActorType,
+                EventType as _EventType,
+                append as _audit_append,
+            )
+
+            attached = ws.attach_to_network(
+                user_id=user_id, network_name=network.name
+            )
+            if attached:
+                try:
+                    await _audit_append(
+                        db,
+                        event_type=_EventType.WORKSTATION_ATTACHED,
+                        actor_type=_ActorType.SYSTEM,
+                        actor_id="orchestrator.launcher",
+                        resource_type="workstation",
+                        resource_id=f"seige-workstation-{user_id}",
+                        payload={
+                            "container": f"seige-workstation-{user_id}",
+                            "network": network.name,
+                            "challenge_slug": challenge.slug,
+                        },
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("workstation.attach.audit_failed", error=str(exc))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("workstation.attach.skip", error=str(exc))
 
         instance = ChallengeInstance(
             user_id=user_id,

@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eu
+target="${1:-}"
+if [ -z "$target" ]; then
+    cat <<'EOF'
+usage: connect <hostname>
+Available:
+  pfsense-edge-01   pfSense 2.7.0-RELEASE — SMB perimeter firewall
+EOF
+    exit 2
+fi
+case "${target,,}" in
+    pfsense-edge-01|pfsense|pf)
+        exec python3 /opt/device-shell/shell.py /opt/device-shell/pfsense_device.py ;;
+    *) echo "% Unknown host: $target" >&2; exit 1 ;;
+esac

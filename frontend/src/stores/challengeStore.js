@@ -4,7 +4,7 @@ import client from '../api/client'
 const useChallengeStore = create((set, get) => ({
   challenges: [],
   selectedChallenge: null,
-  filters: { team: '', category: '', difficulty: '', search: '', mitre: '', sort: 'newest' },
+  filters: { team: '', category: '', difficulty: '', search: '', mitre: '', sort: 'newest', status: 'all' },
   loading: false,
   error: null,
   total: 0,
@@ -14,7 +14,9 @@ const useChallengeStore = create((set, get) => ({
     set({ loading: true, error: null })
     try {
       const { filters } = get()
-      const params = { page, per_page: 20 }
+      // 50 per page covers the current full catalogue in a single
+      // fetch; backend caps per_page at 100.
+      const params = { page, per_page: 50 }
       if (filters.team) params.team = filters.team
       if (filters.category) params.category = filters.category
       if (filters.difficulty) params.difficulty = filters.difficulty
@@ -43,7 +45,7 @@ const useChallengeStore = create((set, get) => ({
   },
 
   clearFilters: () => {
-    set({ filters: { team: '', category: '', difficulty: '', search: '', mitre: '', sort: 'newest' } })
+    set({ filters: { team: '', category: '', difficulty: '', search: '', mitre: '', sort: 'newest', status: 'all' } })
   },
 
   clearSelected: () => set({ selectedChallenge: null }),

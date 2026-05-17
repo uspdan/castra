@@ -1,0 +1,29 @@
+{
+  "title": "Device Forensics: Citrix NetScaler — Live CLI",
+  "slug": "device-citrix-netscaler-live",
+  "description": "NS-PERIM-01 was hit by a CVE-2023-3519-family exploit chain — Gateway RCE → webshell drop → rogue admin → exposed internal pivot. Connect to the device, run real nscli, reconstruct the chain.",
+  "category": "Network Device Forensics",
+  "team": "blue",
+  "difficulty": 4,
+  "points": 550,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "`connect ns-perim-01`. Start with `show system user` — anything outside nsroot / noc-readonly is suspect.",
+      "cost": 25
+    },
+    {
+      "text": "`show httpaccess | include POST` and `show httpaccess | include logon/themes` together tell the initial-RCE-to-webshell story.",
+      "cost": 50
+    },
+    {
+      "text": "`show vserver` — one VS exposes a backend service on a port a perimeter device should never bridge. `show ns log | include lb vserver` confirms who added it.",
+      "cost": 50
+    }
+  ],
+  "skills": ["Citrix ADC", "NetScaler", "nscli", "Live Forensics", "Web Shell"],
+  "mitre_techniques": ["T1190", "T1505.003", "T1078", "T1021.001", "T1133"],
+  "docker_image": "siege/device-citrix-netscaler-live:latest",
+  "docker_port": 2222,
+  "docker_config": {"profile": "default-strict"}
+}

@@ -1,0 +1,17 @@
+{
+  "source_ip": "203.0.113.77",
+  "captured_by": "ti-team",
+  "scrape_window": "2026-05-03T00:00Z..2026-05-04T00:00Z",
+  "profiles_harvested": 218,
+  "inferred_email_pattern": "REDACTED",
+  "primary_eng_site": {
+    "city": "REDACTED",
+    "country": "IE",
+    "headcount_estimate": 142,
+    "evidence": ["careers-page office listing", "44 profiles tagged REDACTED region"]
+  },
+  "secondary_sites": [
+    {"city": "Austin", "country": "US", "headcount_estimate": 38},
+    {"city": "Singapore", "country": "SG", "headcount_estimate": 21}
+  ]
+}

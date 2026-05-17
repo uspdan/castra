@@ -1,0 +1,34 @@
+{
+  "title": "Tier 2: Execution",
+  "slug": "tier-2-execution",
+  "description": "WKSTN-12 went from \"user opened email\" to \"five execution\ntechniques chained\" in twenty minutes. Walk the Sysmon stream and\nthe security event log to identify each pivot \u2014 every technique\nleaves a distinct argument shape, parent-child pair, or 4688 row.",
+  "category": "Threat Hunting",
+  "team": "blue",
+  "difficulty": 3,
+  "points": 400,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "Start with the log file referenced in question 1's hint.",
+      "cost": 50
+    }
+  ],
+  "skills": [
+    "Threat Hunting",
+    "Log Analysis",
+    "MITRE ATT&CK",
+    "Incident Response"
+  ],
+  "mitre_techniques": [
+    "T1059.001",
+    "T1059.003",
+    "T1053.005",
+    "T1106",
+    "T1204.002"
+  ],
+  "docker_image": "siege/tier-2-execution:latest",
+  "docker_port": 2222,
+  "docker_config": {
+    "profile": "default-strict"
+  }
+}

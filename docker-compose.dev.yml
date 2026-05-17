@@ -2,6 +2,13 @@ services:
   nginx:
     volumes:
       - ./nginx/certs:/etc/nginx/certs:ro
+    # nginx reaches the orchestrator's published 11000-11199
+    # workstation port range via the host gateway — ttyd binds
+    # inside DinD on 0.0.0.0:11000+uid, published by the
+    # orchestrator to the host, hit from this container via the
+    # ``host.docker.internal`` loopback alias.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   orchestrator:
     # Dev only — let DinD pull base images and resolve DNS so
@@ -14,8 +21,15 @@ services:
     # Dev only — publish the launcher's port range to the host so
     # users can ``curl http://localhost:<port>`` against launched
     # challenges. Production routes via an ingress/proxy instead.
+    #
+    # 11000-11099 is the per-user analyst-workstation range — the
+    # workstation service binds ttyd to ``11000+user_id`` so each
+    # player gets a deterministic, browser-reachable web shell URL
+    # at ``http://<host>:1100N/``. SSH lives on ``11100+user_id``.
     ports:
       - "10000-10049:10000-10049"
+      - "11000-11099:11000-11099"
+      - "11100-11199:11100-11199"
 
   api:
     volumes:

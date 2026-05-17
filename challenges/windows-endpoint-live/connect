@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eu
+target="${1:-}"
+if [ -z "$target" ]; then
+    cat <<'EOF'
+usage: connect <hostname>
+Available:
+  ws-fin-04      Windows 11 Enterprise — finance workstation
+EOF
+    exit 2
+fi
+case "${target,,}" in
+    ws-fin-04|ws|workstation)
+        exec python3 /opt/device-shell/shell.py /opt/device-shell/winws_device.py ;;
+    *) echo "% Unknown host: $target" >&2; exit 1 ;;
+esac

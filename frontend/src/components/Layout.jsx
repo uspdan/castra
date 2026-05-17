@@ -24,6 +24,7 @@ export default function Layout() {
     { to: '/', label: 'Overview' },
     { to: '/challenges', label: 'Challenges' },
     { to: '/leaderboard', label: 'Rankings' },
+    { to: '/workstation', label: 'Workstation' },
     { to: '/deploy', label: 'Deploy' },
   ]
 

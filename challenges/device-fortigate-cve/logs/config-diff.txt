@@ -1,0 +1,21 @@
+# Diff between FGT-PERIM-02-config-2026-05-14.conf (baseline) and
+# FGT-PERIM-02-config-2026-05-15.conf (post-incident).
+@@ config system admin
++    edit "REDACTED"
++        set accprofile "super_admin"
++        set vdom "root"
++        set password ENC SH2redacted
++    next
+ end
+@@ config vpn ssl web portal
+     edit "full-access"
+         set tunnel-mode enable
+         set split-tunneling enable
++        set split-tunneling-routing-address "INTERNAL-MGMT"
+     next
+ end
+@@ config firewall address
++    edit "INTERNAL-MGMT"
++        set subnet 10.250.0.0 255.255.255.0
++    next
+ end

@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eu
+target="${1:-}"
+if [ -z "$target" ]; then
+    cat <<'EOF'
+usage: connect <hostname>
+Available:
+  lnx-web-02     Red Hat Enterprise Linux 9.3 — Apache + Tomcat web host
+EOF
+    exit 2
+fi
+case "${target,,}" in
+    lnx-web-02|lnx|linux|rhel)
+        exec python3 /opt/device-shell/shell.py /opt/device-shell/linux_device.py ;;
+    *) echo "% Unknown host: $target" >&2; exit 1 ;;
+esac

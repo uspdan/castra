@@ -1,0 +1,7 @@
+2026-05-15T01:42:11Z portal-auth user=REDACTED source-ip=REDACTED auth-profile=REDACTED status=auth-failure reason=invalid-password
+2026-05-15T01:42:13Z portal-auth user=REDACTED source-ip=REDACTED auth-profile=REDACTED status=auth-failure reason=invalid-password
+2026-05-15T01:42:15Z portal-auth user=REDACTED source-ip=REDACTED auth-profile=REDACTED status=auth-failure reason=invalid-password
+2026-05-15T01:42:17Z portal-auth user=REDACTED source-ip=REDACTED auth-profile=REDACTED status=auth-failure reason=invalid-password
+# ... 200+ failures elided ...
+2026-05-15T01:51:33Z portal-auth user=REDACTED source-ip=REDACTED auth-profile=REDACTED status=auth-success reason=local-pw
+2026-05-15T01:51:34Z gateway-connect user=REDACTED public-ip=REDACTED tunnel-ip=172.21.4.18 client="GlobalProtect 6.2 Windows" status=connected

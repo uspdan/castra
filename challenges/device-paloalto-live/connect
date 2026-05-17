@@ -1,0 +1,22 @@
+#!/bin/bash
+set -eu
+target="${1:-}"
+if [ -z "$target" ]; then
+    cat <<'EOF'
+usage: connect <hostname>
+
+Available devices on the management network:
+  fw-dc-01   Palo Alto PA-3220, PAN-OS 10.2 — DC perimeter + GlobalProtect
+EOF
+    exit 2
+fi
+case "${target,,}" in
+    fw-dc-01|fw|panos|paloalto)
+        exec python3 /opt/device-shell/shell.py /opt/device-shell/panos_device.py
+        ;;
+    *)
+        echo "% Unknown host: $target" >&2
+        echo "Try: connect fw-dc-01" >&2
+        exit 1
+        ;;
+esac

@@ -1,0 +1,7 @@
+type=SYSCALL msg=audit(1684162801.114:8821): arch=c000003e syscall=90 success=yes exit=0 a0=7ffd9b... uid=33 gid=33 euid=33 suid=33 fsuid=33 comm="chmod" exe="/usr/bin/chmod" key="setuid-add"
+type=PATH msg=audit(1684162801.114:8821): item=0 name="REDACTED" inode=22013 dev=fd:01 mode=0104755 ouid=33 ogid=33 rdev=00:00
+type=EXECVE msg=audit(1684162803.221:8830): argc=1 a0="REDACTED" -p
+type=SYSCALL msg=audit(1684162803.221:8830): arch=c000003e syscall=59 success=yes exit=0 a0=7fff... uid=33 gid=33 euid=0 suid=0 fsuid=0 comm="bash" exe="REDACTED" key=null
+host=LNX-WEB-02 type=USER_CHAUTHTOK msg=audit(1684162910.882:8911): pid=14411 uid=0 auid=0 ses=4 msg='op=PAM:chauthtok grantors=pam_unix acct="REDACTED" exe="/usr/bin/passwd" hostname=? addr=? terminal=pts/0 res=success'
+host=LNX-WEB-02 type=USER_LOGIN msg=audit(1684162977.013:8915): pid=14502 uid=0 auid=4294967295 ses=5 msg='op=login id=998 exe="/usr/sbin/sshd" hostname=localhost addr=127.0.0.1 terminal=ssh res=success acct="REDACTED"'
+host=LNX-WEB-02 type=USER_CMD msg=audit(1684162990.541:8920): pid=14555 uid=998 auid=998 ses=5 msg='cwd="/home/REDACTED" cmd="/usr/bin/sudo /bin/tar -cf - /etc/shadow" terminal=pts/1 res=success'

@@ -1,0 +1,5 @@
+2026-05-15T08:35:11Z EventID=4698 Subject=CORP\REDACTED TaskName=\REDACTED TaskContent="<Actions><Exec><Command>wscript.exe</Command><Arguments>C:\ProgramData\GoogleSync\sync.vbs</Arguments></Exec></Actions>"
+2026-05-15T08:31:18Z EventID=4688 NewProcessName=C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe ParentProcessName=C:\Program Files\Microsoft Office\Office16\WINWORD.EXE TokenElevationType=%%1936
+2026-05-15T08:33:42Z EventID=4688 NewProcessName=C:\Windows\System32\REDACTED ParentProcessName=C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe TokenElevationType=%%1936
+2026-05-15T08:33:43Z EventID=4688 NewProcessName=C:\Windows\System32\REDACTED ParentProcessName=C:\Windows\System32\REDACTED TokenElevationType=%%1936
+2026-05-15T08:48:51Z EventID=4688 NewProcessName=REDACTED ParentProcessName=C:\Windows\System32\mshta.exe TokenElevationType=%%1936

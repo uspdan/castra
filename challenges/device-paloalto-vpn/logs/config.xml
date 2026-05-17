@@ -1,0 +1,62 @@
+<config urldb="paloaltonetworks" version="10.2.0">
+  <devices>
+    <entry name="localhost.localdomain">
+      <vsys>
+        <entry name="vsys1">
+          <authentication-profile>
+            <entry name="gp-employees">
+              <method><ldap><server-profile>corp-ldap</server-profile></ldap></method>
+              <multi-factor-auth>
+                <mfa-enable>yes</mfa-enable>
+                <factors><member>okta-push</member></factors>
+              </multi-factor-auth>
+            </entry>
+            <entry name="REDACTED">
+              <method><ldap><server-profile>corp-ldap</server-profile></ldap></method>
+              <!-- multi-factor-auth removed during change window 2026-03-12 to fix contractor onboarding bug. Was supposed to be reinstated. -->
+            </entry>
+            <entry name="admin-console">
+              <method><saml-idp><server-profile>okta-saml</server-profile></saml-idp></method>
+              <multi-factor-auth>
+                <mfa-enable>yes</mfa-enable>
+              </multi-factor-auth>
+            </entry>
+          </authentication-profile>
+          <rulebase>
+            <security>
+              <rules>
+                <entry name="gp-users-allow-internet">
+                  <from><member>gp-tunnel</member></from>
+                  <to><member>untrust</member></to>
+                  <source><member>any</member></source>
+                  <destination><member>any</member></destination>
+                  <application><member>any</member></application>
+                  <service><member>application-default</member></service>
+                  <action>allow</action>
+                </entry>
+                <entry name="REDACTED">
+                  <from><member>gp-tunnel</member></from>
+                  <to><member>trust</member></to>
+                  <source><member>any</member></source>
+                  <destination><member>any</member></destination>
+                  <application><member>any</member></application>
+                  <service><member>any</member></service>
+                  <action>allow</action>
+                </entry>
+                <entry name="employees-to-mgmt">
+                  <from><member>trust</member></from>
+                  <to><member>mgmt</member></to>
+                  <source><member>employee-workstations</member></source>
+                  <destination><member>mgmt-subnet</member></destination>
+                  <application><member>ms-rdp</member><member>ssh</member></application>
+                  <service><member>application-default</member></service>
+                  <action>allow</action>
+                </entry>
+              </rules>
+            </security>
+          </rulebase>
+        </entry>
+      </vsys>
+    </entry>
+  </devices>
+</config>

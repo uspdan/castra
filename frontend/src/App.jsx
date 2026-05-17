@@ -14,6 +14,7 @@ import Profile from './pages/Profile'
 import Settings from './pages/Settings'
 import Admin from './pages/Admin'
 import Deploy from './pages/Deploy'
+import Workstation from './pages/Workstation'
 import NotFound from './pages/NotFound'
 
 export default function App() {
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="settings" element={<Settings />} />
             <Route path="admin" element={<Admin />} />
             <Route path="deploy" element={<Deploy />} />
+            <Route path="workstation" element={<Workstation />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />

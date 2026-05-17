@@ -1,0 +1,3 @@
+[{"pid": 4112, "process_name": "explorer.exe", "module_path": "C:\\ProgramData\\Intel\\bin\\REDACTED", "hook_type": 13, "hook_type_name": "WH_KEYBOARD_LL", "thread_id": 0},
+ {"pid": 4112, "process_name": "explorer.exe", "module_path": "C:\\ProgramData\\Intel\\bin\\REDACTED", "hook_type": 3,  "hook_type_name": "WH_GETMESSAGE",  "thread_id": 0},
+ {"pid": 2104, "process_name": "MsMpEng.exe",  "module_path": "C:\\Windows\\System32\\MpSvc.dll",            "hook_type": 4,  "hook_type_name": "WH_CBT",         "thread_id": 0}]

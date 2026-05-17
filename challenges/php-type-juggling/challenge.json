@@ -1,0 +1,24 @@
+{
+  "title": "PHP Type Juggling — Magic Hash",
+  "slug": "php-type-juggling",
+  "description": "VaultPin checks your PIN by comparing MD5 hashes with PHP's loose-equality `==`. Find a PIN whose md5 collides with the stored hash under that comparison.",
+  "category": "Web Exploitation",
+  "team": "red",
+  "difficulty": 2,
+  "points": 300,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "PHP's `==` treats strings that look like numbers as numbers. Both '0e1234...' and '0e5678...' parse as float 0.0.",
+      "cost": 25
+    },
+    {
+      "text": "Search for `php magic hash list` — the canonical entries include 240610708, QNKCDZO, aabg7XSs, all md5'ing to a '0e...' string of digits.",
+      "cost": 75
+    }
+  ],
+  "skills": ["PHP", "Type Juggling", "Hash Collision", "Authentication Bypass"],
+  "mitre_techniques": ["T1190", "T1078"],
+  "docker_image": "siege/php-type-juggling:latest",
+  "docker_port": 80
+}

@@ -1,0 +1,3 @@
+2026-05-15T11:42:58Z host=WIN-FIN-09 EventID=4624 LogonType=3 TargetUserName=REDACTED TargetDomainName=CORP SubjectLogonId=0x4d2a Sid=REDACTED
+2026-05-15T11:43:11Z host=WIN-FIN-09 EventID=4672 SubjectLogonId=0x4d2a SubjectUserSid=REDACTED Privileges=SeTcbPrivilege,SeAssignPrimaryTokenPrivilege,SeImpersonatePrivilege ProcessName=C:\Windows\System32\REDACTED
+2026-05-15T11:43:13Z host=WIN-FIN-09 EventID=4688 NewProcessName=C:\Windows\System32\REDACTED ParentProcessName=C:\Users\REDACTED\AppData\Local\Temp\incognito.exe TokenElevationType=%%1937

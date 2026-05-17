@@ -1,0 +1,18 @@
+[
+  {
+    "domain": "REDACTED",
+    "registered_at": "2026-04-25T12:00:00Z",
+    "registrar": "EvilCheapDomains LLC",
+    "registrant_country": "PA",
+    "homoglyph_of": "example.com",
+    "dnssec": false,
+    "ns": ["ns1.REDACTED", "ns2.REDACTED"]
+  },
+  {
+    "domain": "examp1es.net",
+    "registered_at": "2026-04-26T08:00:00Z",
+    "registrar": "EvilCheapDomains LLC",
+    "homoglyph_of": null,
+    "dnssec": false
+  }
+]

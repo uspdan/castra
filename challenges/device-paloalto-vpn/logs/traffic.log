@@ -1,0 +1,5 @@
+2026-05-15T01:51:55Z rule=gp-users-allow-internet src=172.21.4.18 dst=8.8.8.8 dport=53 proto=udp app=dns action=allow bytes=128
+2026-05-15T01:52:11Z rule=gp-users-allow-internet src=172.21.4.18 dst=23.45.67.89 dport=443 proto=tcp app=ssl action=allow bytes=1882
+2026-05-15T01:53:04Z rule=REDACTED src=172.21.4.18 dst=10.10.0.50 dport=445 proto=tcp app=smb action=allow bytes=8420
+2026-05-15T01:53:42Z rule=REDACTED src=172.21.4.18 dst=REDACTED dport=3389 proto=tcp app=ms-rdp action=allow bytes=44288 user=REDACTED
+2026-05-15T01:55:09Z rule=REDACTED src=172.21.4.18 dst=REDACTED dport=3389 proto=tcp app=ms-rdp action=allow bytes=512042 user=REDACTED

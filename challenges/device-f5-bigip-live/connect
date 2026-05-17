@@ -1,0 +1,22 @@
+#!/bin/bash
+set -eu
+target="${1:-}"
+if [ -z "$target" ]; then
+    cat <<'EOF'
+usage: connect <hostname>
+
+Available devices on the management network:
+  bigip-01   F5 BIG-IP 2200S, BIG-IP 14.1.0 — DC LTM
+EOF
+    exit 2
+fi
+case "${target,,}" in
+    bigip-01|bigip|f5)
+        exec python3 /opt/device-shell/shell.py /opt/device-shell/tmsh_device.py
+        ;;
+    *)
+        echo "% Unknown host: $target" >&2
+        echo "Try: connect bigip-01" >&2
+        exit 1
+        ;;
+esac

@@ -1,0 +1,156 @@
+# ATT&CK TA0043 — Reconnaissance mini-campaign.
+#
+# Pre-compromise. The "logs" the hunter sees are an after-action
+# retrospective: WAF/edge access logs, a third-party passive-DNS
+# feed dump, a CT-log search export, and a LinkedIn-scraping
+# evidence bundle handed over by the threat-intel team. The
+# adversary never touched an endpoint here — they were *learning*
+# the target. Hunter reconstructs the recon footprint.
+
+slug: tier-2-reconnaissance
+title: "Tier 2: Reconnaissance"
+description: |
+  Two weeks before the intrusion, somebody spent five days quietly
+  fingerprinting your perimeter, scraping employee directories,
+  and pinging your public databases. Your TI team has handed over
+  WAF logs, a passive-DNS slice, a LinkedIn-scrape evidence
+  bundle, and a Shodan-style external-asset report. Walk them and
+  identify the recon footprint.
+category: Threat Hunting
+team: blue
+difficulty: 3
+points: 400
+flag: "CTF{REDACTED}"
+tactic_id: TA0043
+docker_port: 2222
+profile: default-strict
+
+techniques:
+  - id: T1595.002
+    description: |
+      Active Scanning — Vulnerability Scanning. The adversary
+      drove a Nuclei-style template scanner from a single
+      cloud IP, hammering ~3000 distinct paths per minute with a
+      recognisable user-agent.
+    question:
+      prompt: |
+        What is the source IP that drove the bulk
+        vulnerability-template scan? (Format x.x.x.x.)
+      hint: |
+        waf.log — sort by ip count; the obvious outlier has a
+        user-agent containing the scanner name.
+      answer: REDACTED
+
+  - id: T1589.002
+    description: |
+      Gather Victim Identity Information — Email Addresses. A
+      separate IP scraped LinkedIn and the corp `/about` /
+      `/people` pages, harvesting a structured list of employees
+      and email patterns.
+    question:
+      prompt: |
+        Which email-address format did the scraper infer from
+        the scrape? (Format string with `{first}` / `{last}`
+        placeholders — e.g. `REDACTED`.)
+      hint: |
+        linkedin-scrape-evidence.json — the `inferred_email_pattern`
+        field is right there.
+      answer: "REDACTED"
+
+  - id: T1592
+    description: |
+      Gather Victim Host Information. The same scanner IP later
+      came back with low-and-slow asset-fingerprinting requests
+      against specific endpoints, harvesting precise server
+      version strings from response headers.
+    question:
+      prompt: |
+        Which exact server-version string from your edge fleet
+        ended up in the adversary's catalogue? (As it appears
+        in the Server response header — verbatim.)
+      hint: |
+        waf.log — look at the `Server` header field for the
+        records where the scanner IP probed `/` and the WAF
+        passed them through.
+      answer: REDACTED
+
+  - id: T1591.001
+    description: |
+      Gather Victim Org Information — Determine Physical
+      Locations. The scrape includes a separate enrichment pass
+      hitting Google Maps and the corp careers page to map
+      office locations and the headcount per site.
+    question:
+      prompt: |
+        Which city did the adversary's enrichment pass identify
+        as the company's primary engineering office? (City name
+        only.)
+      hint: |
+        linkedin-scrape-evidence.json — the `primary_eng_site`
+        block has a city field.
+      answer: REDACTED
+
+  - id: T1596.005
+    description: |
+      Search Open Technical Databases — Scan Databases. The
+      adversary pulled the Shodan/Censys-equivalent report for
+      every IP block your ASN advertises and flagged one host
+      with an exposed admin panel from a stale staging deploy.
+    question:
+      prompt: |
+        Which corp hostname did the external scan-database
+        report flag as having an exposed admin panel? (Bare
+        hostname, no scheme, as it appears in the asset report.)
+      hint: |
+        external-asset-report.json — the `flagged_assets` list
+        has one entry with `exposure=admin_panel`.
+      answer: REDACTED
+
+logs:
+  waf.log: |
+    2026-05-01T03:14:11Z ip=REDACTED method=GET path=/.git/config status=404 ua="Nuclei/3.1.0 (Open Source) +https://nuclei.example" verdict=allow
+    2026-05-01T03:14:11Z ip=REDACTED method=GET path=/.env status=404 ua="Nuclei/3.1.0 (Open Source) +https://nuclei.example" verdict=allow
+    2026-05-01T03:14:11Z ip=REDACTED method=GET path=/wp-login.php status=404 ua="Nuclei/3.1.0 (Open Source) +https://nuclei.example" verdict=allow
+    2026-05-01T03:14:12Z ip=REDACTED method=GET path=/admin/ status=403 ua="Nuclei/3.1.0 (Open Source) +https://nuclei.example" verdict=allow
+    2026-05-01T03:14:12Z ip=REDACTED method=GET path=/api/v1/health status=200 ua="Nuclei/3.1.0 (Open Source) +https://nuclei.example" verdict=allow
+    2026-05-01T03:14:13Z ip=REDACTED method=GET path=/swagger.json status=404 ua="Nuclei/3.1.0 (Open Source) +https://nuclei.example" verdict=allow
+    2026-05-02T22:08:55Z ip=REDACTED method=GET path=/ status=200 ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" verdict=allow resp_server=REDACTED
+    2026-05-02T22:08:57Z ip=REDACTED method=GET path=/about status=200 ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" verdict=allow resp_server=REDACTED
+    2026-05-02T22:09:00Z ip=REDACTED method=GET path=/api/v1/version status=200 ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" verdict=allow resp_server=REDACTED
+    2026-05-03T01:22:11Z ip=203.0.113.77  method=GET path=/people status=200 ua="python-requests/2.31.0" verdict=allow
+    2026-05-03T01:22:18Z ip=203.0.113.77  method=GET path=/careers status=200 ua="python-requests/2.31.0" verdict=allow
+    2026-05-03T01:22:25Z ip=203.0.113.77  method=GET path=/team/eng status=200 ua="python-requests/2.31.0" verdict=allow
+  linkedin-scrape-evidence.json: |
+    {
+      "source_ip": "203.0.113.77",
+      "captured_by": "ti-team",
+      "scrape_window": "2026-05-03T00:00Z..2026-05-04T00:00Z",
+      "profiles_harvested": 218,
+      "inferred_email_pattern": "REDACTED",
+      "primary_eng_site": {
+        "city": "REDACTED",
+        "country": "IE",
+        "headcount_estimate": 142,
+        "evidence": ["careers-page office listing", "44 profiles tagged REDACTED region"]
+      },
+      "secondary_sites": [
+        {"city": "Austin", "country": "US", "headcount_estimate": 38},
+        {"city": "Singapore", "country": "SG", "headcount_estimate": 21}
+      ]
+    }
+  external-asset-report.json: |
+    {
+      "asn": 64500,
+      "scanned_at": "2026-05-04T11:00:00Z",
+      "vendor": "censys-equivalent",
+      "asset_count": 1842,
+      "flagged_assets": [
+        {"host": "REDACTED", "ip": "192.0.2.18", "port": 443, "exposure": "admin_panel", "evidence": "title=\"Admin Console — Staging\" with form-based login, no SSO redirect"},
+        {"host": "mx-eu-1.example.com",      "ip": "192.0.2.40", "port": 25,  "exposure": "open_relay_test_negative"},
+        {"host": "cdn.example.com",          "ip": "192.0.2.90", "port": 80,  "exposure": "http_only_redirect_only"}
+      ]
+    }
+  passive-dns-slice.log: |
+    2026-05-01T03:00:00Z resolver=ti-feed q=REDACTED type=A answer=192.0.2.18 ttl=3600
+    2026-05-02T22:08:00Z resolver=ti-feed q=example.com         type=A answer=192.0.2.10 ttl=300
+    2026-05-03T01:22:00Z resolver=ti-feed q=careers.example.com type=A answer=192.0.2.30 ttl=300

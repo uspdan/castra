@@ -1,0 +1,6 @@
+timestamp,host,pid,ppid,image,user
+2026-05-15T14:02:08Z,FILE-01,7711,5520,C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe,CORP\svc-backup
+2026-05-15T14:02:09Z,FILE-01,7720,7711,C:\Windows\System32\REDACTED,CORP\svc-backup
+2026-05-15T14:02:11Z,FILE-01,7725,7720,C:\Windows\System32\findstr.exe,CORP\svc-backup
+2026-05-15T14:30:21Z,FILE-01,7892,7720,C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe,CORP\svc-backup
+2026-05-15T16:48:02Z,FILE-01,8041,7720,C:\Program Files\7-Zip\7z.exe,CORP\svc-backup

@@ -1,0 +1,20 @@
+{
+  "title": "Device Forensics: Cisco IOS XE — Live CLI (CVE-2023-20198)",
+  "slug": "device-cisco-iosxe-live",
+  "description": "IOSXE-EDGE-01 may have been hit by the WebUI auth-bypass (CVE-2023-20198) + Lua-implant chain. Connect, run real IOS XE commands, confirm or rule out.",
+  "category": "Network Device Forensics",
+  "team": "blue",
+  "difficulty": 4,
+  "points": 550,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {"text": "`connect iosxe-edge-01`. `enable` password is `n0c-l3v3l-15`. Start with `show users` to spot the live session, then `show running-config | include privilege 15`.", "cost": 25},
+    {"text": "`show webui-log` is the synthetic surface for the WebUI access log — the `%25` URL-double-encoding tells you exactly which paths bypassed auth.", "cost": 50},
+    {"text": "`show platform software process list` reveals processes; one isn't part of a stock IOS XE image.", "cost": 50}
+  ],
+  "skills": ["Cisco IOS XE", "Live Forensics", "WebUI Auth Bypass", "Implant Detection"],
+  "mitre_techniques": ["T1078", "T1190", "T1505.003"],
+  "docker_image": "siege/device-cisco-iosxe-live:latest",
+  "docker_port": 2222,
+  "docker_config": {"profile": "default-strict"}
+}

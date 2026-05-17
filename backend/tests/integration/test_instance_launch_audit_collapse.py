@@ -30,6 +30,10 @@ class _StubContainer:
     def remove(self, force=True):
         return None
 
+    def start(self):
+        """Launcher post-2026-05 calls .create then .start."""
+        return None
+
 
 class _StubNetwork:
     def __init__(self, name: str):
@@ -45,16 +49,32 @@ class _StubContainersAPI:
         self._by_id[c.id] = c
         return c
 
+    def create(self, **kwargs):
+        """Launcher post-2026-05 uses .create + .start in place of
+        .run so the slug network-alias can be set before the
+        container has a network endpoint. Behaviour-equivalent for
+        the stub.
+        """
+        c = _StubContainer(image_ref=kwargs.get("image"))
+        self._by_id[c.id] = c
+        return c
+
     def get(self, cid: str):
         if cid not in self._by_id:
             import docker
             raise docker.errors.NotFound(f"no container {cid}")
         return self._by_id[cid]
 
+    def list(self, all=False, filters=None):
+        return list(self._by_id.values())
+
 
 class _StubNetworksAPI:
     def __init__(self):
         self._by_name: dict[str, _StubNetwork] = {}
+        # Bake in a ``bridge`` so the launcher's
+        # disconnect-default-bridge dance has a target.
+        self._by_name["bridge"] = _StubNetwork("bridge")
 
     def create(self, name, **kwargs):
         n = _StubNetwork(name)
@@ -66,7 +86,10 @@ class _StubNetworksAPI:
             import docker
             raise docker.errors.NotFound(f"no network {name}")
         net = self._by_name[name]
+        # Methods the launcher invokes on the network handle.
         net.remove = MagicMock()
+        net.connect = MagicMock()
+        net.disconnect = MagicMock()
         return net
 
 

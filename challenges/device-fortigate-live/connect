@@ -1,0 +1,27 @@
+#!/bin/bash
+# Drop into the staged FortiGate CLI sim.
+
+set -eu
+
+target="${1:-}"
+
+if [ -z "$target" ]; then
+    cat <<'EOF'
+usage: connect <hostname>
+
+Available devices on the management network:
+  fgt-perim-02   FortiGate 100F, FortiOS 7.2.4 — perimeter firewall + SSL VPN
+EOF
+    exit 2
+fi
+
+case "${target,,}" in
+    fgt-perim-02|fgt|fortigate)
+        exec python3 /opt/device-shell/shell.py /opt/device-shell/fortios_device.py
+        ;;
+    *)
+        echo "% Unknown host: $target" >&2
+        echo "Try: connect fgt-perim-02" >&2
+        exit 1
+        ;;
+esac

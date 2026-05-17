@@ -1,0 +1,11 @@
+{
+  "asn": 64500,
+  "scanned_at": "2026-05-04T11:00:00Z",
+  "vendor": "censys-equivalent",
+  "asset_count": 1842,
+  "flagged_assets": [
+    {"host": "REDACTED", "ip": "192.0.2.18", "port": 443, "exposure": "admin_panel", "evidence": "title=\"Admin Console — Staging\" with form-based login, no SSO redirect"},
+    {"host": "mx-eu-1.example.com",      "ip": "192.0.2.40", "port": 25,  "exposure": "open_relay_test_negative"},
+    {"host": "cdn.example.com",          "ip": "192.0.2.90", "port": 80,  "exposure": "http_only_redirect_only"}
+  ]
+}

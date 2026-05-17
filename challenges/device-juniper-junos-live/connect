@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eu
+target="${1:-}"
+if [ -z "$target" ]; then
+    cat <<'EOF'
+usage: connect <hostname>
+Available:
+  srx-perim-01  Juniper SRX 340, Junos 21.2R3 — branch firewall
+EOF
+    exit 2
+fi
+case "${target,,}" in
+    srx-perim-01|srx|junos)
+        exec python3 /opt/device-shell/shell.py /opt/device-shell/junos_device.py ;;
+    *) echo "% Unknown host: $target" >&2; exit 1 ;;
+esac

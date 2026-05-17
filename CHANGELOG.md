@@ -8,9 +8,123 @@ per-sprint detail lives in `WORK_PLAN.md`.
 
 ## [Unreleased]
 
-Phase 0–12 hardening program + Sprints 1–12 in-session work
-shipped. No version tagged yet — `git rev-parse HEAD` is the
-canonical reference.
+Nothing pending.
+
+## [2.5.0] — 2026-05-17
+
+47 live-shell challenges, in-range analyst workstation, offline
+player runner, 19 new pytests for the workstation surface, full
+CLAUDE.md §4 (audit) + §5 (tests) + §12.1 (image hardening)
+posture. Backend test suite: **637 passed @ 86.06% coverage**.
+
+### Workstation + content drop — 2026-05-16 / 2026-05-17
+
+#### Added — player connectivity
+- **Analyst workstation** (`infra/workstation/`). Per-user Ubuntu
+  container joined to the seige-range network with PowerShell 7,
+  tshark/tcpdump/nmap, jq/ripgrep, sshpass, and a pre-configured
+  `~/.ssh/config` so `ssh dc01` / `ssh fortigate` / etc. resolve
+  natively against per-instance challenge networks. Launch from
+  `/workstation` in the UI; reach via SSH (port `11100+user_id`)
+  or browser web shell (`/workstation/<3-digit-id>/` via nginx →
+  port `11000+user_id`). One-shot password per launch, never
+  persisted server-side. Per-user `seige-workstation-home-<id>`
+  named volume survives restarts.
+- **Three new audit-ledger events** — `workstation.launch`,
+  `workstation.stop`, `workstation.attached` (emitted by the
+  launcher when it attaches a running workstation to a challenge's
+  per-instance network). Recorded with caller IP + request_id.
+- **Workstation idle reaper** scheduler job (hourly; default
+  8 h max uptime). Home volume preserved across reap.
+- **Orphan-instance startup sweep** — on api boot and every
+  cleanup tick, `ChallengeInstance` rows marked `running` whose
+  container is gone in DinD are reconciled to `stopped` with an
+  `instance.expired` audit row carrying `reason: container_gone`.
+  Fixes the "stale row blocks re-launch" bug after an orchestrator
+  recreate.
+- **Offline player runner** (`scripts/seige`). Single-file Python
+  CLI — `list / info / start / connect / questions / answer /
+  remember / reveal / stop / reset / score / sync / pull`. Runs
+  any live-shell challenge as a standalone Docker container on
+  the player's laptop. State at `~/.seige/state.json`.
+- **`seige sync --upstream URL`** pushes solves earned offline
+  back to a central seige-range via the v1 submission endpoint.
+  Idempotent per slug (409 from upstream treated as success).
+- **Offline bundle builder** (`scripts/build-offline-bundle.sh`):
+  `docker save`s every challenge image + ships the CLI + runbook
+  in one zstd-compressed tarball (~1.6 GB full catalogue). New
+  `make offline-bundle` target.
+
+#### Added — content
+- **47 live-shell challenges** in one engine. Catalogue: 25 blue +
+  22 red.
+  * Tier-2 ATT&CK mini-campaigns — 14/14 tactics shipped
+    (Reconnaissance through Impact) via the threat-hunt factory.
+  * Network device forensics, static-logs — Cisco IOS, FortiGate
+    (CVE-2022-40684-style), Palo Alto GlobalProtect.
+  * Network device forensics, **live CLI** sim — 10 vendors:
+    Cisco IOS, Cisco IOS XE (CVE-2023-20198), Cisco ASA, FortiOS,
+    PAN-OS, Juniper Junos, MikroTik RouterOS (Winbox /
+    VPNFilter), F5 BIG-IP (CVE-2020-5902), Citrix NetScaler
+    (CVE-2023-3519), pfSense.
+  * Windows / AD — DC (Kerberoast + DCSync + AdminSDHolder),
+    workstation phishing chain, file-server pre-ransomware,
+    Exchange ProxyShell, IIS webshell.
+  * Linux — RHEL 9.3 SSH-brute → REDACTED → cron reverse shell.
+  * Red-team (4 packs, 22 challenges) covering OWASP Top 10 +
+    API Top 10 — SQLi (1st + 2nd order), XSS, SSRF, JWT (`alg=none`
+    + key confusion), insecure deserialization, CRLF splitting,
+    LDAP / NoSQL injection, race conditions, file-upload RCE,
+    prototype pollution, GraphQL introspection, SSTI, XXE, path
+    traversal, PHP type juggling, IDOR, command injection.
+
+#### Added — frontend
+- New `/workstation` page — Launch button, SSH command (copy),
+  ttyd web URL (link), one-shot password panel, four-step
+  "how to connect" walkthrough, confirm-gated Stop.
+- Challenges page gained category / difficulty / status chip
+  filters and a results count + clear-filters control. Listing
+  store bumped from 20 → 50 per page.
+- Admin Challenges tab gained search, team/release filters, and a
+  "release all N drafts" bulk action.
+
+#### Added — infra & ops
+- `docker-compose.dev.yml` publishes `11000-11099` (workstation
+  ttyd) and `11100-11199` (workstation SSH) from the orchestrator
+  container. Prod compose binds the same ranges to `127.0.0.1` —
+  nginx fronts them.
+- nginx route `location ~ "^/workstation/(\d{3})/(.*)$"` proxies
+  to the orchestrator-published port with `Upgrade` /
+  `Connection: upgrade` headers for ttyd's WebSocket.
+- docker-socket-proxy allowlist gained `VOLUMES=1` (rationale in
+  ADR 003).
+- New make targets: `workstation-build`, `workstation-up`,
+  `workstation-down`, `workstation-shell`, `offline-bundle`.
+
+#### Added — tests + docs
+- 19 new pytests — 9 unit (mocked docker), 10 integration
+  (testcontainer Postgres + ASGI test client). Cover audit-row
+  emission, idempotent re-launch, proxied vs direct-port URL
+  rendering, reaper cutoff, stale-container sweep.
+- ADR 003 — workstation security posture (VOLUMES=1, sudo
+  NOPASSWD allowlist, one-shot-password decision).
+- Player handbook (`docs/player-handbook.md`) — UI, workstation,
+  and offline-runner flows; deployment; troubleshooting.
+- Offline-workstation runbook (`docs/runbooks/offline-workstation.md`).
+- Workstation README (`infra/workstation/README.md`) — deploy +
+  tuning.
+
+#### Fixed
+- Disconnect-reconnect blip on challenge launch: the launcher
+  now `create → connect(aliases=[slug]) → start`s so the slug
+  alias is set before the challenge container has a network
+  endpoint. No TCP drop.
+- Stale-instance bug after orchestrator recreate (see orphan
+  startup sweep above).
+- Workstation Dockerfile §12.1: base image digest-pinned; ttyd
+  shell sessions run as the unprivileged `analyst` user (uid 1000)
+  via `ttyd --uid/--gid`; entrypoint stays root only for chpasswd
+  + sshd boot.
 
 ### Sprint 12 — 2026-05-05
 #### Added

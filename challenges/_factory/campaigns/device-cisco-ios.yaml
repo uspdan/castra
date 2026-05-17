@@ -1,0 +1,193 @@
+# Network Device Forensics — Cisco IOS edge router compromise.
+#
+# Attacker hit BR-EDGE-01 (a 2911 ISR running 15.7) via a weak
+# SNMP RW community string, escalated to enable, dropped a
+# privilege-15 user, modified an outbound ACL to permit C2, and
+# stood up a GRE tunnel to their staging host. Hunter has the
+# running-config, show users, syslog, and show snmp output.
+
+slug: device-cisco-ios
+title: "Device Forensics: Cisco IOS Compromise"
+description: |
+  BR-EDGE-01 (Cisco 2911, IOS 15.7) was compromised overnight.
+  You have the post-incident running-config dump, terminal
+  session log, syslog excerpt, and SNMP state. Five distinct
+  bits of attacker tradecraft are visible. Find them.
+category: Network Device Forensics
+team: blue
+difficulty: 3
+points: 450
+flag: "CTF{REDACTED}"
+tactic_id: DEVICE
+docker_port: 2222
+profile: default-strict
+
+techniques:
+  - id: T1078
+    description: |
+      Valid Accounts — a rogue privilege-15 local user (not on the
+      approved roster) appears in running-config.
+    question:
+      prompt: |
+        What is the username of the rogue privilege-level-15 local
+        account the attacker added? (Lowercase username only.)
+      hint: |
+        running-config.txt — look for `username ... privilege 15`
+        entries and compare to /home/hunter/logs/approved-users.txt.
+      answer: REDACTED
+
+  - id: T1078.001
+    description: |
+      Default / weak credentials — an SNMP community string with
+      RW (read-write) access set to a guessable value.
+    question:
+      prompt: |
+        What is the SNMP community string configured with RW
+        (read-write) access? (Exact string, case-sensitive.)
+      hint: |
+        running-config.txt and show-snmp.txt both name it. Look
+        for `snmp-server community ... RW`.
+      answer: REDACTED
+
+  - id: T1133
+    description: |
+      External Remote Services — a GRE tunnel interface points at
+      an attacker-controlled tunnel endpoint outside the org IP
+      space.
+    question:
+      prompt: |
+        What is the destination IP of the unauthorised GRE tunnel
+        the attacker created on Tunnel0? (Format x.x.x.x.)
+      hint: |
+        running-config.txt — `interface Tunnel0` block, look at
+        `tunnel destination`.
+      answer: REDACTED
+
+  - id: T1562.004
+    description: |
+      Impair Defenses — Disable or Modify System Firewall. The
+      outbound ACL was edited to permit traffic to the attacker's
+      C2 prefix that would otherwise have been dropped by the
+      default deny-any.
+    question:
+      prompt: |
+        Which ACL number was modified to permit outbound traffic
+        to the attacker's C2 prefix? (Number only, e.g. 103.)
+      hint: |
+        running-config.txt — look for `access-list NNN permit ...
+        198.51.100.0 0.0.0.255` (the C2 /24 the GRE points into).
+      answer: 102
+
+  - id: T1021.004
+    description: |
+      Remote Services — SSH. The attacker authenticated to vty 0 4
+      from a single source IP across the change window.
+    question:
+      prompt: |
+        From which source IP did the attacker authenticate to the
+        vty over SSH for the privileged config changes? (Format
+        x.x.x.x.)
+      hint: |
+        syslog.txt — multiple `%SEC_LOGIN-5-LOGIN_SUCCESS` lines
+        from the same external IP into vty 0; show-users.txt
+        confirms the live session.
+      answer: REDACTED
+
+logs:
+  running-config.txt: |
+    ! Last configuration change at 03:14:22 UTC Wed May 14 2026 by REDACTED
+    ! NVRAM config last updated at 03:15:01 UTC Wed May 14 2026 by REDACTED
+    !
+    version 15.7
+    service timestamps debug datetime msec
+    service timestamps log datetime msec
+    service password-encryption
+    !
+    hostname BR-EDGE-01
+    !
+    boot-start-marker
+    boot system flash:c2900-universalk9-mz.SPA.157-3.M5.bin
+    boot-end-marker
+    !
+    aaa new-model
+    aaa authentication login default local
+    aaa authorization exec default local
+    !
+    enable secret 8 $8$abcdef...redacted
+    !
+    username netops privilege 15 secret 8 $8$opsaccount...redacted
+    username monitor privilege 5  secret 8 $8$readonly...redacted
+    username REDACTED privilege 15 secret 8 $8$z9c1f-newpwd-redacted
+    !
+    ip access-list extended ACL-OUT
+    !
+    snmp-server community READ-ONLY RO
+    snmp-server community REDACTED RW
+    snmp-server location DC1-rack-12
+    !
+    interface GigabitEthernet0/0
+     description WAN
+     ip address 192.0.2.18 255.255.255.252
+     ip access-group 102 out
+     no shutdown
+    !
+    interface GigabitEthernet0/1
+     description LAN
+     ip address 10.10.0.1 255.255.255.0
+     ip access-group 101 in
+     no shutdown
+    !
+    interface Tunnel0
+     description maintenance-link
+     ip address 192.168.244.1 255.255.255.252
+     tunnel source GigabitEthernet0/0
+     tunnel destination REDACTED
+     tunnel mode gre ip
+    !
+    access-list 101 permit ip 10.10.0.0 0.0.0.255 any
+    access-list 101 deny ip any any log
+    !
+    access-list 102 permit ip 10.10.0.0 0.0.0.255 198.51.100.0 0.0.0.255
+    access-list 102 permit ip any host 8.8.8.8
+    access-list 102 permit ip any host 1.1.1.1
+    access-list 102 deny ip any any log
+    !
+    line vty 0 4
+     transport input ssh
+     login authentication default
+    !
+    ip http server
+    ip http secure-server
+    !
+    end
+  approved-users.txt: |
+    # Authorised local users for BR-EDGE-01 — last reviewed 2026-04-01.
+    # Source of truth maintained by NOC.
+    netops    priv-15  on-call ops
+    monitor   priv-5   read-only NMS scrape account
+  show-users.txt: |
+    Line       User       Host(s)              Idle       Location
+    0 con 0                idle                 00:42:11
+    1 vty 0   REDACTED      idle                 00:00:08   REDACTED
+    2 vty 1                idle                 -
+    3 vty 2                idle                 -
+  show-snmp.txt: |
+    Chassis: FTX1745A0B8
+    Contact: noc@example.com
+    Location: DC1-rack-12
+    SNMP packets input
+        12483921 - get-request packets
+    SNMP communities:
+        READ-ONLY        RO
+        REDACTED        RW
+  syslog.txt: |
+    May 14 03:08:11.121 UTC: %SNMP-3-AUTHFAIL: Authentication failure for SNMP req from REDACTED
+    May 14 03:08:14.402 UTC: %SNMP-3-AUTHFAIL: Authentication failure for SNMP req from REDACTED
+    May 14 03:08:18.811 UTC: %SNMP-3-AUTHFAIL: Authentication failure for SNMP req from REDACTED
+    May 14 03:09:02.044 UTC: %SNMP-5-COLDSTART: SNMP agent on host BR-EDGE-01 is undergoing a cold start
+    May 14 03:09:48.117 UTC: %SEC_LOGIN-5-LOGIN_SUCCESS: Login Success [user: REDACTED] [Source: REDACTED] [localport: 22] at 03:09:48 UTC Wed May 14 2026
+    May 14 03:11:22.880 UTC: %SYS-5-CONFIG_I: Configured from console by REDACTED on vty0 (REDACTED)
+    May 14 03:13:19.422 UTC: %LINK-3-UPDOWN: Interface Tunnel0, changed state to up
+    May 14 03:13:20.001 UTC: %LINEPROTO-5-UPDOWN: Line protocol on Interface Tunnel0, changed state to up
+    May 14 03:14:22.107 UTC: %SYS-5-CONFIG_I: Configured from console by REDACTED on vty0 (REDACTED)
+    May 14 03:15:01.560 UTC: %SYS-6-LOGGINGHOST_STARTSTOP: Logging to host 10.10.0.50 stopped - CLI initiated

@@ -568,6 +568,7 @@ class TestSetupScheduler:
             "webhook_prune",
             "audit_verify",
             "db_backup",
+            "workstation_reap",
         }
         assert started["n"] == 1
 

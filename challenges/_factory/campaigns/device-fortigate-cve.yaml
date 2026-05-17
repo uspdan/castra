@@ -1,0 +1,147 @@
+# Network Device Forensics — FortiGate CVE-2022-40684 style abuse.
+#
+# Attacker exploited a Forwarded-header authentication bypass on
+# FGT-PERIM-02's admin interface to add a new super_admin user,
+# then logged in normally and reconfigured the SSL-VPN portal.
+# Hunter has the HTTPS admin access log, the system event log,
+# a config diff between yesterday's backup and current state,
+# and the admin event log.
+
+slug: device-fortigate-cve
+title: "Device Forensics: FortiGate Auth Bypass"
+description: |
+  FGT-PERIM-02 (FortiGate 100F, FortiOS 7.2.4) shipped a config
+  change at 02:11 UTC last night that nobody on the team owns up
+  to. The HTTPS admin access log, system event log, and a config
+  diff are staged for you. Reconstruct exactly how the attacker
+  got in, who they became, and what they changed.
+category: Network Device Forensics
+team: blue
+difficulty: 4
+points: 500
+flag: "CTF{REDACTED}"
+tactic_id: DEVICE
+docker_port: 2222
+profile: default-strict
+
+techniques:
+  - id: T1190
+    description: |
+      Exploit Public-Facing Application — the auth bypass exploits
+      a request where a specific Forwarded `for=` value tricks the
+      backend into treating the call as a local trusted request.
+    question:
+      prompt: |
+        What value did the attacker put in the `Forwarded:` header's
+        `for=` parameter to trigger the auth bypass? (Exact value
+        as it appears after `for=` and before the next semicolon
+        or end of header.)
+      hint: |
+        admin-https.log — requests with `Forwarded: for=...;
+        by=...` immediately before the rogue admin appears. The
+        canonical CVE-2022-40684 trick uses a specific local-looking
+        identity here.
+      answer: "REDACTED"
+
+  - id: T1078.003
+    description: |
+      Valid Accounts — Local Accounts. The attacker created a new
+      super_admin local user via the bypassed API.
+    question:
+      prompt: |
+        What is the username of the rogue super_admin account
+        added during the bypass window? (Lowercase, as it appears
+        in the config diff.)
+      hint: |
+        config-diff.txt — the `+config system admin / + edit ...`
+        block. The legitimate roster (in approved-admins.txt) does
+        not contain it.
+      answer: REDACTED
+
+  - id: T1556
+    description: |
+      Modify Authentication Process — the attacker disabled
+      trusted-host enforcement on their new admin, allowing it to
+      log in from anywhere.
+    question:
+      prompt: |
+        Which FortiOS admin profile setting did the attacker leave
+        unrestricted on the rogue account so it would accept
+        logins from any source IP? (Exact CLI config keyword.)
+      hint: |
+        config-diff.txt for that account — look for the absence /
+        wildcard of `REDACTED`.
+      answer: REDACTED
+
+  - id: T1098
+    description: |
+      Account Manipulation — after the rogue admin existed, they
+      modified the SSL-VPN portal config to add a wildcard split-
+      tunnel route that exposes the internal management subnet.
+    question:
+      prompt: |
+        Which CIDR was added to the SSL-VPN portal's split-tunnel
+        routing-address list to expose the internal management
+        subnet? (Format x.x.x.x/yy.)
+      hint: |
+        config-diff.txt — within `config vpn ssl web portal / edit
+        full-access`, look for the new entry under
+        `set split-tunneling-routing-address` or a referenced
+        firewall address group.
+      answer: REDACTED
+
+  - id: T1078
+    description: |
+      Valid Accounts (post-create login) — the attacker, having
+      added the admin, immediately logged in via the GUI.
+    question:
+      prompt: |
+        What is the source IP from which the rogue admin
+        subsequently authenticated via the web GUI? (Format x.x.x.x.)
+      hint: |
+        system-event.log — `event=login` with `status=success`
+        and the new username from the previous question.
+      answer: REDACTED
+
+logs:
+  admin-https.log: |
+    2026-05-15T02:08:51Z src=REDACTED method=GET  uri=/api/v2/cmdb/system/admin status=401 ua="python-requests/2.31.0"
+    2026-05-15T02:08:53Z src=REDACTED method=POST uri=/api/v2/cmdb/system/admin status=401 ua="python-requests/2.31.0"
+    2026-05-15T02:09:01Z src=REDACTED method=POST uri=/api/v2/cmdb/system/admin status=200 ua="Node.js" headers="Forwarded: for=REDACTED;by=REDACTED"
+    2026-05-15T02:09:02Z src=REDACTED method=PUT  uri=/api/v2/cmdb/system/admin/REDACTED status=200 ua="Node.js" headers="Forwarded: for=REDACTED;by=REDACTED"
+    2026-05-15T02:11:14Z src=REDACTED method=POST uri=/logincheck status=302 ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+    2026-05-15T02:11:14Z src=REDACTED method=GET  uri=/ng/dashboard status=200 ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+    2026-05-15T02:14:22Z src=REDACTED method=POST uri=/api/v2/cmdb/vpn.ssl.web/portal/full-access status=200 ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+  system-event.log: |
+    2026-05-15T02:08:53Z logid=0100032002 type=event subtype=system level=warning logdesc="Admin login failed" action=login status=failure user="admin" srcip=REDACTED ui="https"
+    2026-05-15T02:09:01Z logid=0100032003 type=event subtype=system level=notice  logdesc="Object added" action=add user="api" cfgobj="system.admin REDACTED"
+    2026-05-15T02:11:14Z logid=0100032001 type=event subtype=system level=notice  logdesc="Admin login successful" action=login status=success user="REDACTED" srcip=REDACTED ui="https" reason="passwd"
+    2026-05-15T02:14:22Z logid=0100032004 type=event subtype=system level=notice  logdesc="Object attribute changed" action=edit user="REDACTED" cfgobj="vpn.ssl.web.portal full-access"
+  config-diff.txt: |
+    # Diff between FGT-PERIM-02-config-2026-05-14.conf (baseline) and
+    # FGT-PERIM-02-config-2026-05-15.conf (post-incident).
+    @@ config system admin
+    +    edit "REDACTED"
+    +        set accprofile "super_admin"
+    +        set vdom "root"
+    +        set password ENC SH2redacted
+    +    next
+     end
+    @@ config vpn ssl web portal
+         edit "full-access"
+             set tunnel-mode enable
+             set split-tunneling enable
+    +        set split-tunneling-routing-address "INTERNAL-MGMT"
+         next
+     end
+    @@ config firewall address
+    +    edit "INTERNAL-MGMT"
+    +        set subnet 10.250.0.0 255.255.255.0
+    +    next
+     end
+  approved-admins.txt: |
+    # Authorised FortiGate super_admins for FGT-PERIM-02.
+    # Last reviewed: 2026-04-15 by NOC.
+    admin           local         primary console login
+    noc-readonly    local         NMS scrape (read-only profile)
+    sso-fg-mgmt     fortiAuthn    SSO break-glass via FortiAuthenticator

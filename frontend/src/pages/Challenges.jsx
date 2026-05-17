@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { Search, X, Play, Lock, Unlock } from 'lucide-react'
 import useChallengeStore from '../stores/challengeStore'
 import useInstanceStore from '../stores/instanceStore'
@@ -10,7 +10,7 @@ import { toast } from '../stores/toastStore'
 import client from '../api/client'
 
 export default function Challenges() {
-  const { challenges, selectedChallenge, filters, loading, fetchChallenges, fetchChallenge, setFilter, clearSelected } = useChallengeStore()
+  const { challenges, selectedChallenge, filters, loading, fetchChallenges, fetchChallenge, setFilter, clearFilters, clearSelected } = useChallengeStore()
   const { launchInstance } = useInstanceStore()
   const [searchInput, setSearchInput] = useState('')
   const [instance, setInstance] = useState(null)
@@ -47,6 +47,12 @@ export default function Challenges() {
   }
 
   const teams = ['', 'red', 'blue']
+  const difficulties = ['', '1', '2', '3', '4', '5']
+  const statuses = [
+    { value: 'all', label: 'ALL' },
+    { value: 'unsolved', label: 'UNSOLVED' },
+    { value: 'solved', label: 'SOLVED' },
+  ]
   const sortOptions = [
     { value: 'newest', label: 'Newest' },
     { value: 'points', label: 'Points' },
@@ -55,19 +61,55 @@ export default function Challenges() {
   ]
   const selStyle = { background: 'var(--bg-primary)', border: '1px solid var(--border)', color: 'var(--text-primary)', outline: 'none' }
 
+  // Categories surface from the currently-loaded results — the
+  // catalogue grew from "Web Exploitation + Threat Hunting" to a
+  // wider mix, and a hardcoded list would drift.
+  const categories = useMemo(() => {
+    const seen = new Set()
+    for (const c of challenges) if (c.category) seen.add(c.category)
+    return ['', ...Array.from(seen).sort()]
+  }, [challenges])
+
+  // Status filter is client-side: the backend has no "solved"
+  // predicate and adding one is a bigger change. user_solved is
+  // already in the list-item payload.
+  const visibleChallenges = useMemo(() => {
+    if (filters.status === 'solved') return challenges.filter((c) => c.user_solved)
+    if (filters.status === 'unsolved') return challenges.filter((c) => !c.user_solved)
+    return challenges
+  }, [challenges, filters.status])
+
+  const hasActiveFilter =
+    filters.team || filters.category || filters.difficulty || filters.search ||
+    filters.mitre || filters.status !== 'all' || filters.sort !== 'newest'
+
   return (
     <div className="flex gap-4">
       <div className={`flex-1 ${selectedChallenge ? 'max-w-[calc(100%-380px)]' : ''}`}>
-        <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="flex flex-wrap items-center gap-3 mb-3">
           <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
             {teams.map((t) => (
               <button key={t} onClick={() => setFilter('team', t)}
+                data-testid={`filter-team-${t || 'all'}`}
                 className="px-3 py-1.5 text-xs font-mono font-bold transition-colors"
                 style={{
                   background: filters.team === t ? (t === 'red' ? 'rgba(255,62,108,0.2)' : t === 'blue' ? 'rgba(0,200,255,0.2)' : 'rgba(255,255,255,0.1)') : 'var(--bg-surface)',
                   color: filters.team === t ? (t === 'red' ? 'var(--accent-red)' : t === 'blue' ? 'var(--accent-cyan)' : 'var(--text-primary)') : 'var(--text-muted)',
                 }}>
                 {t === '' ? 'ALL' : t.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+            {statuses.map((s) => (
+              <button key={s.value} onClick={() => setFilter('status', s.value)}
+                data-testid={`filter-status-${s.value}`}
+                className="px-3 py-1.5 text-xs font-mono font-bold transition-colors"
+                style={{
+                  background: filters.status === s.value ? 'rgba(120,255,180,0.18)' : 'var(--bg-surface)',
+                  color: filters.status === s.value ? 'var(--accent-green)' : 'var(--text-muted)',
+                }}>
+                {s.label}
               </button>
             ))}
           </div>
@@ -81,13 +123,63 @@ export default function Challenges() {
           </select>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          {categories.length > 1 && (
+            <div className="flex flex-wrap gap-1" data-testid="filter-categories">
+              {categories.map((cat) => (
+                <button key={cat || 'all-cats'} onClick={() => setFilter('category', cat)}
+                  className="px-2 py-1 text-[10px] font-mono rounded transition-colors"
+                  style={{
+                    background: filters.category === cat ? 'rgba(0,200,255,0.15)' : 'var(--bg-surface)',
+                    color: filters.category === cat ? 'var(--accent-cyan)' : 'var(--text-muted)',
+                    border: '1px solid var(--border)',
+                  }}>
+                  {cat === '' ? 'all categories' : cat}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center gap-1 ml-auto" data-testid="filter-difficulties">
+            <span className="text-[10px] font-mono mr-1" style={{ color: 'var(--text-muted)' }}>DIFF</span>
+            {difficulties.map((d) => (
+              <button key={d || 'all-diff'} onClick={() => setFilter('difficulty', d)}
+                className="px-2 py-1 text-[10px] font-mono rounded transition-colors"
+                style={{
+                  background: filters.difficulty === d ? 'rgba(255,200,80,0.15)' : 'var(--bg-surface)',
+                  color: filters.difficulty === d ? 'var(--accent-yellow)' : 'var(--text-muted)',
+                  border: '1px solid var(--border)',
+                }}>
+                {d === '' ? 'any' : d}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between mb-3 text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
+          <span data-testid="results-count">
+            {loading ? 'loading…' : `${visibleChallenges.length} of ${challenges.length} shown`}
+          </span>
+          {hasActiveFilter && (
+            <button onClick={() => { clearFilters(); setSearchInput('') }}
+              data-testid="clear-filters"
+              className="flex items-center gap-1 px-2 py-1 rounded"
+              style={{ color: 'var(--accent-red)' }}>
+              <X size={12} /> clear filters
+            </button>
+          )}
+        </div>
+
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {[1,2,3,4,5,6].map((i) => <div key={i} className="h-40 rounded-lg animate-pulse" style={{ background: 'var(--bg-surface)' }} />)}
           </div>
+        ) : visibleChallenges.length === 0 ? (
+          <div className="rounded-lg p-8 text-center text-sm" style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px dashed var(--border)' }}>
+            no challenges match the current filters
+          </div>
         ) : (
           <div className={`grid gap-4 ${selectedChallenge ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'}`}>
-            {challenges.map((c) => <ChallengeCard key={c.id || c.slug} challenge={c} onClick={() => fetchChallenge(c.slug)} />)}
+            {visibleChallenges.map((c) => <ChallengeCard key={c.id || c.slug} challenge={c} onClick={() => fetchChallenge(c.slug)} />)}
           </div>
         )}
       </div>

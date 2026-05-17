@@ -1,0 +1,59 @@
+# docker-compose override that adds the analyst workstation to a
+# running seige-range deployment. Compose into the main stack with:
+#
+#     docker compose -f docker-compose.yml \
+#                    -f infra/workstation/docker-compose.workstation.yml \
+#                    up -d workstation
+#
+# Connection options after it's up:
+#
+#   * SSH:       ssh -p 2222 analyst@<host>   (password from env)
+#   * Browser:   https://<host>/workstation/  (behind the platform's
+#                                              existing nginx auth)
+#
+# The workstation joins the same `siege-range` network as every
+# challenge container, so DNS resolves each by name and the
+# pre-shipped ~/.ssh/config aliases ("ssh dc01") work out of the box.
+
+services:
+  workstation:
+    build:
+      context: ../..
+      dockerfile: infra/workstation/Dockerfile
+    image: siege/workstation:latest
+    container_name: seige-workstation
+    hostname: workstation
+    restart: unless-stopped
+    environment:
+      SIEGE_WORKSTATION_PASSWORD: "${SIEGE_WORKSTATION_PASSWORD:?set in .env}"
+      SIEGE_WORKSTATION_HOSTNAME: "workstation"
+    networks:
+      - siege-range
+    ports:
+      # External SSH for "I'm not in a browser" sessions.
+      - "2222:2222"
+      # ttyd web-shell — usually NOT published directly; nginx
+      # reverse-proxies to it at /workstation/. Expose only if
+      # you're running standalone.
+      - "127.0.0.1:7681:7681"
+    volumes:
+      # Persistent home so notes, history, scripts, and the
+      # ~/.seige/ state survive container restarts / upgrades.
+      # For per-player isolation the platform's launch path
+      # (POST /api/v1/workstation/launch) creates per-user named
+      # volumes; this compose entry covers the shared/standalone
+      # case.
+      - workstation-home:/home/analyst
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "ttyd"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  workstation-home:
+    name: seige-workstation-home-shared
+
+networks:
+  siege-range:
+    external: true

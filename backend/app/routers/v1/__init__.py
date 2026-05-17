@@ -33,6 +33,7 @@ from . import (
     scoreboard,
     submit,
     webhooks,
+    workstation,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["v1"])
@@ -47,5 +48,6 @@ router.include_router(submit.router)
 router.include_router(hints.router)
 router.include_router(progress.router)
 router.include_router(webhooks.router)
+router.include_router(workstation.router)
 
 __all__ = ["router"]

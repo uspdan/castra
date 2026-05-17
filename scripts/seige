@@ -1,0 +1,508 @@
+#!/usr/bin/env python3
+"""seige — offline player runner for the seige-range live-shell challenges.
+
+Lets a player run any live-shell challenge directly against Docker
+on their own laptop, without needing VPN access to the central
+seige-range deployment. State (started containers, answers,
+solves, points) is kept in ``~/.seige/state.json``.
+
+Commands:
+    seige list                          # all known challenges + status
+    seige info <slug>                   # show one challenge's metadata
+    seige start <slug> [--rebuild]      # build (if needed) + run the container
+    seige connect <slug>                # print SSH command (or exec a shell)
+    seige questions <slug>              # list open questions + hints
+    seige answer <slug> <qid> <value>   # submit one answer (single-shot)
+    seige remember <slug> <qid> <val>   # remember locally; persists in container
+    seige reveal <slug>                 # ask validator for the flag
+    seige stop <slug>                   # stop container
+    seige reset <slug>                  # wipe local state for a slug
+    seige score                         # summary: solved / points / time
+    seige sync --upstream URL [-u user] # push solved flags back to a central
+                                        #   seige-range; idempotent per-slug
+
+Requires Docker on PATH. Single file, stdlib only.
+
+Auth for `sync`: prompts for username + password and exchanges them for
+a JWT access token via `POST <URL>/api/v1/auth/login`. The token lives
+only in memory for the duration of the sync — no on-disk credential.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import getpass
+import json
+import os
+import shutil
+import subprocess
+import sys
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Paths / state
+# ---------------------------------------------------------------------------
+
+ROOT = Path(__file__).resolve().parents[1]
+CHALLENGES_DIR = ROOT / "challenges"
+STATE_DIR = Path(os.environ.get("SEIGE_STATE", str(Path.home() / ".seige")))
+STATE_FILE = STATE_DIR / "state.json"
+
+
+def _ensure_state_dir() -> None:
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _load_state() -> dict:
+    if not STATE_FILE.exists():
+        return {}
+    try:
+        with STATE_FILE.open() as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        return {}
+
+
+def _save_state(state: dict) -> None:
+    _ensure_state_dir()
+    tmp = STATE_FILE.with_suffix(".tmp")
+    with tmp.open("w") as f:
+        json.dump(state, f, indent=2, sort_keys=True)
+    tmp.replace(STATE_FILE)
+
+
+# ---------------------------------------------------------------------------
+# Challenge catalogue
+# ---------------------------------------------------------------------------
+
+def _is_runnable(manifest: dict) -> bool:
+    """Heuristic: skip factory-only and metadata-only entries.
+
+    A challenge is offline-runnable if its directory has a Dockerfile.
+    """
+    slug = manifest.get("slug")
+    if not slug:
+        return False
+    return (CHALLENGES_DIR / slug / "Dockerfile").exists()
+
+
+def _load_manifests() -> dict[str, dict]:
+    out: dict[str, dict] = {}
+    if not CHALLENGES_DIR.exists():
+        return out
+    for child in sorted(CHALLENGES_DIR.iterdir()):
+        if not child.is_dir() or child.name.startswith("_"):
+            continue
+        manifest_path = child / "challenge.json"
+        if not manifest_path.exists():
+            continue
+        try:
+            with manifest_path.open() as f:
+                m = json.load(f)
+        except json.JSONDecodeError:
+            continue
+        if _is_runnable(m):
+            out[m["slug"]] = m
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Docker helpers
+# ---------------------------------------------------------------------------
+
+def _docker(*args: str, capture: bool = True, check: bool = True) -> subprocess.CompletedProcess:
+    if not shutil.which("docker"):
+        sys.exit("error: docker not on PATH. Install Docker Desktop / Docker Engine first.")
+    return subprocess.run(
+        ["docker", *args],
+        capture_output=capture,
+        text=True,
+        check=check,
+    )
+
+
+def _image_exists(image: str) -> bool:
+    res = _docker("image", "inspect", image, check=False)
+    return res.returncode == 0
+
+
+def _container_running(name: str) -> bool:
+    res = _docker("ps", "--filter", f"name=^{name}$", "--format", "{{.Names}}", check=False)
+    return bool(res.stdout.strip())
+
+
+def _host_port_for(container_name: str, container_port: int = 2222) -> str | None:
+    """Resolve the host-side port mapped to container_port (2222 by default)."""
+    res = _docker("port", container_name, str(container_port), check=False)
+    if res.returncode != 0 or not res.stdout.strip():
+        return None
+    # Output like "127.0.0.1:54392"
+    line = res.stdout.strip().splitlines()[0]
+    return line.rsplit(":", 1)[-1]
+
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
+def cmd_list(args, manifests, state):
+    rows = []
+    for slug, m in manifests.items():
+        cstate = state.get(slug, {})
+        running = _container_running(f"seige-{slug}")
+        if cstate.get("solved_at"):
+            status = "solved"
+        elif running:
+            status = "running"
+        elif cstate:
+            status = "started-then-stopped"
+        else:
+            status = "not-started"
+        rows.append((m["team"], m["difficulty"], m["points"], slug, status))
+    rows.sort(key=lambda r: (r[0], r[1], r[3]))
+    print(f"{'team':5s} {'diff':4s} {'pts':>5s}  {'slug':38s} status")
+    print("-" * 78)
+    for team, diff, pts, slug, status in rows:
+        print(f"{team:5s} d{diff}    {pts:>5d}  {slug:38s} {status}")
+
+
+def cmd_info(args, manifests, state):
+    m = manifests.get(args.slug)
+    if not m:
+        sys.exit(f"error: unknown challenge {args.slug!r}")
+    print(f"title       : {m['title']}")
+    print(f"slug        : {m['slug']}")
+    print(f"team        : {m['team']}")
+    print(f"difficulty  : {m['difficulty']}")
+    print(f"points      : {m['points']}")
+    print(f"category    : {m.get('category')}")
+    print(f"description : {m['description']}")
+    if m.get("skills"):
+        print(f"skills      : {', '.join(m['skills'])}")
+    if m.get("mitre_techniques"):
+        print(f"mitre       : {', '.join(m['mitre_techniques'])}")
+    cstate = state.get(args.slug, {})
+    if cstate.get("solved_at"):
+        print(f"solved at   : {cstate['solved_at']}")
+    if cstate.get("host_port"):
+        print(f"host port   : 127.0.0.1:{cstate['host_port']} (ssh as hunter / hunter)")
+
+
+def cmd_start(args, manifests, state):
+    m = manifests.get(args.slug)
+    if not m:
+        sys.exit(f"error: unknown challenge {args.slug!r}")
+    image = m["docker_image"]
+    container = f"seige-{args.slug}"
+
+    if _container_running(container):
+        port = _host_port_for(container)
+        print(f"[seige] already running on 127.0.0.1:{port}")
+        return
+
+    if args.rebuild or not _image_exists(image):
+        print(f"[seige] building image {image}...")
+        _docker("build", "-t", image, str(CHALLENGES_DIR / args.slug), capture=False)
+
+    print(f"[seige] starting container {container} from {image}...")
+    _docker(
+        "run", "-d", "--rm",
+        "--name", container,
+        "-p", "127.0.0.1:0:2222",
+        image,
+    )
+    port = _host_port_for(container)
+    state.setdefault(args.slug, {}).update({
+        "container": container,
+        "host_port": port,
+        "started_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+    })
+    _save_state(state)
+    print(f"[seige] up — ssh -p {port} hunter@127.0.0.1   (password: hunter)")
+    print(f"[seige] or: seige connect {args.slug}")
+
+
+def cmd_connect(args, manifests, state):
+    container = f"seige-{args.slug}"
+    if not _container_running(container):
+        sys.exit(f"error: {container} is not running. Try `seige start {args.slug}`.")
+    if args.exec:
+        # Drop straight into hunter's bash via docker exec.
+        os.execvp("docker", [
+            "docker", "exec", "-it", container,
+            "su", "-", "hunter",
+        ])
+    # Default: print the ssh command and let the player run it themselves
+    # (interactive ssh works better as a separate process than execvp'd
+    # from here on some platforms).
+    port = _host_port_for(container)
+    print(f"ssh -p {port} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null hunter@127.0.0.1")
+    print("password: hunter")
+    print()
+    print("(or `seige connect --exec <slug>` to drop in via docker exec instead)")
+
+
+def _exec_answer(container: str, *args: str) -> tuple[int, str]:
+    res = _docker("exec", container, "/usr/local/bin/answer", *args, check=False)
+    return res.returncode, (res.stdout or "") + (res.stderr or "")
+
+
+def cmd_questions(args, manifests, state):
+    container = f"seige-{args.slug}"
+    if not _container_running(container):
+        sys.exit(f"error: {container} is not running.")
+    code, out = _exec_answer(container)
+    sys.stdout.write(out)
+    sys.exit(code)
+
+
+def cmd_answer(args, manifests, state):
+    container = f"seige-{args.slug}"
+    if not _container_running(container):
+        sys.exit(f"error: {container} is not running.")
+    code, out = _exec_answer(container, str(args.qid), args.value)
+    sys.stdout.write(out)
+    if code == 0:
+        cstate = state.setdefault(args.slug, {})
+        cstate.setdefault("answers", {})[str(args.qid)] = args.value
+        _save_state(state)
+
+
+def cmd_remember(args, manifests, state):
+    container = f"seige-{args.slug}"
+    if not _container_running(container):
+        sys.exit(f"error: {container} is not running.")
+    code, out = _exec_answer(container, "remember", str(args.qid), args.value)
+    sys.stdout.write(out)
+    if code == 0:
+        cstate = state.setdefault(args.slug, {})
+        cstate.setdefault("answers", {})[str(args.qid)] = args.value
+        _save_state(state)
+
+
+def cmd_reveal(args, manifests, state):
+    container = f"seige-{args.slug}"
+    if not _container_running(container):
+        sys.exit(f"error: {container} is not running.")
+    code, out = _exec_answer(container, "reveal")
+    sys.stdout.write(out)
+    if code == 0 and "CTF{REDACTED})
+        cstate["solved_at"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+        cstate["flag"] = m["flag"]
+        _save_state(state)
+
+
+def cmd_stop(args, manifests, state):
+    container = f"seige-{args.slug}"
+    if not _container_running(container):
+        print(f"[seige] {container} not running.")
+        return
+    _docker("stop", container, capture=False)
+
+
+def cmd_reset(args, manifests, state):
+    if args.slug in state:
+        del state[args.slug]
+        _save_state(state)
+        print(f"[seige] cleared local state for {args.slug}")
+    else:
+        print(f"[seige] no state for {args.slug}")
+
+
+def cmd_score(args, manifests, state):
+    solved = []
+    total = 0
+    for slug, cstate in state.items():
+        if not cstate.get("solved_at"):
+            continue
+        m = manifests.get(slug)
+        if not m:
+            continue
+        solved.append((slug, m["points"], cstate["solved_at"], m["team"]))
+        total += m["points"]
+    solved.sort(key=lambda r: r[2])
+    print(f"solved: {len(solved)}    total points: {total}")
+    if solved:
+        print()
+        print(f"{'team':5s} {'pts':>5s}  {'solved at':24s}  slug")
+        print("-" * 78)
+        for slug, pts, when, team in solved:
+            print(f"{team:5s} {pts:>5d}  {when:24s}  {slug}")
+
+
+def _http_json(url: str, *, method: str = "GET", body: dict | None = None,
+                token: str | None = None, timeout: int = 15) -> tuple[int, dict]:
+    """Tiny urllib JSON client. Returns (status, parsed_body)."""
+    data = json.dumps(body).encode() if body is not None else None
+    headers = {"Accept": "application/json"}
+    if body is not None:
+        headers["Content-Type"] = "application/json"
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    req = urllib.request.Request(url, data=data, method=method, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            payload = resp.read().decode() or "{}"
+            return resp.status, json.loads(payload)
+    except urllib.error.HTTPError as exc:
+        try:
+            payload = json.loads(exc.read().decode() or "{}")
+        except Exception:
+            payload = {"detail": str(exc)}
+        return exc.code, payload
+    except urllib.error.URLError as exc:
+        return 0, {"detail": f"network error: {exc.reason}"}
+
+
+def cmd_sync(args, manifests, state):
+    """Push every locally-solved flag back to a central seige-range."""
+    base = args.upstream.rstrip("/")
+    user = args.user or input("upstream username: ").strip()
+    pw = os.environ.get("SEIGE_PASSWORD") or getpass.getpass("upstream password: ")
+
+    code, body = _http_json(
+        f"{base}/api/v1/auth/login",
+        method="POST",
+        body={"username": user, "password": pw},
+    )
+    if code != 200:
+        sys.exit(f"login failed ({code}): {body.get('detail') or body}")
+    token = body.get("access_token") or body.get("token")
+    if not token:
+        sys.exit("login response carried no access_token")
+    print(f"[sync] authenticated as {user}")
+
+    candidates = [
+        (slug, cstate) for slug, cstate in state.items()
+        if cstate.get("solved_at") and cstate.get("flag") and not cstate.get("synced_at")
+    ]
+    if not candidates:
+        print("[sync] no unsynced solves.")
+        return
+
+    print(f"[sync] {len(candidates)} solve(s) to push.")
+    pushed = skipped = failed = 0
+    for slug, cstate in candidates:
+        code, body = _http_json(
+            f"{base}/api/v1/challenges/{slug}/submit",
+            method="POST",
+            body={"flag": cstate["flag"]},
+            token=token,
+        )
+        # The platform's submission endpoint treats already-solved as 409
+        # — idempotent from our point of view.
+        if code in (200, 201):
+            cstate["synced_at"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+            cstate["upstream"] = base
+            pushed += 1
+            print(f"  + {slug}: ok")
+        elif code == 409:
+            cstate["synced_at"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+            cstate["upstream"] = base
+            skipped += 1
+            print(f"  = {slug}: already credited upstream (409)")
+        else:
+            failed += 1
+            print(f"  ! {slug}: failed ({code}) {body.get('detail') or body}")
+    _save_state(state)
+    print(f"[sync] pushed {pushed}, skipped {skipped}, failed {failed}.")
+    if failed:
+        sys.exit(1)
+
+
+def cmd_pull(args, manifests, state):
+    """Pre-build every runnable challenge image. Useful before going offline."""
+    failures = []
+    for slug, m in manifests.items():
+        image = m["docker_image"]
+        if _image_exists(image) and not args.rebuild:
+            print(f"[seige] {image} cached")
+            continue
+        print(f"[seige] building {image}...")
+        try:
+            _docker("build", "-t", image, str(CHALLENGES_DIR / slug), capture=False)
+        except subprocess.CalledProcessError:
+            failures.append(slug)
+    if failures:
+        print(f"[seige] {len(failures)} builds failed: {', '.join(failures)}")
+        sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
+# Argparse wiring
+# ---------------------------------------------------------------------------
+
+def _build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="seige", description=__doc__.splitlines()[0])
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    sub.add_parser("list").set_defaults(func=cmd_list)
+    sub.add_parser("score").set_defaults(func=cmd_score)
+
+    pi = sub.add_parser("info")
+    pi.add_argument("slug")
+    pi.set_defaults(func=cmd_info)
+
+    ps = sub.add_parser("start")
+    ps.add_argument("slug")
+    ps.add_argument("--rebuild", action="store_true", help="force image rebuild")
+    ps.set_defaults(func=cmd_start)
+
+    pc = sub.add_parser("connect")
+    pc.add_argument("slug")
+    pc.add_argument("--exec", action="store_true", help="docker exec instead of printing ssh cmd")
+    pc.set_defaults(func=cmd_connect)
+
+    pq = sub.add_parser("questions")
+    pq.add_argument("slug")
+    pq.set_defaults(func=cmd_questions)
+
+    pa = sub.add_parser("answer")
+    pa.add_argument("slug")
+    pa.add_argument("qid")
+    pa.add_argument("value")
+    pa.set_defaults(func=cmd_answer)
+
+    pr = sub.add_parser("remember")
+    pr.add_argument("slug")
+    pr.add_argument("qid")
+    pr.add_argument("value")
+    pr.set_defaults(func=cmd_remember)
+
+    prv = sub.add_parser("reveal")
+    prv.add_argument("slug")
+    prv.set_defaults(func=cmd_reveal)
+
+    pstop = sub.add_parser("stop")
+    pstop.add_argument("slug")
+    pstop.set_defaults(func=cmd_stop)
+
+    prst = sub.add_parser("reset")
+    prst.add_argument("slug")
+    prst.set_defaults(func=cmd_reset)
+
+    pull = sub.add_parser("pull", help="pre-build every challenge image")
+    pull.add_argument("--rebuild", action="store_true")
+    pull.set_defaults(func=cmd_pull)
+
+    psync = sub.add_parser("sync", help="push solved flags upstream to a central seige-range")
+    psync.add_argument("--upstream", required=True, help="https://your-seige-range.example")
+    psync.add_argument("-u", "--user", help="username (else prompted)")
+    psync.set_defaults(func=cmd_sync)
+
+    return p
+
+
+def main() -> None:
+    parser = _build_parser()
+    args = parser.parse_args()
+    manifests = _load_manifests()
+    state = _load_state()
+    args.func(args, manifests, state)
+
+
+if __name__ == "__main__":
+    main()

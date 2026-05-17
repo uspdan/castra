@@ -1,0 +1,20 @@
+{
+  "title": "Linux Forensics: RHEL Compromise — Live Bash",
+  "slug": "linux-syslog-live",
+  "description": "lnx-web-02 is calling out to TCP/4444 from inside the perimeter. SSH brute force success → REDACTED privesc → cron-based persistence → reverse shell. Walk /var/log/secure, /etc/cron.d, ps, ss, find -perm -4000.",
+  "category": "Network Device Forensics",
+  "team": "blue",
+  "difficulty": 3,
+  "points": 550,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {"text": "`connect lnx-web-02`. Start with `who` and `last` — there's a session from a non-corp IP that shouldn't be there.", "cost": 25},
+    {"text": "`cat /var/log/secure | include Accepted` ties the foothold to a username and source IP. `cat /var/log/secure | include sudo` shows the next move.", "cost": 50},
+    {"text": "`ls /etc/cron.d` — anything outside the stock RHEL set is suspect. `cat` the body and the referenced script.", "cost": 50}
+  ],
+  "skills": ["Linux", "RHEL", "Live Forensics", "SSH Brute Force", "SUID privesc", "Cron persistence"],
+  "mitre_techniques": ["T1110", "T1078", "T1068", "T1053.003", "T1071.001"],
+  "docker_image": "siege/linux-syslog-live:latest",
+  "docker_port": 2222,
+  "docker_config": {"profile": "default-strict"}
+}

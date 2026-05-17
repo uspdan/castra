@@ -1,0 +1,22 @@
+#!/bin/bash
+set -eu
+target="${1:-}"
+if [ -z "$target" ]; then
+    cat <<'EOF'
+usage: connect <hostname>
+
+Available devices on the management network:
+  ns-perim-01   Citrix ADC / NetScaler MPX-15020, NS 13.1 — perimeter gateway
+EOF
+    exit 2
+fi
+case "${target,,}" in
+    ns-perim-01|ns|netscaler|citrix)
+        exec python3 /opt/device-shell/shell.py /opt/device-shell/nscli_device.py
+        ;;
+    *)
+        echo "% Unknown host: $target" >&2
+        echo "Try: connect ns-perim-01" >&2
+        exit 1
+        ;;
+esac

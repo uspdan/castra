@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eu
+target="${1:-}"
+if [ -z "$target" ]; then
+    cat <<'EOF'
+usage: connect <hostname>
+Available:
+  dc01           Windows Server 2022 AD DS — corp.local Domain Controller
+EOF
+    exit 2
+fi
+case "${target,,}" in
+    dc01|dc|domaincontroller)
+        exec python3 /opt/device-shell/shell.py /opt/device-shell/windc_device.py ;;
+    *) echo "% Unknown host: $target" >&2; exit 1 ;;
+esac

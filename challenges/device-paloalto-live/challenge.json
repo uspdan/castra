@@ -1,0 +1,29 @@
+{
+  "title": "Device Forensics: Palo Alto — Live CLI",
+  "slug": "device-paloalto-live",
+  "description": "FW-DC-01 is up. Connect to the device, run real PAN-OS commands — `show config running`, `show log globalprotect`, `show log traffic` — and reconstruct the VPN-to-RDP pivot.",
+  "category": "Network Device Forensics",
+  "team": "blue",
+  "difficulty": 3,
+  "points": 500,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "`connect fw-dc-01`. You'll land at operational mode (`>`). Start with `show config running | begin authentication-profile` and compare each entry.",
+      "cost": 25
+    },
+    {
+      "text": "`show log globalprotect | include auth-success` — there's exactly one success, preceded by a flood of failures from the same source IP.",
+      "cost": 50
+    },
+    {
+      "text": "Cross-reference `show running security-policy` against the `rule=` field in the RDP traffic log entries.",
+      "cost": 50
+    }
+  ],
+  "skills": ["PAN-OS", "Live Forensics", "Network Device", "GlobalProtect", "Incident Response"],
+  "mitre_techniques": ["T1556.006", "T1110", "T1078", "T1021.001", "T1190"],
+  "docker_image": "siege/device-paloalto-live:latest",
+  "docker_port": 2222,
+  "docker_config": {"profile": "default-strict"}
+}

@@ -1,0 +1,20 @@
+{
+  "title": "Device Forensics: Cisco ASA / AnyConnect — Live CLI",
+  "slug": "device-cisco-asa-live",
+  "description": "ASA-VPN-01 let an attacker brute-force a contractor VPN account that shouldn't have been reachable without MFA. Connect to the device, walk the tunnel-group config + VPN session DB + logging.",
+  "category": "Network Device Forensics",
+  "team": "blue",
+  "difficulty": 3,
+  "points": 500,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {"text": "`connect asa-vpn-01`. `enable` with `n0c-l3v3l-15`. Start with `show vpn-sessiondb anyconnect`.", "cost": 25},
+    {"text": "ASA group-policies carry `anyconnect mfa enable|disable`. Find the one with `disable` and follow it back to a tunnel-group.", "cost": 50},
+    {"text": "`show logging | include REDACTED` shows brute force + connection-built events together.", "cost": 50}
+  ],
+  "skills": ["Cisco ASA", "AnyConnect", "Live Forensics", "VPN Forensics"],
+  "mitre_techniques": ["T1556.006", "T1078", "T1110", "T1021.001"],
+  "docker_image": "siege/device-cisco-asa-live:latest",
+  "docker_port": 2222,
+  "docker_config": {"profile": "default-strict"}
+}

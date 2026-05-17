@@ -1,0 +1,24 @@
+{
+  "title": "Path Traversal",
+  "slug": "path-traversal",
+  "description": "DocsViewer strips '../' once before joining the path. Nested traversal sequences collapse back to '../' after one pass. Escape the docs root and read /flag.txt.",
+  "category": "Web Exploitation",
+  "team": "red",
+  "difficulty": 2,
+  "points": 300,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "The filter does a single replace('../', ''). Single-pass. No loop until stable.",
+      "cost": 25
+    },
+    {
+      "text": "....// after one replace pass becomes ../ — stack three of them to escape the docs root three levels up to /.",
+      "cost": 75
+    }
+  ],
+  "skills": ["Path Traversal", "File Disclosure", "Filter Bypass"],
+  "mitre_techniques": ["T1190", "T1005"],
+  "docker_image": "siege/path-traversal:latest",
+  "docker_port": 5000
+}

@@ -1,0 +1,5 @@
+The -EncodedCommand argument is standard PowerShell base64
+(UTF-16LE) — but the smaller payload above was deliberately
+encoded as UTF-8 base64 so it round-trips cleanly through
+`printf '%s' '<blob>' | base64 -d` on a Linux box. Decode it
+that way to read the URL.

@@ -104,6 +104,21 @@ async def lifespan(app: FastAPI):
     except Exception as exc:  # noqa: BLE001
         logger.warning("Docker client warmup failed: %s", exc)
 
+    # Reconciliation sweep: any ``ChallengeInstance`` whose
+    # container vanished while we were down (typical after an
+    # orchestrator recreate) gets marked ``expired`` so future
+    # launches against the same challenge aren't blocked by stale
+    # rows.
+    try:
+        from app.database import async_session as _async_session
+        from app.services.orchestration.cleanup import sweep_orphaned_instances
+        async with _async_session() as _db:
+            swept = await sweep_orphaned_instances(_db)
+            if swept:
+                logger.info("Startup orphan sweep", count=swept)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("startup_orphan_sweep_failed", error=str(exc))
+
     # Start scheduler
     from app.services.scheduler import setup_scheduler
     setup_scheduler()
@@ -136,7 +151,7 @@ async def lifespan(app: FastAPI):
     logger.info("Shutdown complete.")
 
 
-app = FastAPI(title="Siege Range API", version="2.4.1", lifespan=lifespan)
+app = FastAPI(title="Siege Range API", version="2.5.0", lifespan=lifespan)
 
 # Sprint 11 Phase C — opt-in OpenTelemetry tracing. No-op when
 # OTEL_EXPORTER_OTLP_ENDPOINT is unset. Failure to configure

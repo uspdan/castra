@@ -1,0 +1,115 @@
+# ATT&CK TA0009 — Collection mini-campaign.
+#
+# A single intruder on FILE-01 (Windows file server) spends an
+# afternoon harvesting. Hunter has Sysmon + a thin process-tree
+# CSV + an osquery snapshot table dump for clipboard/keylog hooks.
+
+slug: tier-2-collection
+title: "Tier 2: Collection"
+description: |
+  Once inside FILE-01, the intruder spent three hours quietly
+  hoovering data before exfil. Five distinct collection techniques
+  fired between 14:00 and 17:00. Identify them from the Sysmon
+  stream, the small process-tree CSV, and the osquery hook table.
+category: Threat Hunting
+team: blue
+difficulty: 3
+points: 400
+flag: "CTF{REDACTED}"
+tactic_id: TA0009
+docker_port: 2222
+profile: default-strict
+
+techniques:
+  - id: T1005
+    description: |
+      Data from Local System — recursive `findstr` for files
+      containing strings like "password" / "ssn" across the share
+      root, dumping matches to a single text artefact.
+    question:
+      prompt: |
+        What is the exact filename the attacker wrote the
+        recursive-findstr output to? (Filename only, no path.)
+      hint: |
+        Sysmon EventID 11 (FileCreate) for a `.txt` file written
+        by `findstr.exe` or by its parent `REDACTED` immediately
+        after a findstr command.
+      answer: REDACTED
+
+  - id: T1056.001
+    description: |
+      Input Capture — Keylogging. The intruder loaded a user-mode
+      keyboard hook via SetWindowsHookExW from a tooling DLL. An
+      osquery snapshot captures the active WH_KEYBOARD_LL hook.
+    question:
+      prompt: |
+        Which DLL is registered as the source of the
+        WH_KEYBOARD_LL hook on FILE-01? (Filename only.)
+      hint: |
+        osquery `windows_hooks` table dump — `hook_type` column
+        equals 13 (WH_KEYBOARD_LL).
+      answer: REDACTED
+
+  - id: T1119
+    description: |
+      Automated Collection — a small PowerShell loop walks
+      `\\FILE-01\Finance` for any file matching a regex and
+      copies hits into a single staging directory under
+      `C:\ProgramData\Intel\Logs\` before compression.
+    question:
+      prompt: |
+        What file extension regex is the automated-collection
+        loop filtering on? (As it appears in the PowerShell
+        commandline — e.g. `\.(xls|csv)$`.)
+      hint: |
+        Sysmon EventID 1, Image=powershell.exe, parent=REDACTED,
+        commandline contains `-match` and a regex literal.
+      answer: REDACTED
+
+  - id: T1115
+    description: |
+      Clipboard Data — a second user-mode hook (WH_GETMESSAGE)
+      tied to a different DLL polls the clipboard every 5s and
+      appends ASCII content to a buffer file.
+    question:
+      prompt: |
+        Which DLL backs the clipboard-polling hook? (Filename
+        only.)
+      hint: |
+        osquery `windows_hooks` again — different `hook_type`
+        value (3 = WH_GETMESSAGE).
+      answer: REDACTED
+
+  - id: T1074.001
+    description: |
+      Local Data Staging — the intruder rolls everything (the
+      findstr txt, the automated-collection copies, the
+      keylog/clipboard buffers) into a single password-protected
+      7z file in a hidden directory before any exfil.
+    question:
+      prompt: |
+        What is the absolute path of the staging archive the
+        attacker built before exfil? (Full path, including the
+        archive filename.)
+      hint: |
+        Sysmon EventID 1 with `7z.exe` / `7za.exe` and a `-mhe=on`
+        argument; the output path is the last positional arg.
+      answer: REDACTED
+
+logs:
+  sysmon.json: |
+    {"host":"FILE-01","EventID":1,"UtcTime":"2026-05-15T14:02:11Z","Image":"C:\\Windows\\System32\\REDACTED","CommandLine":"REDACTED /c findstr /s /i /m \"password ssn ssn:\" \\\\FILE-01\\Finance\\*.* > C:\\ProgramData\\Intel\\Logs\\REDACTED","User":"CORP\\svc-backup","ParentImage":"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"}
+    {"host":"FILE-01","EventID":11,"UtcTime":"2026-05-15T14:08:55Z","Image":"C:\\Windows\\System32\\REDACTED","TargetFilename":"C:\\ProgramData\\Intel\\Logs\\REDACTED","User":"CORP\\svc-backup"}
+    {"host":"FILE-01","EventID":1,"UtcTime":"2026-05-15T14:30:21Z","Image":"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe","CommandLine":"powershell.exe -nop -w hidden -c \"Get-ChildItem \\\\FILE-01\\Finance -Recurse -File | Where-Object { $_.Name -match '\REDACTED' } | Copy-Item -Destination C:\\ProgramData\\Intel\\Logs\\bulk\\\"","User":"CORP\\svc-backup","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+    {"host":"FILE-01","EventID":1,"UtcTime":"2026-05-15T16:48:02Z","Image":"C:\\Program Files\\7-Zip\\7z.exe","CommandLine":"7z.exe a -mhe=on -pHunter2024! C:\\ProgramData\\Intel\\Logs\\stage.7z C:\\ProgramData\\Intel\\Logs\\REDACTED C:\\ProgramData\\Intel\\Logs\\bulk\\ C:\\ProgramData\\Intel\\Logs\\kbd.bin C:\\ProgramData\\Intel\\Logs\\clip.bin","User":"CORP\\svc-backup","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+  process-tree.csv: |
+    timestamp,host,pid,ppid,image,user
+    2026-05-15T14:02:08Z,FILE-01,7711,5520,C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe,CORP\svc-backup
+    2026-05-15T14:02:09Z,FILE-01,7720,7711,C:\Windows\System32\REDACTED,CORP\svc-backup
+    2026-05-15T14:02:11Z,FILE-01,7725,7720,C:\Windows\System32\findstr.exe,CORP\svc-backup
+    2026-05-15T14:30:21Z,FILE-01,7892,7720,C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe,CORP\svc-backup
+    2026-05-15T16:48:02Z,FILE-01,8041,7720,C:\Program Files\7-Zip\7z.exe,CORP\svc-backup
+  osquery-windows_hooks.json: |
+    [{"pid": 4112, "process_name": "explorer.exe", "module_path": "C:\\ProgramData\\Intel\\bin\\REDACTED", "hook_type": 13, "hook_type_name": "WH_KEYBOARD_LL", "thread_id": 0},
+     {"pid": 4112, "process_name": "explorer.exe", "module_path": "C:\\ProgramData\\Intel\\bin\\REDACTED", "hook_type": 3,  "hook_type_name": "WH_GETMESSAGE",  "thread_id": 0},
+     {"pid": 2104, "process_name": "MsMpEng.exe",  "module_path": "C:\\Windows\\System32\\MpSvc.dll",            "hook_type": 4,  "hook_type_name": "WH_CBT",         "thread_id": 0}]

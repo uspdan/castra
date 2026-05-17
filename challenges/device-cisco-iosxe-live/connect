@@ -1,0 +1,17 @@
+#!/bin/bash
+set -eu
+target="${1:-}"
+if [ -z "$target" ]; then
+    cat <<'EOF'
+usage: connect <hostname>
+Available:
+  iosxe-edge-01  Cisco Catalyst 8500, IOS XE 17.9 — internet edge
+EOF
+    exit 2
+fi
+case "${target,,}" in
+    iosxe-edge-01|iosxe|edge)
+        exec python3 /opt/device-shell/shell.py /opt/device-shell/iosxe_device.py ;;
+    *)
+        echo "% Unknown host: $target" >&2; exit 1 ;;
+esac

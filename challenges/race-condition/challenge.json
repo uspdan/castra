@@ -1,0 +1,24 @@
+{
+  "title": "Race Condition — TOCTOU",
+  "slug": "race-condition",
+  "description": "CouponStore checks coupon.used then sleeps then increments. Concurrent /redeem calls all pass the check before any increment lands. Bank enough credits to buy the flag.",
+  "category": "Web Exploitation",
+  "team": "red",
+  "difficulty": 3,
+  "points": 400,
+  "flag": "CTF{REDACTED}",
+  "hints": [
+    {
+      "text": "The coupon is single-use *if* checked sequentially. Fire ~12 concurrent /redeem requests with the same session cookie and watch the balance.",
+      "cost": 50
+    },
+    {
+      "text": "curl can run in parallel via xargs -P. Save your sid cookie from / and reuse it across the burst.",
+      "cost": 75
+    }
+  ],
+  "skills": ["Race Condition", "TOCTOU", "Concurrency"],
+  "mitre_techniques": ["T1190", "T1078"],
+  "docker_image": "siege/race-condition:latest",
+  "docker_port": 5000
+}

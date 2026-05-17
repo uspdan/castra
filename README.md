@@ -64,6 +64,28 @@ nightly DB backups, and per-instance egress isolation.
 - **CSP violation reporting** at `/csp-report` with structured
   log output.
 
+### Player connectivity — no VPN required
+- **In-range analyst workstation** (`infra/workstation/`). Per-
+  player Ubuntu container, joined to the seige-range network, with
+  a curated forensics toolchain (PowerShell 7, tcpdump, tshark,
+  nmap, jq, ripgrep, sshpass, ssh-client + pre-configured aliases
+  for every live challenge). Player launches it from the
+  `/workstation` page in the UI; connects via SSH on the
+  platform's public port or in-browser via ttyd at `/workstation/`.
+  Per-player `/home/analyst` volume survives restarts. **One-shot
+  password** issued on launch; never persisted server-side.
+- **Offline player runner** (`scripts/seige`). Single-file Python
+  CLI that runs any live-shell challenge as a standalone Docker
+  container on the player's laptop — fully air-gapped capable.
+  `seige list / start / connect / answer / reveal / score / sync`.
+  Bundle the catalogue with `scripts/build-offline-bundle.sh` for
+  a portable tarball of every image plus the CLI plus this
+  runbook.
+- **`seige sync --upstream URL`** pushes solves earned offline
+  back to a central seige-range so they credit toward leaderboard
+  points. Idempotent per-slug; already-credited solves return 409
+  and get marked synced.
+
 ## System Requirements
 
 | Resource | Minimum | Recommended |
@@ -107,7 +129,10 @@ the full Day-1 / Day-2 guide. Post-deploy verification matrix in
 | [`CHANGELOG.md`](CHANGELOG.md) | User-facing change log. |
 | [`docs/operator-handbook.md`](docs/operator-handbook.md) | Day-1 deploy + Day-2 ops guide. |
 | [`docs/author-handbook.md`](docs/author-handbook.md) | How to write challenges. |
+| [`docs/player-handbook.md`](docs/player-handbook.md) | How to play — UI flow, workstation, offline runner, `seige sync`. |
 | [`docs/runbooks/`](docs/runbooks/) | One file per known failure mode. |
+| [`docs/runbooks/offline-workstation.md`](docs/runbooks/offline-workstation.md) | Offline bundle build + air-gapped play. |
+| [`infra/workstation/README.md`](infra/workstation/README.md) | Analyst workstation image — deploy + tuning. |
 | [`docs/alerts/`](docs/alerts/) | Prometheus rule files + load instructions. |
 | [`docs/adr/`](docs/adr/) | Architectural Decision Records. |
 | [`docs/security-model.md`](docs/security-model.md) | Container isolation, seccomp profiles, capability drops. |
@@ -152,17 +177,23 @@ the full Day-1 / Day-2 guide. Post-deploy verification matrix in
 
 ## Status
 
-Phase 0–12 hardening program plus 12 follow-on sprints shipped.
+Phase 0–12 hardening program + 12 follow-on sprints + the
+2026-05 content & workstation drops shipped.
 
 | | Count |
 |---|---|
-| Backend tests | 618 @ 86.6% coverage |
+| Challenges in catalogue | **47** (25 blue, 22 red) |
+| Live-shell device-forensics scenarios | 16 (10 network device vendors + 5 Windows hosts + 1 Linux host) |
+| Tier-2 ATT&CK mini-campaigns | 14 / 14 tactics |
+| Backend tests | 637 @ ~86% coverage (9 unit + 10 integration added this drop) |
 | Spec-package tests | 38 |
 | Playwright e2e tests | 16 |
 | Container profiles | 5 |
 | Validator plugins | 9 |
-| Scheduled jobs | 7 |
-| Runbooks | 7 |
+| Scheduled jobs | 8 (workstation idle reaper added) |
+| Runbooks | 8 (offline-workstation runbook added) |
 | Alembic migrations | 13 |
+| Audit-ledger event types | 27 (3 workstation events added) |
 
-Per-sprint detail in [`WORK_PLAN.md`](WORK_PLAN.md).
+Per-sprint detail in [`WORK_PLAN.md`](WORK_PLAN.md);
+user-facing change log in [`CHANGELOG.md`](CHANGELOG.md).

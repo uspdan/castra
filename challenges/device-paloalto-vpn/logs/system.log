@@ -1,0 +1,3 @@
+2026-05-15T01:51:33Z severity=informational subtype=auth user=REDACTED event="GlobalProtect portal user authenticated" auth-profile=REDACTED source-ip=REDACTED
+2026-05-15T01:51:34Z severity=informational subtype=globalprotect event="user logged in" user=REDACTED portal=gp-portal vsys=vsys1
+2026-05-15T01:52:00Z severity=warning subtype=auth event="rate of failed portal-auth from single source exceeded threshold" source-ip=REDACTED count=237 window=600s
