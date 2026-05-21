@@ -15,7 +15,6 @@ category: Threat Hunting
 team: blue
 difficulty: 3
 points: 400
-flag: "CTF{REDACTED}"
 tactic_id: TA0009
 docker_port: 2222
 profile: default-strict
@@ -34,7 +33,6 @@ techniques:
         Sysmon EventID 11 (FileCreate) for a `.txt` file written
         by `findstr.exe` or by its parent `REDACTED` immediately
         after a findstr command.
-      answer: REDACTED
 
   - id: T1056.001
     description: |
@@ -48,7 +46,6 @@ techniques:
       hint: |
         osquery `windows_hooks` table dump — `hook_type` column
         equals 13 (WH_KEYBOARD_LL).
-      answer: REDACTED
 
   - id: T1119
     description: |
@@ -64,7 +61,6 @@ techniques:
       hint: |
         Sysmon EventID 1, Image=powershell.exe, parent=REDACTED,
         commandline contains `-match` and a regex literal.
-      answer: REDACTED
 
   - id: T1115
     description: |
@@ -78,7 +74,6 @@ techniques:
       hint: |
         osquery `windows_hooks` again — different `hook_type`
         value (3 = WH_GETMESSAGE).
-      answer: REDACTED
 
   - id: T1074.001
     description: |
@@ -94,7 +89,6 @@ techniques:
       hint: |
         Sysmon EventID 1 with `7z.exe` / `7za.exe` and a `-mhe=on`
         argument; the output path is the last positional arg.
-      answer: REDACTED
 
 logs:
   sysmon.json: |

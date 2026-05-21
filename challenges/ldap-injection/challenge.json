@@ -6,7 +6,6 @@
   "team": "red",
   "difficulty": 3,
   "points": 400,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
       "text": "The template is (&(uid={USER})(password={PASS})). Close the uid clause, inject a new one, neutralise the password clause with a wildcard.",
@@ -17,8 +16,16 @@
       "cost": 100
     }
   ],
-  "skills": ["LDAP", "Injection", "Filter Bypass", "Authentication Bypass"],
-  "mitre_techniques": ["T1190", "T1078"],
+  "skills": [
+    "LDAP",
+    "Injection",
+    "Filter Bypass",
+    "Authentication Bypass"
+  ],
+  "mitre_techniques": [
+    "T1190",
+    "T1078"
+  ],
   "docker_image": "siege/ldap-injection:latest",
   "docker_port": 5000
 }

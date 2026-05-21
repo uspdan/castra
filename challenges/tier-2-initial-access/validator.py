@@ -10,40 +10,63 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "In office365_audit.log, which user opened the malicious\nattachment that triggered the macro chain? (Just the\nUPN, e.g. user@corp.local.)",
         "hint": "Filter for MailItemsAccessed + WordOrExcelMacroEnabled.",
-        "answer": "REDACTED",
         "technique": "T1566.001"
     },
     "2": {
         "prompt": "In webapp_access.log, which CVE was used to compromise\nthe public web server? (Format: CVE-YYYY-NNNNN.)",
         "hint": "Look for an LDAP-protocol JNDI string in a User-Agent or\nheader.",
-        "answer": "REDACTED",
         "technique": "T1190"
     },
     "3": {
         "prompt": "In sso_auth.log, what country code does the successful\nlogin come from that should have triggered an impossible-\ntravel alert? (Two-letter ISO code, uppercase.)",
         "hint": "Compare the successful logon with the user's other\nrecent successful logons in the same file.",
-        "answer": "RU",
         "technique": "T1078"
     },
     "4": {
         "prompt": "In vpn_gateway.log, what is the attacker source IP that\nsuccessfully authenticated to the VPN after a port-scan\nburst? (Format: x.x.x.x.)",
         "hint": "The scan source and the successful logon share an IP.\nLook for repeated TCP RST on closed ports preceding the\naccepted login.",
-        "answer": "REDACTED",
         "technique": "T1133"
     },
     "5": {
         "prompt": "In supply_chain.log, what is the SHA256 of the package\nthat was distributed by the compromised update server?\n(Full hex string, lowercase.)",
         "hint": "The compromised update server is the *only* upstream that\nflipped its signing identity between consecutive\npublishes.",
-        "answer": "REDACTED",
         "technique": "T1195.002"
     }
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:

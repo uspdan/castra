@@ -10,40 +10,63 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "What is the username of the rogue privilege-level-15 local\naccount the attacker added? (Lowercase username only.)",
         "hint": "running-config.txt \u2014 look for `username ... privilege 15`\nentries and compare to /home/hunter/logs/approved-users.txt.",
-        "answer": "REDACTED",
         "technique": "T1078"
     },
     "2": {
         "prompt": "What is the SNMP community string configured with RW\n(read-write) access? (Exact string, case-sensitive.)",
         "hint": "running-config.txt and show-snmp.txt both name it. Look\nfor `snmp-server community ... RW`.",
-        "answer": "REDACTED",
         "technique": "T1078.001"
     },
     "3": {
         "prompt": "What is the destination IP of the unauthorised GRE tunnel\nthe attacker created on Tunnel0? (Format x.x.x.x.)",
         "hint": "running-config.txt \u2014 `interface Tunnel0` block, look at\n`tunnel destination`.",
-        "answer": "REDACTED",
         "technique": "T1133"
     },
     "4": {
         "prompt": "Which ACL number was modified to permit outbound traffic\nto the attacker's C2 prefix? (Number only, e.g. 103.)",
         "hint": "running-config.txt \u2014 look for `access-list NNN permit ...\n198.51.100.0 0.0.0.255` (the C2 /24 the GRE points into).",
-        "answer": "102",
         "technique": "T1562.004"
     },
     "5": {
         "prompt": "From which source IP did the attacker authenticate to the\nvty over SSH for the privileged config changes? (Format\nx.x.x.x.)",
         "hint": "syslog.txt \u2014 multiple `%SEC_LOGIN-5-LOGIN_SUCCESS` lines\nfrom the same external IP into vty 0; show-users.txt\nconfirms the live session.",
-        "answer": "REDACTED",
         "technique": "T1021.004"
     }
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:

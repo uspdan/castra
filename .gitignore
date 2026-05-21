@@ -53,3 +53,12 @@ nginx/certs/
 .env.local
 .env.*.local
 .coverage
+
+# Per-deploy secrets — flags, answers, and other operator-only blobs.
+# Loaded at build / seed time by the matching scripts under scripts/.
+secrets/
+
+# Per-challenge sealed sidecars staged by scripts/stage-answers.sh
+# immediately before docker build. Never committed.
+challenges/*/.answers.json
+challenges/*/.flag.txt

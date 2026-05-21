@@ -1,20 +1,43 @@
 {
-  "title": "Windows Forensics: File Server Pre-Ransomware — Live PowerShell",
+  "title": "Windows Forensics: File Server Pre-Ransomware \u2014 Live PowerShell",
   "slug": "windows-fileserver-live",
   "description": "FS-CORP-01 fired vssadmin delete shadows ten minutes ago and Finance reports `.l0ck0kk3d` extensions. Walk the live REDACTED/Sysmon log, the staging dir, and the share to reconstruct the lateral-to-encryption-prep chain.",
   "category": "Network Device Forensics",
   "team": "blue",
   "difficulty": 4,
   "points": 600,
-  "flag": "CTF{REDACTED}",
   "hints": [
-    {"text": "`connect fs-corp-01`. Start with `Get-WinEvent -LogName REDACTED | include 4624` to find the lateral logon.", "cost": 25},
-    {"text": "`Get-WinEvent -LogName REDACTED | include vssadmin` shows the shadow-copy delete. `Get-CimInstance Win32_ShadowCopy` confirms the impact.", "cost": 50},
-    {"text": "`Get-ChildItem C:\\Staging` reveals the dropped binary; `Get-Service` shows the persistence wrapper service.", "cost": 50}
+    {
+      "text": "`connect fs-corp-01`. Start with `Get-WinEvent -LogName REDACTED | include 4624` to find the lateral logon.",
+      "cost": 25
+    },
+    {
+      "text": "`Get-WinEvent -LogName REDACTED | include vssadmin` shows the shadow-copy delete. `Get-CimInstance Win32_ShadowCopy` confirms the impact.",
+      "cost": 50
+    },
+    {
+      "text": "`Get-ChildItem C:\\Staging` reveals the dropped binary; `Get-Service` shows the persistence wrapper service.",
+      "cost": 50
+    }
   ],
-  "skills": ["Windows", "PowerShell", "Sysmon", "Pre-Ransomware", "Volume Shadow Copy", "Service Persistence"],
-  "mitre_techniques": ["T1021.002", "T1078", "T1490", "T1543.003", "T1074.001"],
+  "skills": [
+    "Windows",
+    "PowerShell",
+    "Sysmon",
+    "Pre-Ransomware",
+    "Volume Shadow Copy",
+    "Service Persistence"
+  ],
+  "mitre_techniques": [
+    "T1021.002",
+    "T1078",
+    "T1490",
+    "T1543.003",
+    "T1074.001"
+  ],
   "docker_image": "siege/windows-fileserver-live:latest",
   "docker_port": 2222,
-  "docker_config": {"profile": "default-strict"}
+  "docker_config": {
+    "profile": "default-strict"
+  }
 }

@@ -16,7 +16,6 @@ category: Threat Hunting
 team: blue
 difficulty: 3
 points: 400
-flag: "CTF{REDACTED}"
 tactic_id: TA0003
 docker_port: 2222
 profile: default-strict
@@ -33,7 +32,6 @@ techniques:
       hint: |
         registry_audit.log — RegistryValueSet events with
         TargetObject ending in `\Run\<name>`.
-      answer: REDACTED
 
   - id: T1053.005
     description: |
@@ -45,7 +43,6 @@ techniques:
         created? (As shown in scheduled_tasks.log.)
       hint: |
         Filter to action=create.
-      answer: REDACTED
 
   - id: T1543.003
     description: |
@@ -58,7 +55,6 @@ techniques:
       hint: |
         Look for an install event with binPath pointing at a
         non-standard location like C:\ProgramData\…
-      answer: REDACTED
 
   - id: T1546.003
     description: |
@@ -71,7 +67,6 @@ techniques:
       hint: |
         wmi_subscriptions.log — look for the consumer record paired
         with a __EventFilter and __FilterToConsumerBinding.
-      answer: REDACTED
 
   - id: T1197
     description: |
@@ -84,7 +79,6 @@ techniques:
       hint: |
         bits_jobs.log — focus on the entry whose RemoteName host
         doesn't match any approved Microsoft / corp domain.
-      answer: REDACTED
 
 logs:
   registry_audit.log: |

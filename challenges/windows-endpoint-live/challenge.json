@@ -1,20 +1,42 @@
 {
-  "title": "Windows Forensics: Endpoint Phishing Chain — Live PowerShell",
+  "title": "Windows Forensics: Endpoint Phishing Chain \u2014 Live PowerShell",
   "slug": "windows-endpoint-live",
-  "description": "WS-FIN-04 ran a macro from a phishing email this morning. Walk the live Sysmon stream, scheduled tasks, and TCP connection state to reconstruct macro → encoded PowerShell → dropped binary → C2.",
+  "description": "WS-FIN-04 ran a macro from a phishing email this morning. Walk the live Sysmon stream, scheduled tasks, and TCP connection state to reconstruct macro \u2192 encoded PowerShell \u2192 dropped binary \u2192 C2.",
   "category": "Network Device Forensics",
   "team": "blue",
   "difficulty": 3,
   "points": 550,
-  "flag": "CTF{REDACTED}",
   "hints": [
-    {"text": "`connect ws-fin-04`. Start with `Get-WinEvent | include WINWORD` to land on the first event in the chain.", "cost": 25},
-    {"text": "`Get-WinEvent | include EncodedCommand` exposes the base64 blob. Decode it with `printf '<blob>' | base64 -d` (UTF-8 base64 for this exercise).", "cost": 50},
-    {"text": "`Get-NetTCPConnection | include Established` cross-references with `Get-Process` to tell you which PID owns the C2 socket.", "cost": 50}
+    {
+      "text": "`connect ws-fin-04`. Start with `Get-WinEvent | include WINWORD` to land on the first event in the chain.",
+      "cost": 25
+    },
+    {
+      "text": "`Get-WinEvent | include EncodedCommand` exposes the base64 blob. Decode it with `printf '<blob>' | base64 -d` (UTF-8 base64 for this exercise).",
+      "cost": 50
+    },
+    {
+      "text": "`Get-NetTCPConnection | include Established` cross-references with `Get-Process` to tell you which PID owns the C2 socket.",
+      "cost": 50
+    }
   ],
-  "skills": ["Windows", "PowerShell", "Sysmon", "Phishing Chain", "Scheduled Task Persistence"],
-  "mitre_techniques": ["T1204.002", "T1059.001", "T1053.005", "T1071.001", "T1547"],
+  "skills": [
+    "Windows",
+    "PowerShell",
+    "Sysmon",
+    "Phishing Chain",
+    "Scheduled Task Persistence"
+  ],
+  "mitre_techniques": [
+    "T1204.002",
+    "T1059.001",
+    "T1053.005",
+    "T1071.001",
+    "T1547"
+  ],
   "docker_image": "siege/windows-endpoint-live:latest",
   "docker_port": 2222,
-  "docker_config": {"profile": "default-strict"}
+  "docker_config": {
+    "profile": "default-strict"
+  }
 }

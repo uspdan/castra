@@ -4,40 +4,63 @@ import re
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "Source IPv4 address of the attacker's lateral logon to this file server. (Format x.x.x.x.)",
         "hint": "`Get-WinEvent -LogName REDACTED | include 4624` — type-3 (network) logon's Source Network Address.",
-        "answer": "REDACTED",
         "technique": "T1021.002",
     },
     "2": {
         "prompt": "SamAccountName under which the lateral logon succeeded. (Lowercase, no domain prefix.)",
         "hint": "Same 4624 line — Account Name.",
-        "answer": "REDACTED",
         "technique": "T1078",
     },
     "3": {
         "prompt": "What is the full command-line the attacker ran to delete the volume shadow copies? (Including arguments — match the CommandLine field verbatim.)",
         "hint": "`Get-WinEvent -LogName REDACTED | include vssadmin` or `Get-WinEvent -LogName Sysmon | include vssadmin` — the EventID 1 / 4688 CommandLine.",
-        "answer": "REDACTED delete shadows /all /quiet",
         "technique": "T1490",
     },
     "4": {
         "prompt": "Name of the service the attacker installed for persistence. (Exact ServiceName.)",
         "hint": "`Get-WinEvent -LogName REDACTED | include 4697` (service installed) or `Get-Service` — one entry has a non-stock display name.",
-        "answer": "REDACTED",
         "technique": "T1543.003",
     },
     "5": {
         "prompt": "Absolute path of the encryption staging directory. (Full path with backslashes.)",
         "hint": "`Get-WinEvent | include FileCreate` shows where the binary landed. `Get-ChildItem` confirms.",
-        "answer": "C:\\Staging",
         "technique": "T1074.001",
     },
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s):

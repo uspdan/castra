@@ -1,19 +1,37 @@
 {
-  "title": "Device Forensics: pfSense — Live CLI",
+  "title": "Device Forensics: pfSense \u2014 Live CLI",
   "slug": "device-pfsense-live",
   "description": "pfsense-edge-01 had its WebGUI exposed on WAN with a guessable admin password. Reconstruct the brute force, the rogue admin, and the NAT rule that opened internal SSH to the world.",
   "category": "Network Device Forensics",
   "team": "blue",
   "difficulty": 2,
   "points": 450,
-  "flag": "CTF{REDACTED}",
   "hints": [
-    {"text": "`connect pfsense-edge-01`. Start with `show users` to spot the third user. `show auth-log | include authenticated successfully` pins the source IP.", "cost": 25},
-    {"text": "pfSense's /conf/config.xml carries everything. `show config | begin <nat>` jumps to the NAT block. `show nat` gives the resolved pfctl view.", "cost": 50}
+    {
+      "text": "`connect pfsense-edge-01`. Start with `show users` to spot the third user. `show auth-log | include authenticated successfully` pins the source IP.",
+      "cost": 25
+    },
+    {
+      "text": "pfSense's /conf/config.xml carries everything. `show config | begin <nat>` jumps to the NAT block. `show nat` gives the resolved pfctl view.",
+      "cost": 50
+    }
   ],
-  "skills": ["pfSense", "FreeBSD", "pfctl", "Live Forensics", "WebGUI Compromise"],
-  "mitre_techniques": ["T1078", "T1110", "T1133", "T1021.004"],
+  "skills": [
+    "pfSense",
+    "FreeBSD",
+    "pfctl",
+    "Live Forensics",
+    "WebGUI Compromise"
+  ],
+  "mitre_techniques": [
+    "T1078",
+    "T1110",
+    "T1133",
+    "T1021.004"
+  ],
   "docker_image": "siege/device-pfsense-live:latest",
   "docker_port": 2222,
-  "docker_config": {"profile": "default-strict"}
+  "docker_config": {
+    "profile": "default-strict"
+  }
 }

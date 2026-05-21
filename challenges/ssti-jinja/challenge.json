@@ -6,19 +6,26 @@
   "team": "red",
   "difficulty": 3,
   "points": 400,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
-      "text": "Confirm SSTI first: ?name={{7*7}} — if you get 'Hello 49!' you have execution inside Jinja.",
+      "text": "Confirm SSTI first: ?name={{7*7}} \u2014 if you get 'Hello 49!' you have execution inside Jinja.",
       "cost": 25
     },
     {
-      "text": "From a Jinja context with no globals, walk MRO from any literal: {{ ''.__class__.__mro__[1].__subclasses__() }} — find os._wrap_close or subprocess.Popen and pipe through it.",
+      "text": "From a Jinja context with no globals, walk MRO from any literal: {{ ''.__class__.__mro__[1].__subclasses__() }} \u2014 find os._wrap_close or subprocess.Popen and pipe through it.",
       "cost": 100
     }
   ],
-  "skills": ["SSTI", "Jinja2", "RCE", "Python Internals"],
-  "mitre_techniques": ["T1190", "T1059.006"],
+  "skills": [
+    "SSTI",
+    "Jinja2",
+    "RCE",
+    "Python Internals"
+  ],
+  "mitre_techniques": [
+    "T1190",
+    "T1059.006"
+  ],
   "docker_image": "siege/ssti-jinja:latest",
   "docker_port": 5000
 }

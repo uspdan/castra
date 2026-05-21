@@ -4,40 +4,63 @@ import re
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "What is the username of the rogue admin account added via the WebGUI? (Lowercase username only.)",
         "hint": "`show users` — three users. Two belong; one was added with a `fullname` carrying a recent timestamp.",
-        "answer": "REDACTED",
         "technique": "T1078",
     },
     "2": {
         "prompt": "From which source IP did the attacker successfully authenticate to the WebGUI? (Format x.x.x.x.)",
         "hint": "`show auth-log | include authenticated successfully` — same IP that previously had 200+ failures.",
-        "answer": "REDACTED",
         "technique": "T1110",
     },
     "3": {
         "prompt": "What is the description (`descr`) of the rogue NAT rule? (Exact value as it appears in the config.)",
         "hint": "`show config | begin <nat>` shows the rule block — the `<descr>` field.",
-        "answer": "REDACTED",
         "technique": "T1133",
     },
     "4": {
         "prompt": "What is the internal target IP the rogue NAT rule forwards to? (Format x.x.x.x.)",
         "hint": "`show nat` — the `rdr on em0 ... -> <IP> port 22` line.",
-        "answer": "REDACTED",
         "technique": "T1021.004",
     },
     "5": {
         "prompt": "What WAN port does the rogue NAT rule listen on? (Port number only.)",
         "hint": "Same `show nat` line — the `port = <PORT>` before the `->`.",
-        "answer": "REDACTED",
         "technique": "T1133",
     },
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s):

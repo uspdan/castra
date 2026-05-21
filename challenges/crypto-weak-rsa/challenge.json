@@ -6,15 +6,20 @@
   "team": "red",
   "difficulty": 2,
   "points": 200,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
       "text": "The RSA key is only 256 bits - small enough to factor",
       "cost": 50
     }
   ],
-  "skills": ["RSA", "Cryptanalysis", "Math"],
-  "mitre_techniques": ["T1588.004"],
+  "skills": [
+    "RSA",
+    "Cryptanalysis",
+    "Math"
+  ],
+  "mitre_techniques": [
+    "T1588.004"
+  ],
   "docker_image": "siege/crypto-weak-rsa:latest",
   "docker_port": 5000
 }

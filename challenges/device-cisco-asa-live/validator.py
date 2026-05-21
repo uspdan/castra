@@ -4,40 +4,63 @@ import re
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "Which tunnel-group name has MFA disabled on its default group-policy? (Exact tunnel-group name as it appears in the config.)",
         "hint": "`show run | begin group-policy gp_` — one of them carries `anyconnect mfa disable`. Walk back from that group-policy to the tunnel-group that references it.",
-        "answer": "REDACTED",
         "technique": "T1556.006",
     },
     "2": {
         "prompt": "Which authentication server group is bound to that tunnel-group? (Exact value as it appears after `authentication-server-group`.)",
         "hint": "`show run | begin tunnel-group REDACTED` — the line right under `general-attributes`.",
-        "answer": "REDACTED",
         "technique": "T1078",
     },
     "3": {
         "prompt": "What VPN username eventually logged in successfully? (Lowercase username only — no domain.)",
         "hint": "`show vpn-sessiondb anyconnect` — two active sessions; one is from the contractor tunnel-group.",
-        "answer": "REDACTED",
         "technique": "T1078",
     },
     "4": {
         "prompt": "From which public source IP did the attacker brute-force and then connect? (Format x.x.x.x.)",
         "hint": "`show logging | include AAA login failure` — same source IP for 200+ failures and the eventual success.",
-        "answer": "REDACTED",
         "technique": "T1110",
     },
     "5": {
         "prompt": "What internal IP did the attacker hit over TCP/3389 after the VPN auth succeeded? (Format x.x.x.x.)",
         "hint": "`show logging | include 302013` — the `Built inbound TCP connection` line shows source/dest after VPN landing.",
-        "answer": "REDACTED",
         "technique": "T1021.001",
     },
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s):

@@ -15,7 +15,6 @@ category: Threat Hunting
 team: blue
 difficulty: 4
 points: 500
-flag: "CTF{REDACTED}"
 tactic_id: TA0011
 docker_port: 2222
 profile: default-strict
@@ -32,7 +31,6 @@ techniques:
       hint: |
         flows.csv host=HOST-A — look for periodic ~500 byte POSTs
         with a regular cadence.
-      answer: REDACTED
 
   - id: T1071.004
     description: |
@@ -45,7 +43,6 @@ techniques:
       hint: |
         dns_queries.log — many long subdomain labels under the
         same parent, all TXT records.
-      answer: REDACTED
 
   - id: T1102.002
     description: |
@@ -59,7 +56,6 @@ techniques:
       hint: |
         proxy.log — find the host with both GET and POST traffic
         from HOST-C where the user-agent isn't a normal browser.
-      answer: REDACTED
 
   - id: T1573.002
     description: |
@@ -73,7 +69,6 @@ techniques:
         flows.csv lines with host=HOST-D and proto=tls have a
         ja3 field. Cross-reference against the known-good list
         in known_good_ja3.txt — one JA3 isn't there.
-      answer: REDACTED
 
   - id: T1090.002
     description: |
@@ -88,7 +83,6 @@ techniques:
         flows.csv host=HOST-E — the only direct upstream IP
         outside the corp /16 range, and its rDNS resolves to
         a residential ISP block.
-      answer: REDACTED
 
 logs:
   flows.csv: |

@@ -63,6 +63,22 @@ async def reap_idle_workstations():
         logger.warning("workstation.reap.job_failed", error=str(exc))
 
 
+async def detect_submission_bursts():
+    """Tier-4 cheat-resistance: raise admin notifications when an
+    actor crosses the burst threshold of correct flag submissions
+    within the rolling window. Stateless; notification dedup
+    happens on the (actor, count, window-start) signature.
+    """
+    from app.services.cheat_detector import detect_bursts
+    try:
+        async with async_session() as db:
+            raised = await detect_bursts(db)
+            if raised:
+                logger.info("Submission-burst alerts raised", count=raised)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("cheat_detector.job_failed", error=str(exc))
+
+
 async def cache_leaderboard():
     import redis.asyncio as aioredis
     from app.config import get_settings
@@ -304,6 +320,12 @@ def setup_scheduler():
     # whose uptime exceeds 8h. Home volume is preserved.
     scheduler.add_job(
         reap_idle_workstations, "interval", hours=1, id="workstation_reap"
+    )
+    # Cheat-resistance Tier 4 — every 5 min, scan the audit ledger
+    # for actors crossing the burst threshold of correct flag
+    # submissions and surface admin notifications.
+    scheduler.add_job(
+        detect_submission_bursts, "interval", minutes=5, id="cheat_burst_detector"
     )
     scheduler.start()
     logger.info("Scheduler started")

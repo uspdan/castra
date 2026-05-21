@@ -6,10 +6,9 @@
   "team": "red",
   "difficulty": 2,
   "points": 300,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
-      "text": "Log in as guest. Now look at the URL pattern — /api/users/<user_id>/notes. What if you change the ID?",
+      "text": "Log in as guest. Now look at the URL pattern \u2014 /api/users/<user_id>/notes. What if you change the ID?",
       "cost": 25
     },
     {
@@ -17,8 +16,16 @@
       "cost": 75
     }
   ],
-  "skills": ["IDOR", "BOLA", "API REDACTED", "OWASP API Top 10"],
-  "mitre_techniques": ["T1078", "T1213"],
+  "skills": [
+    "IDOR",
+    "BOLA",
+    "API REDACTED",
+    "OWASP API Top 10"
+  ],
+  "mitre_techniques": [
+    "T1078",
+    "T1213"
+  ],
   "docker_image": "siege/idor-api:latest",
   "docker_port": 5000
 }

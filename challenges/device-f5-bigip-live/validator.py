@@ -5,8 +5,15 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": (
@@ -19,7 +26,6 @@ QUESTIONS = {
             "path traverses through `..;/tmui/locallb/workspace/` "
             "to reach a JSP that reads files."
         ),
-        "answer": "REDACTED",
         "technique": "T1190",
     },
     "2": {
@@ -31,7 +37,6 @@ QUESTIONS = {
             "`list /auth user` lists every TMSH user. The legit ones "
             "are `admin` and `noc-readonly`."
         ),
-        "answer": "REDACTED",
         "technique": "T1078",
     },
     "3": {
@@ -43,7 +48,6 @@ QUESTIONS = {
             "`list /ltm rule` — one iRule has a `catch { exec "
             "/bin/logger -n ... }` line. That's the exfil channel."
         ),
-        "answer": "REDACTED",
         "technique": "T1071.001",
     },
     "4": {
@@ -55,7 +59,6 @@ QUESTIONS = {
             "`list /ltm virtual` — look at the `rules { ... }` "
             "block on each VS."
         ),
-        "answer": "REDACTED",
         "technique": "T1556",
     },
     "5": {
@@ -67,10 +70,30 @@ QUESTIONS = {
             "`show httpd-log | include REDACTED` — the unique "
             "source IP behind the traversal requests."
         ),
-        "answer": "REDACTED",
         "technique": "T1021.001",
     },
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:

@@ -1,12 +1,11 @@
 {
-  "title": "JWT Algorithm Confusion (RS256 ↔ HS256)",
+  "title": "JWT Algorithm Confusion (RS256 \u2194 HS256)",
   "slug": "jwt-key-confusion",
   "description": "TokenStop's verifier accepts both RS256 and HS256 with the same key parameter. When you submit alg=HS256, the public PEM becomes the HMAC secret. Forge an admin token.",
   "category": "Web Exploitation",
   "team": "red",
   "difficulty": 4,
   "points": 500,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
       "text": "Fetch /public-key. Those exact PEM bytes (including the BEGIN/END lines and trailing newline) are the HMAC secret for HS256.",
@@ -17,8 +16,16 @@
       "cost": 100
     }
   ],
-  "skills": ["JWT", "Algorithm Confusion", "Asymmetric Crypto", "HMAC"],
-  "mitre_techniques": ["T1190", "T1078"],
+  "skills": [
+    "JWT",
+    "Algorithm Confusion",
+    "Asymmetric Crypto",
+    "HMAC"
+  ],
+  "mitre_techniques": [
+    "T1190",
+    "T1078"
+  ],
   "docker_image": "siege/jwt-key-confusion:latest",
   "docker_port": 5000
 }

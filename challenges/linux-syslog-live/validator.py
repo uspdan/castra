@@ -4,40 +4,63 @@ import re
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "Source IPv4 of the SSH brute force that eventually succeeded. (Format x.x.x.x.)",
         "hint": "`cat /var/log/secure | include Failed password` and `| include Accepted` share a source.",
-        "answer": "REDACTED",
         "technique": "T1110",
     },
     "2": {
         "prompt": "Local username the attacker brute-forced and now holds a session as. (Username only.)",
         "hint": "`who` shows the live shells; `cat /var/log/secure | include Accepted` confirms.",
-        "answer": "REDACTED",
         "technique": "T1078",
     },
     "3": {
         "prompt": "Which SUID binary did the attacker invoke for privilege escalation? (Just the filename, e.g. `foo`.)",
         "hint": "`find / -perm -4000 -type f` lists candidates. `cat /var/log/secure | include sudo` shows what they actually ran.",
-        "answer": "REDACTED",
         "technique": "T1068",
     },
     "4": {
         "prompt": "Name of the cron file under `/etc/cron.d/` that the attacker added for persistence. (Filename only.)",
         "hint": "`ls /etc/cron.d` — the recent / unfamiliar entry. `cat` it for the body.",
-        "answer": "REDACTED",
         "technique": "T1053.003",
     },
     "5": {
         "prompt": "Destination IPv4:port the persistence script's reverse shell connects to. (Format x.x.x.x:NNNN.)",
         "hint": "`cat /usr/local/bin/REDACTED.sh` shows the `/dev/tcp/...` redirect; `ss -tnp | include 4444` confirms the live socket.",
-        "answer": "REDACTED",
         "technique": "T1071.001",
     },
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s):

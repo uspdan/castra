@@ -1,29 +1,42 @@
 {
-  "title": "Device Forensics: F5 BIG-IP — Live CLI",
+  "title": "Device Forensics: F5 BIG-IP \u2014 Live CLI",
   "slug": "device-f5-bigip-live",
-  "description": "bigip-01 was hit via the TMUI path-traversal-to-RCE family (CVE-2020-5902 lineage). Connect to the device, run TMSH commands — `list /auth user`, `list /ltm rule`, `show httpd-log` — and reconstruct the attacker's persistence + data-exfil path.",
+  "description": "bigip-01 was hit via the TMUI path-traversal-to-RCE family (CVE-2020-5902 lineage). Connect to the device, run TMSH commands \u2014 `list /auth user`, `list /ltm rule`, `show httpd-log` \u2014 and reconstruct the attacker's persistence + data-exfil path.",
   "category": "Network Device Forensics",
   "team": "blue",
   "difficulty": 4,
   "points": 550,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
       "text": "`connect bigip-01`. Start with `list /auth user` and compare against expected admin / noc-readonly. Anyone else is suspect.",
       "cost": 25
     },
     {
-      "text": "`list /ltm rule` — TCL source for every iRule. The exfil one uses `catch { exec /bin/logger -n ... }`.",
+      "text": "`list /ltm rule` \u2014 TCL source for every iRule. The exfil one uses `catch { exec /bin/logger -n ... }`.",
       "cost": 50
     },
     {
-      "text": "`show httpd-log | include REDACTED` — initial RCE path traversal is the clearest tell.",
+      "text": "`show httpd-log | include REDACTED` \u2014 initial RCE path traversal is the clearest tell.",
       "cost": 50
     }
   ],
-  "skills": ["F5 BIG-IP", "TMSH", "iRule", "Live Forensics", "TMUI RCE"],
-  "mitre_techniques": ["T1190", "T1078", "T1071.001", "T1556", "T1021.001"],
+  "skills": [
+    "F5 BIG-IP",
+    "TMSH",
+    "iRule",
+    "Live Forensics",
+    "TMUI RCE"
+  ],
+  "mitre_techniques": [
+    "T1190",
+    "T1078",
+    "T1071.001",
+    "T1556",
+    "T1021.001"
+  ],
   "docker_image": "siege/device-f5-bigip-live:latest",
   "docker_port": 2222,
-  "docker_config": {"profile": "default-strict"}
+  "docker_config": {
+    "profile": "default-strict"
+  }
 }

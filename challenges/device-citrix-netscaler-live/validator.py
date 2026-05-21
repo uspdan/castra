@@ -5,8 +5,15 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": (
@@ -18,7 +25,6 @@ QUESTIONS = {
             "POSTs against a Gateway endpoint from the attacker IP "
             "immediately before the webshell drop."
         ),
-        "answer": "REDACTED",
         "technique": "T1190",
     },
     "2": {
@@ -32,7 +38,6 @@ QUESTIONS = {
             "GET against it; `show ns log | include GUI cmd` confirms "
             "the file creation."
         ),
-        "answer": "REDACTED",
         "technique": "T1505.003",
     },
     "3": {
@@ -44,7 +49,6 @@ QUESTIONS = {
             "`show system user` and compare; or `show ns log | "
             "include add system user`."
         ),
-        "answer": "REDACTED",
         "technique": "T1078",
     },
     "4": {
@@ -56,7 +60,6 @@ QUESTIONS = {
             "`show httpaccess | include webshell` — same IP behind "
             "every request to the dropped file."
         ),
-        "answer": "REDACTED",
         "technique": "T1021.001",
     },
     "5": {
@@ -70,10 +73,30 @@ QUESTIONS = {
             "an internal target. `show running config | include "
             "vs_lb_internal` confirms."
         ),
-        "answer": "REDACTED",
         "technique": "T1133",
     },
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:

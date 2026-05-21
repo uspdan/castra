@@ -6,10 +6,9 @@
   "team": "blue",
   "difficulty": 3,
   "points": 400,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
-      "text": "Start with the IIS access log — look for POSTs to .aspx files in writable upload directories",
+      "text": "Start with the IIS access log \u2014 look for POSTs to .aspx files in writable upload directories",
       "cost": 75
     },
     {
@@ -17,9 +16,23 @@
       "cost": 75
     }
   ],
-  "skills": ["Threat Hunting", "IIS Forensics", "Sysmon", "MITRE ATT&CK", "Incident Response"],
-  "mitre_techniques": ["T1190", "T1505.003", "T1059.001", "T1071.001", "T1567.002"],
+  "skills": [
+    "Threat Hunting",
+    "IIS Forensics",
+    "Sysmon",
+    "MITRE ATT&CK",
+    "Incident Response"
+  ],
+  "mitre_techniques": [
+    "T1190",
+    "T1505.003",
+    "T1059.001",
+    "T1071.001",
+    "T1567.002"
+  ],
   "docker_image": "siege/threat-hunt-apt41:latest",
   "docker_port": 2222,
-  "docker_config": {"profile": "default-strict"}
+  "docker_config": {
+    "profile": "default-strict"
+  }
 }

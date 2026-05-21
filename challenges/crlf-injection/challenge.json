@@ -1,24 +1,29 @@
 {
   "title": "CRLF Response Splitting",
   "slug": "crlf-injection",
-  "description": "RedirectorCo splices ?to= straight into Location: without filtering CR/LF. Smuggle a second HTTP response inside your value and the server self-detects the split — flag's at the tail.",
+  "description": "RedirectorCo splices ?to= straight into Location: without filtering CR/LF. Smuggle a second HTTP response inside your value and the server self-detects the split \u2014 flag's at the tail.",
   "category": "Web Exploitation",
   "team": "red",
   "difficulty": 3,
   "points": 400,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
       "text": "URL-encode \\r\\n as %0d%0a. End your first response with %0d%0a%0d%0a, then start a fresh HTTP/1.1 200 OK\\r\\n line.",
       "cost": 50
     },
     {
-      "text": "Full payload: /redirect?to=foo%0d%0a%0d%0aHTTP/1.1%20200%20OK%0d%0aContent-Length:%200%0d%0a%0d%0a — use curl -i to see the smuggled response and the flag in the trailing bytes.",
+      "text": "Full payload: /redirect?to=foo%0d%0a%0d%0aHTTP/1.1%20200%20OK%0d%0aContent-Length:%200%0d%0a%0d%0a \u2014 use curl -i to see the smuggled response and the flag in the trailing bytes.",
       "cost": 100
     }
   ],
-  "skills": ["CRLF Injection", "Response Splitting", "HTTP Smuggling"],
-  "mitre_techniques": ["T1190"],
+  "skills": [
+    "CRLF Injection",
+    "Response Splitting",
+    "HTTP Smuggling"
+  ],
+  "mitre_techniques": [
+    "T1190"
+  ],
   "docker_image": "siege/crlf-injection:latest",
   "docker_port": 5000
 }

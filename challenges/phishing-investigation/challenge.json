@@ -6,15 +6,20 @@
   "team": "blue",
   "difficulty": 1,
   "points": 100,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
       "text": "Check the sender addresses carefully for lookalike domains",
       "cost": 50
     }
   ],
-  "skills": ["Phishing Analysis", "Email Headers", "Base64"],
-  "mitre_techniques": ["T1566.001"],
+  "skills": [
+    "Phishing Analysis",
+    "Email Headers",
+    "Base64"
+  ],
+  "mitre_techniques": [
+    "T1566.001"
+  ],
   "docker_image": "siege/phishing-investigation:latest",
   "docker_port": 3000
 }

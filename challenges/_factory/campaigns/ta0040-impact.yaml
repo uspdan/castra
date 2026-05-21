@@ -10,7 +10,6 @@ category: Threat Hunting
 team: blue
 difficulty: 3
 points: 450
-flag: "CTF{REDACTED}"
 tactic_id: TA0040
 docker_port: 2222
 profile: default-strict
@@ -26,7 +25,6 @@ techniques:
         host FILE-01? (Format: .ext, including the dot.)
       hint: |
         filesystem_changes.log — file creation events.
-      answer: REDACTED
 
   - id: T1490
     description: |
@@ -38,7 +36,6 @@ techniques:
       hint: |
         sysmon.json process_creation, command line includes
         `delete shadows`.
-      answer: REDACTED
 
   - id: T1561.001
     description: |
@@ -51,7 +48,6 @@ techniques:
       hint: |
         wipe_audit.log — look for the largest write of pattern
         `random` to a path under a database product folder.
-      answer: REDACTED
 
   - id: T1485
     description: |
@@ -64,7 +60,6 @@ techniques:
       hint: |
         deletion_audit.log — single user/process responsible
         for a count.
-      answer: 187
 
   - id: T1531
     description: |
@@ -77,7 +72,6 @@ techniques:
       hint: |
         ad_changes.log — EID 4725 (account disabled) events
         with the same actor.
-      answer: 12
 
 logs:
   filesystem_changes.log: |

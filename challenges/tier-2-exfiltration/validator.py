@@ -10,40 +10,63 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "On host FINANCE-2 the C2 channel exfiltrated approximately\nhow many MB? (Integer, no units.)",
         "hint": "proxy.log \u2014 sum bytes_out for the host's beacon domain.\nSpike from the usual ~500-byte beacon size is the giveaway.",
-        "answer": "240",
         "technique": "T1041"
     },
     "2": {
         "prompt": "On host RND-7 which DNS record type is the attacker abusing\nfor the alternative exfiltration channel? (Upper-case\nthree-letter type, e.g. `TXT`.)",
         "hint": "dns_queries.log \u2014 RND-7's queries land on an unfamiliar\nSLD with a single record type repeated.",
-        "answer": "REDACTED",
         "technique": "T1048.003"
     },
     "3": {
         "prompt": "What is the AWS S3 bucket name the attacker uploaded to\nfrom host HR-3? (Just the bucket name, no s3:// prefix.)",
         "hint": "cli_history.log \u2014 search for aws s3 cp commands.",
-        "answer": "REDACTED",
         "technique": "T1567.002"
     },
     "4": {
         "prompt": "Between which two UTC hours does the attacker schedule\ntheir daily exfiltration on host LEGAL-1? Answer as\nHH:MM-HH:MM in 24-hour format.",
         "hint": "timeline.log on LEGAL-1 \u2014 the exfil transfers all\nshare an identical hour window.",
-        "answer": "REDACTED",
         "technique": "T1029"
     },
     "5": {
         "prompt": "On host MARKETING-2 the automated exfiltration script\nmonitors which folder for new files? (Full path as in\nwatcher.log.)",
         "hint": "watcher.log \u2014 line with `watch_path=\u2026` and `event=created`.",
-        "answer": "C:\\Users\\Public\\Marketing\\Reports",
         "technique": "T1020"
     }
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:

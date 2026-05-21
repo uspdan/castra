@@ -10,40 +10,63 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "Which protocol did the attacker use to move from WORK01 to FILE01?\n(One word, lowercase.)",
         "hint": "security.log on FILE01 \u2014 look for EID 4624 with LogonType=10.",
-        "answer": "rdp",
         "technique": "T1021.001"
     },
     "2": {
         "prompt": "What hidden SMB share name did the attacker access on DC01?\n(Format: <share name>, e.g. `C$`.)",
         "hint": "smb_session.log on DC01 \u2014 look for an unusual access from\nFILE01's machine account.",
-        "answer": "REDACTED",
         "technique": "T1021.002"
     },
     "3": {
         "prompt": "Which Microsoft binary (lowercase, full filename) did the\nattacker invoke locally to spawn the remote process on DC02?",
         "hint": "Sysmon on the calling host shows the binary in\n`CommandLine`. Think classic WMI dual-use tool.",
-        "answer": "REDACTED",
         "technique": "T1047"
     },
     "4": {
         "prompt": "What is the name of the scheduled task the attacker created\non AUDIT01? (Exact string, as logged.)",
         "hint": "Sysmon EID 1 / schtasks.exe with the /tn argument.",
-        "answer": "REDACTED",
         "technique": "T1053.005"
     },
     "5": {
         "prompt": "What DCOM ProgID did the attacker abuse for the final hop?\n(Lowercase, including the dot.)",
         "hint": "Sysmon shows the powershell.exe call invoking\n`[Activator]::CreateInstance(...)` on a specific ProgID.",
-        "answer": "REDACTED",
         "technique": "T1021.003"
     }
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:

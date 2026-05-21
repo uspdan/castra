@@ -16,7 +16,6 @@ category: Threat Hunting
 team: blue
 difficulty: 3
 points: 400
-flag: "CTF{REDACTED}"
 tactic_id: TA0001
 docker_port: 2222
 profile: default-strict
@@ -33,7 +32,6 @@ techniques:
         UPN, e.g. user@corp.local.)
       hint: |
         Filter for MailItemsAccessed + WordOrExcelMacroEnabled.
-      answer: REDACTED
 
   - id: T1190
     description: |
@@ -46,7 +44,6 @@ techniques:
       hint: |
         Look for an LDAP-protocol JNDI string in a User-Agent or
         header.
-      answer: REDACTED
 
   - id: T1078
     description: |
@@ -60,7 +57,6 @@ techniques:
       hint: |
         Compare the successful logon with the user's other
         recent successful logons in the same file.
-      answer: RU
 
   - id: T1133
     description: |
@@ -75,7 +71,6 @@ techniques:
         The scan source and the successful logon share an IP.
         Look for repeated TCP RST on closed ports preceding the
         accepted login.
-      answer: REDACTED
 
   - id: T1195.002
     description: |
@@ -90,7 +85,6 @@ techniques:
         The compromised update server is the *only* upstream that
         flipped its signing identity between consecutive
         publishes.
-      answer: REDACTED
 
 logs:
   office365_audit.log: |

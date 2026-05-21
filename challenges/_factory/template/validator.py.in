@@ -1,18 +1,48 @@
 """Loopback validator for {{title}} ({{slug}}).
 
-Factory-generated. The canonical answers are baked in below. Listens
-on 127.0.0.1:5000 inside the challenge container — only reachable
-from within (the orchestrator publishes only the SSH port).
+Factory-generated. Answers and the reveal flag are sealed under
+``secrets/`` on the operator host (gitignored) and copied into the
+container image at build time via ``scripts/stage-answers.sh``.
+Listens on 127.0.0.1:5000 inside the challenge container — only
+reachable from within (the orchestrator publishes only the SSH port).
 """
 
+import json as _json
+import os as _os
 import re
+
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "{{flag}}"
+# --- sealed answers + flag (loaded at startup) -----------------------
+#
+# Public source ships QUESTIONS with prompts and hints only. The
+# ``answer`` for each question is added at runtime from a sidecar JSON
+# file copied into the image by ``scripts/stage-answers.sh``. Likewise
+# the reveal flag comes from a sidecar text file. If either sidecar is
+# missing the validator refuses every submission — fail-closed.
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 
 QUESTIONS = {{questions_json}}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
 
 
 def _normalise(s: str) -> str:
@@ -36,7 +66,11 @@ def validate():
     if q is None:
         return jsonify({"error": f"no such question: {qid!r}"}), 404
 
-    correct = _normalise(submitted) == _normalise(q["answer"])
+    expected = q.get("answer")
+    if expected is None:
+        return jsonify({"error": "sealed answers missing — operator misconfiguration"}), 503
+
+    correct = _normalise(submitted) == _normalise(expected)
     return jsonify({"question": qid, "correct": correct})
 
 
@@ -44,6 +78,9 @@ def validate():
 def reveal():
     data = request.get_json(force=True, silent=True) or {}
     answers = data.get("answers") or {}
+
+    if not FLAG or any(q.get("answer") is None for q in QUESTIONS.values()):
+        return jsonify({"error": "sealed flag/answers missing — operator misconfiguration"}), 503
 
     missing, wrong = [], []
     for qid, q in QUESTIONS.items():

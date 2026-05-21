@@ -6,15 +6,20 @@
   "team": "blue",
   "difficulty": 2,
   "points": 200,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
       "text": "Run pslist to look for suspicious process names",
       "cost": 50
     }
   ],
-  "skills": ["Memory Forensics", "Process Analysis", "Volatility"],
-  "mitre_techniques": ["T1003"],
+  "skills": [
+    "Memory Forensics",
+    "Process Analysis",
+    "Volatility"
+  ],
+  "mitre_techniques": [
+    "T1003"
+  ],
   "docker_image": "siege/memory-forensics:latest",
   "docker_port": 5000
 }

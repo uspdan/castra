@@ -17,7 +17,6 @@ category: Threat Hunting
 team: blue
 difficulty: 3
 points: 450
-flag: "CTF{REDACTED}"
 tactic_id: TA0008
 docker_port: 2222
 profile: default-strict
@@ -34,7 +33,6 @@ techniques:
         (One word, lowercase.)
       hint: |
         security.log on FILE01 — look for EID 4624 with LogonType=10.
-      answer: rdp
 
   - id: T1021.002
     description: |
@@ -47,7 +45,6 @@ techniques:
       hint: |
         smb_session.log on DC01 — look for an unusual access from
         FILE01's machine account.
-      answer: REDACTED
 
   - id: T1047
     description: |
@@ -60,7 +57,6 @@ techniques:
       hint: |
         Sysmon on the calling host shows the binary in
         `CommandLine`. Think classic WMI dual-use tool.
-      answer: REDACTED
 
   - id: T1053.005
     description: |
@@ -73,7 +69,6 @@ techniques:
         on AUDIT01? (Exact string, as logged.)
       hint: |
         Sysmon EID 1 / schtasks.exe with the /tn argument.
-      answer: REDACTED
 
   - id: T1021.003
     description: |
@@ -87,7 +82,6 @@ techniques:
       hint: |
         Sysmon shows the powershell.exe call invoking
         `[Activator]::CreateInstance(...)` on a specific ProgID.
-      answer: REDACTED
 
 logs:
   WORK01_sysmon.json: |

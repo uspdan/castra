@@ -20,7 +20,6 @@ category: Threat Hunting
 team: blue
 difficulty: 3
 points: 400
-flag: "CTF{REDACTED}"
 tactic_id: TA0043
 docker_port: 2222
 profile: default-strict
@@ -39,7 +38,6 @@ techniques:
       hint: |
         waf.log — sort by ip count; the obvious outlier has a
         user-agent containing the scanner name.
-      answer: REDACTED
 
   - id: T1589.002
     description: |
@@ -55,7 +53,6 @@ techniques:
       hint: |
         linkedin-scrape-evidence.json — the `inferred_email_pattern`
         field is right there.
-      answer: "REDACTED"
 
   - id: T1592
     description: |
@@ -72,7 +69,6 @@ techniques:
         waf.log — look at the `Server` header field for the
         records where the scanner IP probed `/` and the WAF
         passed them through.
-      answer: REDACTED
 
   - id: T1591.001
     description: |
@@ -88,7 +84,6 @@ techniques:
       hint: |
         linkedin-scrape-evidence.json — the `primary_eng_site`
         block has a city field.
-      answer: REDACTED
 
   - id: T1596.005
     description: |
@@ -104,7 +99,6 @@ techniques:
       hint: |
         external-asset-report.json — the `flagged_assets` list
         has one entry with `exposure=admin_panel`.
-      answer: REDACTED
 
 logs:
   waf.log: |

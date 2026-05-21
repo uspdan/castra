@@ -6,15 +6,20 @@
   "team": "red",
   "difficulty": 2,
   "points": 200,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
       "text": "The search parameter q is reflected directly into HTML",
       "cost": 50
     }
   ],
-  "skills": ["XSS", "Cookie Theft", "JavaScript"],
-  "mitre_techniques": ["T1059.007"],
+  "skills": [
+    "XSS",
+    "Cookie Theft",
+    "JavaScript"
+  ],
+  "mitre_techniques": [
+    "T1059.007"
+  ],
   "docker_image": "siege/xss-playground:latest",
   "docker_port": 3000
 }

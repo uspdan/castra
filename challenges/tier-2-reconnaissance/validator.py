@@ -10,40 +10,63 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "What is the source IP that drove the bulk\nvulnerability-template scan? (Format x.x.x.x.)",
         "hint": "waf.log \u2014 sort by ip count; the obvious outlier has a\nuser-agent containing the scanner name.",
-        "answer": "REDACTED",
         "technique": "T1595.002"
     },
     "2": {
         "prompt": "Which email-address format did the scraper infer from\nthe scrape? (Format string with `{first}` / `{last}`\nplaceholders \u2014 e.g. `REDACTED`.)",
         "hint": "linkedin-scrape-evidence.json \u2014 the `inferred_email_pattern`\nfield is right there.",
-        "answer": "REDACTED",
         "technique": "T1589.002"
     },
     "3": {
         "prompt": "Which exact server-version string from your edge fleet\nended up in the adversary's catalogue? (As it appears\nin the Server response header \u2014 verbatim.)",
         "hint": "waf.log \u2014 look at the `Server` header field for the\nrecords where the scanner IP probed `/` and the WAF\npassed them through.",
-        "answer": "REDACTED",
         "technique": "T1592"
     },
     "4": {
         "prompt": "Which city did the adversary's enrichment pass identify\nas the company's primary engineering office? (City name\nonly.)",
         "hint": "linkedin-scrape-evidence.json \u2014 the `primary_eng_site`\nblock has a city field.",
-        "answer": "REDACTED",
         "technique": "T1591.001"
     },
     "5": {
         "prompt": "Which corp hostname did the external scan-database\nreport flag as having an exposed admin panel? (Bare\nhostname, no scheme, as it appears in the asset report.)",
         "hint": "external-asset-report.json \u2014 the `flagged_assets` list\nhas one entry with `exposure=admin_panel`.",
-        "answer": "REDACTED",
         "technique": "T1596.005"
     }
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:

@@ -1,20 +1,42 @@
 {
-  "title": "Windows Forensics: Exchange ProxyShell — Live EMS",
+  "title": "Windows Forensics: Exchange ProxyShell \u2014 Live EMS",
   "slug": "windows-exchange-live",
   "description": "EXCH-01 (Exchange 2019 CU12, never patched) is dropping CFO and HR mailboxes as .pst onto a public path. ProxyShell exploit chain. Connect, walk Get-MailboxExportRequest + Get-IISAccessLog + Get-ChildItem, lock down the IOCs.",
   "category": "Network Device Forensics",
   "team": "blue",
   "difficulty": 4,
   "points": 650,
-  "flag": "CTF{REDACTED}",
   "hints": [
-    {"text": "`connect exch-01`. Start with `Get-MailboxExportRequest` — Exchange admins almost never run these manually.", "cost": 25},
-    {"text": "`Get-IISAccessLog | include autodiscover` — ProxyShell's tell is a URL containing `?@<DOMAIN>/Powershell` against the AutoDiscover endpoint.", "cost": 50},
-    {"text": "`Get-ChildItem C:\\inetpub\\wwwroot\\aspnet_client\\system_web` — the dropped .aspx and the .pst exports are co-located there.", "cost": 50}
+    {
+      "text": "`connect exch-01`. Start with `Get-MailboxExportRequest` \u2014 Exchange admins almost never run these manually.",
+      "cost": 25
+    },
+    {
+      "text": "`Get-IISAccessLog | include autodiscover` \u2014 ProxyShell's tell is a URL containing `?@<DOMAIN>/Powershell` against the AutoDiscover endpoint.",
+      "cost": 50
+    },
+    {
+      "text": "`Get-ChildItem C:\\inetpub\\wwwroot\\aspnet_client\\system_web` \u2014 the dropped .aspx and the .pst exports are co-located there.",
+      "cost": 50
+    }
   ],
-  "skills": ["Exchange Server", "ProxyShell", "EMS", "IIS", "Mailbox Export", "Live Forensics"],
-  "mitre_techniques": ["T1190", "T1505.003", "T1114.002", "T1567"],
+  "skills": [
+    "Exchange Server",
+    "ProxyShell",
+    "EMS",
+    "IIS",
+    "Mailbox Export",
+    "Live Forensics"
+  ],
+  "mitre_techniques": [
+    "T1190",
+    "T1505.003",
+    "T1114.002",
+    "T1567"
+  ],
   "docker_image": "siege/windows-exchange-live:latest",
   "docker_port": 2222,
-  "docker_config": {"profile": "default-strict"}
+  "docker_config": {
+    "profile": "default-strict"
+  }
 }

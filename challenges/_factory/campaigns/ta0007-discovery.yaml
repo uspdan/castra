@@ -10,7 +10,6 @@ category: Threat Hunting
 team: blue
 difficulty: 2
 points: 350
-flag: "CTF{REDACTED}"
 tactic_id: TA0007
 docker_port: 2222
 profile: default-strict
@@ -26,7 +25,6 @@ techniques:
         the domain controllers? (Just the filename, e.g. foo.exe.)
       hint: |
         Look for arguments like /dclist.
-      answer: REDACTED
 
   - id: T1083
     description: |
@@ -38,7 +36,6 @@ techniques:
         recursive find? (Format: .ext, including the dot.)
       hint: |
         A dir /s or where invocation with a *.* pattern.
-      answer: REDACTED
 
   - id: T1087.002
     description: |
@@ -50,7 +47,6 @@ techniques:
         (Exact name as passed to net group, no quotes.)
       hint: |
         net group has the group name as its first argument.
-      answer: REDACTED
 
   - id: T1057
     description: |
@@ -63,7 +59,6 @@ techniques:
       hint: |
         Sysmon FileCreate of a .txt artefact; inside, look for
         any process from a known EDR vendor.
-      answer: REDACTED
 
   - id: T1135
     description: |
@@ -76,7 +71,6 @@ techniques:
         uppercase.)
       hint: |
         net view \\HOSTNAME /all.
-      answer: REDACTED
 
 logs:
   sysmon.json: |

@@ -19,7 +19,6 @@ category: Network Device Forensics
 team: blue
 difficulty: 3
 points: 450
-flag: "CTF{REDACTED}"
 tactic_id: DEVICE
 docker_port: 2222
 profile: default-strict
@@ -39,7 +38,6 @@ techniques:
       hint: |
         config.xml — under `<authentication-profile>` look for an
         entry where the `<multi-factor-auth>` element is absent.
-      answer: REDACTED
 
   - id: T1110
     description: |
@@ -52,7 +50,6 @@ techniques:
       hint: |
         globalprotect.log — count failed-login attempts by source
         IP. One IP has 200+ in a tight time window.
-      answer: REDACTED
 
   - id: T1078
     description: |
@@ -66,7 +63,6 @@ techniques:
       hint: |
         globalprotect.log — same source IP as the previous
         question; status=auth-success.
-      answer: REDACTED
 
   - id: T1021.001
     description: |
@@ -81,7 +77,6 @@ techniques:
         traffic.log — look for `app=ms-rdp` from the
         GlobalProtect tunnel subnet (172.21.x.x) into the
         management /24.
-      answer: REDACTED
 
   - id: T1190
     description: |
@@ -98,7 +93,6 @@ techniques:
         Cross-reference traffic.log's `rule=` field with the
         `<entry name="...">` in the rulebase section of
         config.xml.
-      answer: REDACTED
 
 logs:
   config.xml: |

@@ -17,7 +17,6 @@ category: Network Device Forensics
 team: blue
 difficulty: 3
 points: 450
-flag: "CTF{REDACTED}"
 tactic_id: DEVICE
 docker_port: 2222
 profile: default-strict
@@ -34,7 +33,6 @@ techniques:
       hint: |
         running-config.txt — look for `username ... privilege 15`
         entries and compare to /home/hunter/logs/approved-users.txt.
-      answer: REDACTED
 
   - id: T1078.001
     description: |
@@ -47,7 +45,6 @@ techniques:
       hint: |
         running-config.txt and show-snmp.txt both name it. Look
         for `snmp-server community ... RW`.
-      answer: REDACTED
 
   - id: T1133
     description: |
@@ -61,7 +58,6 @@ techniques:
       hint: |
         running-config.txt — `interface Tunnel0` block, look at
         `tunnel destination`.
-      answer: REDACTED
 
   - id: T1562.004
     description: |
@@ -76,7 +72,6 @@ techniques:
       hint: |
         running-config.txt — look for `access-list NNN permit ...
         198.51.100.0 0.0.0.255` (the C2 /24 the GRE points into).
-      answer: 102
 
   - id: T1021.004
     description: |
@@ -91,7 +86,6 @@ techniques:
         syslog.txt — multiple `%SEC_LOGIN-5-LOGIN_SUCCESS` lines
         from the same external IP into vty 0; show-users.txt
         confirms the live session.
-      answer: REDACTED
 
 logs:
   running-config.txt: |

@@ -10,40 +10,63 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "Which PAN-OS authentication profile name has no\nmulti-factor-auth block configured? (Exact name as it\nappears in the XML.)",
         "hint": "config.xml \u2014 under `<authentication-profile>` look for an\nentry where the `<multi-factor-auth>` element is absent.",
-        "answer": "REDACTED",
         "technique": "T1556.006"
     },
     "2": {
         "prompt": "From which source IP did the GlobalProtect password spray\noriginate? (Format x.x.x.x.)",
         "hint": "globalprotect.log \u2014 count failed-login attempts by source\nIP. One IP has 200+ in a tight time window.",
-        "answer": "REDACTED",
         "technique": "T1110"
     },
     "3": {
         "prompt": "Which VPN username eventually logged in successfully after\nthe brute force? (Lowercase username only, no domain.)",
         "hint": "globalprotect.log \u2014 same source IP as the previous\nquestion; status=auth-success.",
-        "answer": "REDACTED",
         "technique": "T1078"
     },
     "4": {
         "prompt": "What is the internal destination IP the attacker hit on\nTCP/3389 from the VPN tunnel? (Format x.x.x.x.)",
         "hint": "traffic.log \u2014 look for `app=ms-rdp` from the\nGlobalProtect tunnel subnet (172.21.x.x) into the\nmanagement /24.",
-        "answer": "REDACTED",
         "technique": "T1021.001"
     },
     "5": {
         "prompt": "What is the name of the security rule that permitted the\npost-VPN pivot into the management subnet? (Exact rule\nname as it appears in the XML and the traffic log.)",
         "hint": "Cross-reference traffic.log's `rule=` field with the\n`<entry name=\"...\">` in the rulebase section of\nconfig.xml.",
-        "answer": "REDACTED",
         "technique": "T1190"
     }
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:

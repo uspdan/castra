@@ -6,15 +6,20 @@
   "team": "red",
   "difficulty": 3,
   "points": 350,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
       "text": "Look at how the JWT algorithm is validated",
       "cost": 50
     }
   ],
-  "skills": ["JWT", "Token Forgery", "API REDACTED"],
-  "mitre_techniques": ["T1134"],
+  "skills": [
+    "JWT",
+    "Token Forgery",
+    "API REDACTED"
+  ],
+  "mitre_techniques": [
+    "T1134"
+  ],
   "docker_image": "siege/jwt-forgery:latest",
   "docker_port": 5000
 }

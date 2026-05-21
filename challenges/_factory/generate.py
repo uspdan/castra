@@ -9,6 +9,14 @@ under ``challenges/<slug>/``. Idempotent — re-running on the same yaml
 overwrites the materialised files; hand-edits inside that tree get
 clobbered, which is the point: the yaml is the source of truth.
 
+Answers and the reveal flag are not committed in cleartext alongside
+the campaign yaml. They live under ``secrets/`` on the operator host
+(gitignored). When materialising, generate.py reads the sealed JSON
+maps and writes per-challenge ``.answers.json`` and ``.flag.txt``
+sidecars next to the Dockerfile. ``scripts/stage-answers.sh`` is the
+canonical pre-build hook, but generate.py also writes the sidecars so
+the materialised tree is immediately buildable on the operator host.
+
 Deliberately small. No jinja, no click, no yaml lib beyond what
 Python ships with the standard ``importlib`` ecosystem (we vendor a
 tiny safe-yaml loader for the subset of YAML we use). This keeps
@@ -36,6 +44,7 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).resolve().parent / "template"
+SECRETS = ROOT / "secrets"
 
 
 def render_template(text: str, params: dict) -> str:
@@ -56,30 +65,69 @@ def normalise_slug(slug: str) -> str:
     return slug
 
 
-def build_questions_dict(techniques: list[dict]) -> dict:
+def load_sealed_answers(campaign_stem: str) -> dict[str, str]:
+    """Load ``secrets/answers/campaigns/<campaign-stem>.json`` if present.
+
+    Returns an empty dict on missing/unreadable. Callers fail-loud if
+    the result is empty and the yaml also has no per-question answers.
+    """
+    path = SECRETS / "answers" / "campaigns" / f"{campaign_stem}.json"
+    if not path.exists():
+        return {}
+    with path.open() as fh:
+        return json.load(fh) or {}
+
+
+def load_sealed_flag(slug: str) -> str:
+    """Look up the sealed reveal flag for ``slug`` from
+    ``secrets/flags.json``. Returns "" if absent.
+    """
+    path = SECRETS / "flags.json"
+    if not path.exists():
+        return ""
+    with path.open() as fh:
+        return (json.load(fh) or {}).get(slug, "")
+
+
+def build_questions_dict(
+    techniques: list[dict], sealed_answers: dict[str, str]
+) -> tuple[dict, dict[str, str]]:
     """Turn the campaign's ``techniques`` list into the ordered
-    question dict the validator expects.
+    question dict the validator expects, plus the answer map.
 
     Question IDs are 1-indexed strings to match the player-facing
-    ``answer 1`` / ``answer 2`` UX.
+    ``answer 1`` / ``answer 2`` UX. Per-question ``answer`` is taken
+    from ``sealed_answers`` when the yaml has none (post-strip
+    state); a yaml-supplied answer overrides the sealed map (useful
+    for pre-strip development).
     """
-    out = {}
+    questions: dict = {}
+    answer_map: dict[str, str] = {}
     for idx, tech in enumerate(techniques, start=1):
+        qid = str(idx)
         q = tech.get("question") or {}
         prompt = (q.get("prompt") or "").strip()
         hint = (q.get("hint") or "").strip()
         answer = q.get("answer")
-        if not prompt or answer is None:
+        if answer is None:
+            answer = sealed_answers.get(qid)
+        if not prompt:
             raise ValueError(
-                f"technique #{idx} ({tech.get('id')}) is missing prompt or answer"
+                f"technique #{idx} ({tech.get('id')}) is missing prompt"
             )
-        out[str(idx)] = {
+        if answer is None or answer == "":
+            raise ValueError(
+                f"technique #{idx} ({tech.get('id')}) has no answer in yaml or "
+                f"secrets/answers/campaigns/ — re-run scripts/seal-answers.py "
+                f"or hand-edit the sealed map"
+            )
+        questions[qid] = {
             "prompt": prompt,
             "hint": hint,
-            "answer": str(answer),
             "technique": tech.get("id"),
         }
-    return out
+        answer_map[qid] = str(answer)
+    return questions, answer_map
 
 
 def write_file(path: Path, content: str, mode: int = 0o644) -> None:
@@ -95,10 +143,22 @@ def materialise(campaign_path: Path) -> Path:
     slug = normalise_slug(campaign["slug"])
     target = ROOT / "challenges" / slug
 
-    questions = build_questions_dict(campaign.get("techniques") or [])
+    sealed_answers = load_sealed_answers(campaign_path.stem)
+    questions, answer_map = build_questions_dict(
+        campaign.get("techniques") or [], sealed_answers
+    )
     technique_ids = [t["id"] for t in (campaign.get("techniques") or []) if t.get("id")]
 
-    # --- challenge.json
+    flag = campaign.get("flag") or load_sealed_flag(slug)
+    if not flag:
+        raise ValueError(
+            f"no flag in yaml and none in secrets/flags.json for slug {slug!r} — "
+            f"re-run scripts/seal-flags.py or add a flag to the yaml"
+        )
+
+    # --- challenge.json (public manifest — no flag field; the
+    # platform reads the flag separately from secrets/flags.json at
+    # seed time).
     manifest = {
         "title": campaign["title"],
         "slug": slug,
@@ -107,7 +167,6 @@ def materialise(campaign_path: Path) -> Path:
         "team": campaign.get("team", "blue"),
         "difficulty": int(campaign.get("difficulty", 3)),
         "points": int(campaign.get("points", 350)),
-        "flag": campaign["flag"],
         "hints": [
             {
                 "text": "Start with the log file referenced in question 1's hint.",
@@ -139,17 +198,21 @@ def materialise(campaign_path: Path) -> Path:
         mode=0o755,
     )
 
-    # --- validator.py
+    # --- validator.py (no answer keys, no cleartext flag)
     validator_src = render_template(
         (TEMPLATE / "validator.py.in").read_text(),
         {
             "title": campaign["title"],
             "slug": slug,
-            "flag": campaign["flag"],
             "questions_json": json.dumps(questions, indent=4),
         },
     )
     write_file(target / "validator.py", validator_src)
+
+    # --- sealed sidecars (gitignored; copied into the container at
+    # build time, mode 0600 root-owned inside the image)
+    write_file(target / ".answers.json", json.dumps(answer_map, indent=2) + "\n", mode=0o600)
+    write_file(target / ".flag.txt", flag.strip() + "\n", mode=0o600)
 
     # --- investigation.md
     md = [f"# Investigation Briefing — {campaign['title']}", ""]

@@ -1,20 +1,42 @@
 {
-  "title": "Windows Forensics: AD Domain Controller — Live PowerShell",
+  "title": "Windows Forensics: AD Domain Controller \u2014 Live PowerShell",
   "slug": "windows-dc-live",
-  "description": "DC01.corp.local saw unusual replication and an unexpected account-create event. Connect to the DC's PowerShell, walk Get-ADUser / Get-ADGroupMember / Get-WinEvent / Get-ADObject AdminSDHolder, reconstruct the Kerberoast → DCSync → privilege-persistence chain.",
+  "description": "DC01.corp.local saw unusual replication and an unexpected account-create event. Connect to the DC's PowerShell, walk Get-ADUser / Get-ADGroupMember / Get-WinEvent / Get-ADObject AdminSDHolder, reconstruct the Kerberoast \u2192 DCSync \u2192 privilege-persistence chain.",
   "category": "Network Device Forensics",
   "team": "blue",
   "difficulty": 4,
   "points": 600,
-  "flag": "CTF{REDACTED}",
   "hints": [
-    {"text": "`connect dc01`. Cmdlets are case-insensitive. Start with `Get-ADGroupMember \"REDACTED\"` and compare against the expected roster.", "cost": 25},
-    {"text": "Kerberoasting leaves a trail of 4769 REDACTED events. `Get-WinEvent -LogName REDACTED | include 4769` shows the ticket-request burst and the Service Name (SPN).", "cost": 50},
-    {"text": "DCSync = privileged-object-access from a non-DC source. The Windows event ID is the same for every object access (Directory Service Access) — DCSync's signature is the Properties GUID 1131f6aa-9c07-...", "cost": 75}
+    {
+      "text": "`connect dc01`. Cmdlets are case-insensitive. Start with `Get-ADGroupMember \"REDACTED\"` and compare against the expected roster.",
+      "cost": 25
+    },
+    {
+      "text": "Kerberoasting leaves a trail of 4769 REDACTED events. `Get-WinEvent -LogName REDACTED | include 4769` shows the ticket-request burst and the Service Name (SPN).",
+      "cost": 50
+    },
+    {
+      "text": "DCSync = privileged-object-access from a non-DC source. The Windows event ID is the same for every object access (Directory Service Access) \u2014 DCSync's signature is the Properties GUID 1131f6aa-9c07-...",
+      "cost": 75
+    }
   ],
-  "skills": ["Windows", "PowerShell", "Active Directory", "Kerberoasting", "DCSync", "AdminSDHolder"],
-  "mitre_techniques": ["T1558.003", "T1078", "T1003.006", "T1098"],
+  "skills": [
+    "Windows",
+    "PowerShell",
+    "Active Directory",
+    "Kerberoasting",
+    "DCSync",
+    "AdminSDHolder"
+  ],
+  "mitre_techniques": [
+    "T1558.003",
+    "T1078",
+    "T1003.006",
+    "T1098"
+  ],
   "docker_image": "siege/windows-dc-live:latest",
   "docker_port": 2222,
-  "docker_config": {"profile": "default-strict"}
+  "docker_config": {
+    "profile": "default-strict"
+  }
 }

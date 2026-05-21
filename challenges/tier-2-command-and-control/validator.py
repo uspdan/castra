@@ -10,40 +10,63 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "Which fully-qualified domain is HOST-A beaconing to? (Bare\ndomain, no scheme.)",
         "hint": "flows.csv host=HOST-A \u2014 look for periodic ~500 byte POSTs\nwith a regular cadence.",
-        "answer": "REDACTED",
         "technique": "T1071.001"
     },
     "2": {
         "prompt": "What is the second-level domain HOST-B is using for DNS\ntunnelling? (e.g. `dnsc2.example`.)",
         "hint": "dns_queries.log \u2014 many long subdomain labels under the\nsame parent, all TXT records.",
-        "answer": "REDACTED",
         "technique": "T1071.004"
     },
     "3": {
         "prompt": "Which web-service host is HOST-C using for bidirectional\ncomms? (Bare host name as it appears in the proxy log.)",
         "hint": "proxy.log \u2014 find the host with both GET and POST traffic\nfrom HOST-C where the user-agent isn't a normal browser.",
-        "answer": "REDACTED",
         "technique": "T1102.002"
     },
     "4": {
         "prompt": "What is the JA3 hash recorded for the suspicious TLS\nclient HOST-D is using? (32-char hex string, lowercase.)",
         "hint": "flows.csv lines with host=HOST-D and proto=tls have a\nja3 field. Cross-reference against the known-good list\nin known_good_ja3.txt \u2014 one JA3 isn't there.",
-        "answer": "REDACTED",
         "technique": "T1573.002"
     },
     "5": {
         "prompt": "What is the residential IP HOST-E is using as its\nexternal proxy hop? (Format x.x.x.x.)",
         "hint": "flows.csv host=HOST-E \u2014 the only direct upstream IP\noutside the corp /16 range, and its rDNS resolves to\na residential ISP block.",
-        "answer": "REDACTED",
         "technique": "T1090.002"
     }
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:

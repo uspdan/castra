@@ -14,7 +14,6 @@ category: Threat Hunting
 team: blue
 difficulty: 4
 points: 500
-flag: "CTF{REDACTED}"
 tactic_id: TA0005
 docker_port: 2222
 profile: default-strict
@@ -33,7 +32,6 @@ techniques:
       hint: |
         mft_audit.log lines tagged `timestamp_mismatch` —
         Modified < Created is the giveaway.
-      answer: REDACTED
 
   - id: T1070.001
     description: |
@@ -46,7 +44,6 @@ techniques:
       hint: |
         EID 1102 fires when an audit log is cleared and
         records the channel.
-      answer: REDACTED
 
   - id: T1218.011
     description: |
@@ -59,7 +56,6 @@ techniques:
       hint: |
         Sysmon EID 1 process_creation; rundll32 invocations
         with non-standard DLL paths are the focus.
-      answer: REDACTED
 
   - id: T1027.002
     description: |
@@ -72,7 +68,6 @@ techniques:
       hint: |
         av_scan_report.log — each entry has a `packer_detected`
         field. There's only one non-empty one.
-      answer: upx
 
   - id: T1036.005
     description: |
@@ -87,7 +82,6 @@ techniques:
         pe_scan.log — compare the on-disk Description vs the
         signer. The one with a Microsoft-sounding Description
         but a non-Microsoft signer is the masquerade.
-      answer: REDACTED
 
 logs:
   mft_audit.log: |

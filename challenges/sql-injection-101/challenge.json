@@ -6,10 +6,20 @@
   "team": "red",
   "difficulty": 1,
   "points": 100,
-  "flag": "CTF{REDACTED}",
-  "hints": [{"text": "Try entering special characters in the username field", "cost": 50}],
-  "skills": ["SQL Injection", "Web REDACTED", "Authentication Bypass"],
-  "mitre_techniques": ["T1190"],
+  "hints": [
+    {
+      "text": "Try entering special characters in the username field",
+      "cost": 50
+    }
+  ],
+  "skills": [
+    "SQL Injection",
+    "Web REDACTED",
+    "Authentication Bypass"
+  ],
+  "mitre_techniques": [
+    "T1190"
+  ],
   "docker_image": "siege/sql-injection-101:latest",
   "docker_port": 80
 }

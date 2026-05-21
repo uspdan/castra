@@ -10,40 +10,63 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "What is the exact filename the attacker wrote the\nrecursive-findstr output to? (Filename only, no path.)",
         "hint": "Sysmon EventID 11 (FileCreate) for a `.txt` file written\nby `findstr.exe` or by its parent `REDACTED` immediately\nafter a findstr command.",
-        "answer": "REDACTED",
         "technique": "T1005"
     },
     "2": {
         "prompt": "Which DLL is registered as the source of the\nWH_KEYBOARD_LL hook on FILE-01? (Filename only.)",
         "hint": "osquery `windows_hooks` table dump \u2014 `hook_type` column\nequals 13 (WH_KEYBOARD_LL).",
-        "answer": "REDACTED",
         "technique": "T1056.001"
     },
     "3": {
         "prompt": "What file extension regex is the automated-collection\nloop filtering on? (As it appears in the PowerShell\ncommandline \u2014 e.g. `\\.(xls|csv)$`.)",
         "hint": "Sysmon EventID 1, Image=powershell.exe, parent=REDACTED,\ncommandline contains `-match` and a regex literal.",
-        "answer": "\REDACTED",
         "technique": "T1119"
     },
     "4": {
         "prompt": "Which DLL backs the clipboard-polling hook? (Filename\nonly.)",
         "hint": "osquery `windows_hooks` again \u2014 different `hook_type`\nvalue (3 = WH_GETMESSAGE).",
-        "answer": "REDACTED",
         "technique": "T1115"
     },
     "5": {
         "prompt": "What is the absolute path of the staging archive the\nattacker built before exfil? (Full path, including the\narchive filename.)",
         "hint": "Sysmon EventID 1 with `7z.exe` / `7za.exe` and a `-mhe=on`\nargument; the output path is the last positional arg.",
-        "answer": "C:\\ProgramData\\Intel\\Logs\\stage.7z",
         "technique": "T1074.001"
     }
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:

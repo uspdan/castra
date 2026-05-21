@@ -4,8 +4,15 @@ import re
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": (
@@ -16,7 +23,6 @@ QUESTIONS = {
             "`enable`, then `show running-config | include privilege 15`. "
             "Compare to ~/approved-users.txt."
         ),
-        "answer": "REDACTED",
         "technique": "T1078",
     },
     "2": {
@@ -25,7 +31,6 @@ QUESTIONS = {
             "(Format x.x.x.x.)"
         ),
         "hint": "`show webui-log` — only one external IP hits the /webui/ paths.",
-        "answer": "REDACTED",
         "technique": "T1190",
     },
     "3": {
@@ -38,7 +43,6 @@ QUESTIONS = {
             "`show webui-log` — the second request contains a `%25` "
             "URL-double-encoding trick to reach the WSMA handler."
         ),
-        "answer": "REDACTED",
         "technique": "T1190",
     },
     "4": {
@@ -50,7 +54,6 @@ QUESTIONS = {
             "`show ip http server status` — the bottom section lists "
             "an extra nginx-bound port from a custom module."
         ),
-        "answer": "REDACTED",
         "technique": "T1505.003",
     },
     "5": {
@@ -63,10 +66,30 @@ QUESTIONS = {
             "`show platform software process list` — one process name "
             "doesn't belong to a stock IOS XE image."
         ),
-        "answer": "REDACTED",
         "technique": "T1505.003",
     },
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s):

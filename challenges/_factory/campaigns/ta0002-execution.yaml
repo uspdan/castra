@@ -15,7 +15,6 @@ category: Threat Hunting
 team: blue
 difficulty: 3
 points: 400
-flag: "CTF{REDACTED}"
 tactic_id: TA0002
 docker_port: 2222
 profile: default-strict
@@ -34,7 +33,6 @@ techniques:
         Sysmon EventID 1 with `Image=powershell.exe` and an
         `-EncodedCommand` argument. Base64-decode the blob in the
         commandline.
-      answer: REDACTED
 
   - id: T1059.003
     description: |
@@ -47,7 +45,6 @@ techniques:
       hint: |
         Look at the REDACTED /c argument string for a LOLBin used
         as an HTTP client.
-      answer: REDACTED
 
   - id: T1053.005
     description: |
@@ -61,7 +58,6 @@ techniques:
       hint: |
         4698 — A scheduled task was created. The TaskName field is
         what you want.
-      answer: REDACTED
 
   - id: T1106
     description: |
@@ -76,7 +72,6 @@ techniques:
       hint: |
         Sysmon EventID 8, TargetImage ends with `lsass.exe` — the
         SourceImage is the loader.
-      answer: REDACTED
 
   - id: T1204.002
     description: |
@@ -91,7 +86,6 @@ techniques:
         Sysmon EventID 1 with ParentImage ending in `WINWORD.EXE`
         — the OriginalFileName or CommandLine of the parent points
         at the document.
-      answer: REDACTED
 
 logs:
   sysmon.json: |

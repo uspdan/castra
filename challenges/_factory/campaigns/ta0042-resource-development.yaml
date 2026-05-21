@@ -20,7 +20,6 @@ category: Threat Hunting
 team: blue
 difficulty: 3
 points: 400
-flag: "CTF{REDACTED}"
 tactic_id: TA0042
 docker_port: 2222
 profile: default-strict
@@ -38,7 +37,6 @@ techniques:
       hint: |
         whois-export.json — find the entry where
         `homoglyph_of=example.com`.
-      answer: REDACTED
 
   - id: T1585.001
     description: |
@@ -53,7 +51,6 @@ techniques:
       hint: |
         impersonation-report.json — `platform=linkedin`,
         `type=fabricated_persona`.
-      answer: REDACTED
 
   - id: T1586.001
     description: |
@@ -70,7 +67,6 @@ techniques:
       hint: |
         impersonation-report.json — `platform=x` and
         `type=account_takeover` (not `fabricated_persona`).
-      answer: REDACTED
 
   - id: T1588.002
     description: |
@@ -86,7 +82,6 @@ techniques:
       hint: |
         tool-intel-feed.json — the single entry with
         `confidence=high` and `cluster_match=true`.
-      answer: REDACTED
 
   - id: T1608.001
     description: |
@@ -102,7 +97,6 @@ techniques:
       hint: |
         ct-hits.json — find the issuer `Let's Encrypt` entry that
         chains to the lookalike domain from question 1.
-      answer: updates.REDACTED
 
 logs:
   whois-export.json: |

@@ -10,40 +10,63 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "What registry value name did the attacker create under the\nRun key? (Just the value name, exact case.)",
         "hint": "registry_audit.log \u2014 RegistryValueSet events with\nTargetObject ending in `\\Run\\<name>`.",
-        "answer": "REDACTED",
         "technique": "T1547.001"
     },
     "2": {
         "prompt": "What is the exact name of the scheduled task the attacker\ncreated? (As shown in scheduled_tasks.log.)",
         "hint": "Filter to action=create.",
-        "answer": "\\Microsoft\\Windows\\Defrag\\OptimiseCacheV2",
         "technique": "T1053.005"
     },
     "3": {
         "prompt": "What is the service name (not the display name) the\nattacker installed? (As shown in service_install.log.)",
         "hint": "Look for an install event with binPath pointing at a\nnon-standard location like C:\\ProgramData\\\u2026",
-        "answer": "REDACTED",
         "technique": "T1543.003"
     },
     "4": {
         "prompt": "What is the name of the WMI EventConsumer the attacker\nregistered? (As stored in WMI repository.)",
         "hint": "wmi_subscriptions.log \u2014 look for the consumer record paired\nwith a __EventFilter and __FilterToConsumerBinding.",
-        "answer": "REDACTED",
         "technique": "T1546.003"
     },
     "5": {
         "prompt": "What is the BITS job display name (DisplayName field)\nthe attacker created? (Exact string.)",
         "hint": "bits_jobs.log \u2014 focus on the entry whose RemoteName host\ndoesn't match any approved Microsoft / corp domain.",
-        "answer": "REDACTED",
         "technique": "T1197"
     }
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:

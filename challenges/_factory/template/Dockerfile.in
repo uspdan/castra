@@ -26,9 +26,16 @@ COPY validator.py /opt/validator.py
 COPY answer /usr/local/bin/answer
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 
+# Sealed answer + flag sidecars (staged by scripts/stage-answers.sh
+# before docker build). Both are root-owned, mode 0600 — readable by
+# the validator (root) and unreadable by the player (hunter).
+COPY .answers.json /opt/answers.json
+COPY .flag.txt /opt/flag.txt
+
 RUN chown -R hunter:hunter /home/hunter && \
     chmod +x /usr/local/bin/answer /usr/local/bin/entrypoint.sh && \
-    chmod 600 /opt/validator.py
+    chmod 600 /opt/validator.py /opt/answers.json /opt/flag.txt && \
+    chown root:root /opt/validator.py /opt/answers.json /opt/flag.txt
 
 EXPOSE 2222
 

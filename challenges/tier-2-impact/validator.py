@@ -10,40 +10,63 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "What file extension is appended to encrypted files on\nhost FILE-01? (Format: .ext, including the dot.)",
         "hint": "filesystem_changes.log \u2014 file creation events.",
-        "answer": "REDACTED",
         "technique": "T1486"
     },
     "2": {
         "prompt": "Which Windows built-in did the attacker use to delete\nshadow copies on host BACKUP-2? (Filename, lowercase.)",
         "hint": "sysmon.json process_creation, command line includes\n`delete shadows`.",
-        "answer": "REDACTED",
         "technique": "T1490"
     },
     "3": {
         "prompt": "What database directory on DB-3 was overwritten with\nrandom data? (Full path.)",
         "hint": "wipe_audit.log \u2014 look for the largest write of pattern\n`random` to a path under a database product folder.",
-        "answer": "C:\\Program Files\\Microsoft SQL Server\\MSSQL16\\Data",
         "technique": "T1561.001"
     },
     "4": {
         "prompt": "How many files were deleted from FINANCE-9 in the bulk\ndelete operation? (Just the integer.)",
         "hint": "deletion_audit.log \u2014 single user/process responsible\nfor a count.",
-        "answer": "187",
         "technique": "T1485"
     },
     "5": {
         "prompt": "How many admin accounts were disabled by the attacker\non AD-1? (Just the integer.)",
         "hint": "ad_changes.log \u2014 EID 4725 (account disabled) events\nwith the same actor.",
-        "answer": "12",
         "technique": "T1531"
     }
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:

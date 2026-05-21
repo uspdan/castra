@@ -15,7 +15,6 @@ category: Threat Hunting
 team: blue
 difficulty: 4
 points: 450
-flag: "CTF{REDACTED}"
 tactic_id: TA0004
 docker_port: 2222
 profile: default-strict
@@ -33,7 +32,6 @@ techniques:
       hint: |
         auditd SYSCALL type=PATH with mode=04... — chmod
         4755 against a binary outside the normal setuid set.
-      answer: REDACTED
 
   - id: T1055.001
     description: |
@@ -48,7 +46,6 @@ techniques:
         Sysmon EventID 7 (Image loaded) against `MsiExec.exe`
         for an image outside `C:\Windows\System32`, immediately
         followed by EventID 8 with TargetImage=MsiExec.exe.
-      answer: REDACTED
 
   - id: T1134.001
     description: |
@@ -65,7 +62,6 @@ techniques:
       hint: |
         REDACTED 4672 — SeTcbPrivilege granted to REDACTED; trace
         the SubjectLogonId back to its 4624 row for the SID.
-      answer: REDACTED
 
   - id: T1078.003
     description: |
@@ -80,7 +76,6 @@ techniques:
       hint: |
         auditd USER_CHAUTHTOK followed by a successful sshd
         accept for that user from 127.0.0.1.
-      answer: REDACTED
 
   - id: T1548.002
     description: |
@@ -97,7 +92,6 @@ techniques:
       hint: |
         Sysmon EventID 13 (RegistryValueSet) — TargetObject ends
         with `\ms-settings\shell\open\command\(Default)`.
-      answer: REDACTED
 
 logs:
   auditd.log: |

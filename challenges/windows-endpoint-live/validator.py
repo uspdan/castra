@@ -4,40 +4,63 @@ import re
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "What is the filename of the macro-laden document the user opened? (Filename only, with extension.)",
         "hint": "`Get-WinEvent | include WINWORD` — the first EventID 1 in Sysmon shows WINWORD.EXE opening a file from Downloads.",
-        "answer": "REDACTED",
         "technique": "T1204.002",
     },
     "2": {
         "prompt": "What full URL does the decoded `-EncodedCommand` PowerShell pull its second stage from? (Full URL including scheme.)",
         "hint": "`Get-WinEvent | include EncodedCommand` — base64-decode the blob (the encoded text is UTF-8 base64 for this exercise, so `printf '<blob>' | base64 -d` works).",
-        "answer": "REDACTED",
         "technique": "T1059.001",
     },
     "3": {
         "prompt": "What is the name of the persistence scheduled task the attacker registered? (Exact TaskName.)",
         "hint": "`Get-ScheduledTask | include Intel` — one task name doesn't belong to a stock Windows / Intel image.",
-        "answer": "REDACTED",
         "technique": "T1053.005",
     },
     "4": {
         "prompt": "What is the C2 destination IP the persistence binary beacons to? (Format x.x.x.x.)",
         "hint": "`Get-NetTCPConnection | include Established` — the binary running as PID 8041 (update.exe) holds the C2 connection on port 443.",
-        "answer": "REDACTED",
         "technique": "T1071.001",
     },
     "5": {
         "prompt": "What is the absolute path of the binary the attacker drops to disk and persists via the scheduled task? (Full Windows path with backslashes.)",
         "hint": "`Get-WinEvent | include FileCreate` and `Get-ChildItem` (or `dir`) both reveal it under C:\\ProgramData\\Intel\\Logs\\.",
-        "answer": "C:\\ProgramData\\Intel\\Logs\\update.exe",
         "technique": "T1547",
     },
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s):

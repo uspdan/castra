@@ -6,7 +6,6 @@
   "team": "red",
   "difficulty": 2,
   "points": 300,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
       "text": "Send {\"query\":\"{ __schema { queryType { fields { name description } } } }\"} to /graphql.",
@@ -17,8 +16,15 @@
       "cost": 50
     }
   ],
-  "skills": ["GraphQL", "Introspection", "API Reconnaissance"],
-  "mitre_techniques": ["T1190", "T1213"],
+  "skills": [
+    "GraphQL",
+    "Introspection",
+    "API Reconnaissance"
+  ],
+  "mitre_techniques": [
+    "T1190",
+    "T1213"
+  ],
   "docker_image": "siege/graphql-introspection:latest",
   "docker_port": 5000
 }

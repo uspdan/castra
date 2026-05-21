@@ -6,7 +6,6 @@
   "team": "blue",
   "difficulty": 4,
   "points": 500,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
       "text": "Start with the log file referenced in question 1's hint.",

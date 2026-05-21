@@ -6,19 +6,25 @@
   "team": "red",
   "difficulty": 2,
   "points": 300,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
       "text": "The filter does a single replace('../', ''). Single-pass. No loop until stable.",
       "cost": 25
     },
     {
-      "text": "....// after one replace pass becomes ../ — stack three of them to escape the docs root three levels up to /.",
+      "text": "....// after one replace pass becomes ../ \u2014 stack three of them to escape the docs root three levels up to /.",
       "cost": 75
     }
   ],
-  "skills": ["Path Traversal", "File Disclosure", "Filter Bypass"],
-  "mitre_techniques": ["T1190", "T1005"],
+  "skills": [
+    "Path Traversal",
+    "File Disclosure",
+    "Filter Bypass"
+  ],
+  "mitre_techniques": [
+    "T1190",
+    "T1005"
+  ],
   "docker_image": "siege/path-traversal:latest",
   "docker_port": 5000
 }

@@ -19,6 +19,11 @@ set -euo pipefail
 
 ORCH="seige-range-orchestrator-1"
 CHALLENGES_DIR_IN_DIND="/challenges"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Stage sealed answers + reveal flags into each challenge dir before
+# the docker build sees them. Idempotent — safe to re-run.
+"${REPO_ROOT}/scripts/stage-answers.sh"
 
 cyan()  { printf '\033[96m%s\033[0m' "$*"; }
 green() { printf '\033[92m%s\033[0m' "$*"; }

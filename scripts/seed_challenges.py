@@ -137,6 +137,27 @@ def main() -> None:
 
     info(f"Found {BOLD}{len(challenge_files)}{RESET} challenge(s)\n")
 
+    # ── Load sealed flags (Tier 1 cheat-resistance) ─────────────────────
+    # Public challenge.json files no longer carry the cleartext flag;
+    # ``scripts/seal-flags.py`` strips them into ``secrets/flags.json``
+    # which is gitignored. The operator running the seeder needs access
+    # to that file (it ships separately to the runtime).
+    flags_secret_path = os.path.join(project_root, "secrets", "flags.json")
+    sealed_flags: dict[str, str] = {}
+    if os.path.exists(flags_secret_path):
+        try:
+            with open(flags_secret_path, "r", encoding="utf-8") as fh:
+                sealed_flags = json.load(fh)
+            info(f"Loaded {len(sealed_flags)} sealed flags from secrets/flags.json")
+        except (json.JSONDecodeError, OSError) as exc:
+            fatal(f"Cannot read {flags_secret_path}: {exc}")
+    else:
+        warn(
+            f"secrets/flags.json not present — every challenge.json "
+            f"missing a 'flag' field will fail to seed. Generate it on "
+            f"the source-of-truth host with `scripts/seal-flags.py`."
+        )
+
     # ── Authenticate ─────────────────────────────────────────────────────
     token = authenticate(base_url, admin_email, admin_password)
     headers = {
@@ -165,6 +186,20 @@ def main() -> None:
         # Ensure slug is set
         if "slug" not in challenge:
             challenge["slug"] = challenge_dir
+
+        # Inject sealed flag if the public JSON didn't carry one. This
+        # is the Tier 1 cheat-resistance flow: public source has no
+        # cleartext flag, the operator's secrets/flags.json does.
+        if "flag" not in challenge or not challenge["flag"]:
+            sealed = sealed_flags.get(challenge["slug"])
+            if not sealed:
+                error(
+                    f"No flag in challenge.json and none in "
+                    f"secrets/flags.json for slug '{challenge['slug']}'"
+                )
+                failed += 1
+                continue
+            challenge["flag"] = sealed
 
         if create_challenge(base_url, headers, challenge):
             created += 1

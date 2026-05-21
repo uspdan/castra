@@ -17,8 +17,15 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 # Canonical answers. The exact strings are deliberately precise — they
 # come straight out of the synthetic log corpus so a careful hunter
 # extracts them verbatim. Matching is case-insensitive and tolerant of
@@ -26,30 +33,46 @@ FLAG = "CTF{REDACTED}"
 QUESTIONS = {
     "1": {
         "prompt": "Which web shell file did the attacker drop in the /uploads/ tree?",
-        "answer": "REDACTED",
         "hint": "Look at IIS access.log POST requests landing on /uploads/ — only one of them targets a writable .aspx.",
     },
     "2": {
         "prompt": "What is the immediate parent process of the malicious REDACTED spawn?",
-        "answer": "REDACTED",
         "hint": "Sysmon ProcessCreate events. The web shell runs *inside* the IIS worker process.",
     },
     "3": {
         "prompt": "What external domain did the attacker exfiltrate data to?",
-        "answer": "REDACTED",
         "hint": "Pivot from the REDACTED → powershell.exe chain to a curl/Invoke-WebRequest call.",
     },
     "4": {
         "prompt": "What User-Agent string does the C2 beacon use?",
-        "answer": "REDACTED",
         "hint": "Outbound proxy log — the same domain from question 3 shows up here with a distinctive UA.",
     },
     "5": {
         "prompt": "Which CVE did the attacker exploit for initial access?",
-        "answer": "REDACTED",
         "hint": "The IIS access log shows the canonical ProxyLogon SSRF preceding the web shell drop.",
     },
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:

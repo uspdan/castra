@@ -19,7 +19,6 @@ category: Network Device Forensics
 team: blue
 difficulty: 4
 points: 500
-flag: "CTF{REDACTED}"
 tactic_id: DEVICE
 docker_port: 2222
 profile: default-strict
@@ -41,7 +40,6 @@ techniques:
         by=...` immediately before the rogue admin appears. The
         canonical CVE-2022-40684 trick uses a specific local-looking
         identity here.
-      answer: "REDACTED"
 
   - id: T1078.003
     description: |
@@ -56,7 +54,6 @@ techniques:
         config-diff.txt — the `+config system admin / + edit ...`
         block. The legitimate roster (in approved-admins.txt) does
         not contain it.
-      answer: REDACTED
 
   - id: T1556
     description: |
@@ -71,7 +68,6 @@ techniques:
       hint: |
         config-diff.txt for that account — look for the absence /
         wildcard of `REDACTED`.
-      answer: REDACTED
 
   - id: T1098
     description: |
@@ -88,7 +84,6 @@ techniques:
         full-access`, look for the new entry under
         `set split-tunneling-routing-address` or a referenced
         firewall address group.
-      answer: REDACTED
 
   - id: T1078
     description: |
@@ -101,7 +96,6 @@ techniques:
       hint: |
         system-event.log — `event=login` with `status=success`
         and the new username from the previous question.
-      answer: REDACTED
 
 logs:
   admin-https.log: |

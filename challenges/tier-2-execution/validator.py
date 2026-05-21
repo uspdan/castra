@@ -10,40 +10,63 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "What URL does the decoded PowerShell -EncodedCommand pull\nits second stage from? (Full URL, including scheme.)",
         "hint": "Sysmon EventID 1 with `Image=powershell.exe` and an\n`-EncodedCommand` argument. Base64-decode the blob in the\ncommandline.",
-        "answer": "REDACTED",
         "technique": "T1059.001"
     },
     "2": {
         "prompt": "Which signed Windows binary does the REDACTED chain abuse\nto download the HTA? (Just the filename, e.g. foo.exe.)",
         "hint": "Look at the REDACTED /c argument string for a LOLBin used\nas an HTTP client.",
-        "answer": "REDACTED",
         "technique": "T1059.003"
     },
     "3": {
         "prompt": "What is the exact task name the attacker registered with\nschtasks /create? (Case-sensitive, as it appears after /tn.)",
         "hint": "4698 \u2014 A scheduled task was created. The TaskName field is\nwhat you want.",
-        "answer": "REDACTED",
         "technique": "T1053.005"
     },
     "4": {
         "prompt": "Which process injected a thread into lsass.exe via the\nNative API call? (Full image path as it appears in the\nSysmon SourceImage field.)",
         "hint": "Sysmon EventID 8, TargetImage ends with `lsass.exe` \u2014 the\nSourceImage is the loader.",
-        "answer": "C:\\Users\\REDACTED\\AppData\\Local\\Temp\\svc-helper.exe",
         "technique": "T1106"
     },
     "5": {
         "prompt": "What filename did the user double-click to trigger the\nmacro execution? (Filename only, no path.)",
         "hint": "Sysmon EventID 1 with ParentImage ending in `WINWORD.EXE`\n\u2014 the OriginalFileName or CommandLine of the parent points\nat the document.",
-        "answer": "REDACTED",
         "technique": "T1204.002"
     }
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:

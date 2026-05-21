@@ -10,40 +10,63 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "Which built-in Windows binary did the attacker use to list\nthe domain controllers? (Just the filename, e.g. foo.exe.)",
         "hint": "Look for arguments like /dclist.",
-        "answer": "REDACTED",
         "technique": "T1018"
     },
     "2": {
         "prompt": "What file extension was the attacker hunting for in the\nrecursive find? (Format: .ext, including the dot.)",
         "hint": "A dir /s or where invocation with a *.* pattern.",
-        "answer": "REDACTED",
         "technique": "T1083"
     },
     "3": {
         "prompt": "What AD group did the attacker enumerate for membership?\n(Exact name as passed to net group, no quotes.)",
         "hint": "net group has the group name as its first argument.",
-        "answer": "REDACTED",
         "technique": "T1087.002"
     },
     "4": {
         "prompt": "Which AV/EDR product name appeared in the tasklist output\nthe attacker dumped to disk? (Vendor product name as it\nshows in Image Name \u2014 lowercase, e.g. `REDACTED`.)",
         "hint": "Sysmon FileCreate of a .txt artefact; inside, look for\nany process from a known EDR vendor.",
-        "answer": "REDACTED",
         "technique": "T1057"
     },
     "5": {
         "prompt": "Which remote hostname did the attacker enumerate shares on\nimmediately before moving sideways? (Hostname only, no UNC,\nuppercase.)",
         "hint": "net view \\\\HOSTNAME /all.",
-        "answer": "REDACTED",
         "technique": "T1135"
     }
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:

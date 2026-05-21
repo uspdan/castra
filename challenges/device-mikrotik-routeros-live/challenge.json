@@ -1,20 +1,42 @@
 {
-  "title": "Device Forensics: MikroTik RouterOS — Live CLI",
+  "title": "Device Forensics: MikroTik RouterOS \u2014 Live CLI",
   "slug": "device-mikrotik-routeros-live",
   "description": "mkt-rb750 wasn't patched against CVE-2018-14847 Winbox bypass and now has a VPNFilter-style scheduler backdoor. Connect, walk `/system scheduler print`, `/system script print`, `/ip firewall nat print`.",
   "category": "Network Device Forensics",
   "team": "blue",
   "difficulty": 3,
   "points": 500,
-  "flag": "CTF{REDACTED}",
   "hints": [
-    {"text": "`connect mkt-rb750`. Slash-prefixed commands — every path ends in `print` to dump that section.", "cost": 25},
-    {"text": "`/system scheduler print` shows scheduled jobs. The legit roster: conf-bkp / ssh-keep-alive / tmp-cleanup. Anything else is suspect.", "cost": 50},
-    {"text": "`/system script print` shows the script body inline — including `/tool fetch url=` lines that name external hosts.", "cost": 50}
+    {
+      "text": "`connect mkt-rb750`. Slash-prefixed commands \u2014 every path ends in `print` to dump that section.",
+      "cost": 25
+    },
+    {
+      "text": "`/system scheduler print` shows scheduled jobs. The legit roster: conf-bkp / ssh-keep-alive / tmp-cleanup. Anything else is suspect.",
+      "cost": 50
+    },
+    {
+      "text": "`/system script print` shows the script body inline \u2014 including `/tool fetch url=` lines that name external hosts.",
+      "cost": 50
+    }
   ],
-  "skills": ["MikroTik", "RouterOS", "VPNFilter", "Live Forensics", "Scheduler Persistence"],
-  "mitre_techniques": ["T1053", "T1078", "T1071.001", "T1133", "T1021.004"],
+  "skills": [
+    "MikroTik",
+    "RouterOS",
+    "VPNFilter",
+    "Live Forensics",
+    "Scheduler Persistence"
+  ],
+  "mitre_techniques": [
+    "T1053",
+    "T1078",
+    "T1071.001",
+    "T1133",
+    "T1021.004"
+  ],
   "docker_image": "siege/device-mikrotik-routeros-live:latest",
   "docker_port": 2222,
-  "docker_config": {"profile": "default-strict"}
+  "docker_config": {
+    "profile": "default-strict"
+  }
 }

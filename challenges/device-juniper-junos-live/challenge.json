@@ -1,20 +1,41 @@
 {
-  "title": "Device Forensics: Juniper Junos — Live CLI",
+  "title": "Device Forensics: Juniper Junos \u2014 Live CLI",
   "slug": "device-juniper-junos-live",
-  "description": "srx-perim-01 took an unscheduled commit under stolen NOC creds. Connect, walk `show configuration | display set`, `show system commit`, `show security policies` — and the `show log messages` SSH trail.",
+  "description": "srx-perim-01 took an unscheduled commit under stolen NOC creds. Connect, walk `show configuration | display set`, `show system commit`, `show security policies` \u2014 and the `show log messages` SSH trail.",
   "category": "Network Device Forensics",
   "team": "blue",
   "difficulty": 3,
   "points": 500,
-  "flag": "CTF{REDACTED}",
   "hints": [
-    {"text": "`connect srx-perim-01`. Junos has two modes — operational (`>`) and configure (`#`). All the forensics queries here are operational.", "cost": 25},
-    {"text": "`show configuration | display set` collapses the curly-brace tree into one set-statement per line — easy to grep with `| match`.", "cost": 50},
-    {"text": "`show system commit` shows commit history with sequence numbers. The last commit is the one that landed the bad changes.", "cost": 50}
+    {
+      "text": "`connect srx-perim-01`. Junos has two modes \u2014 operational (`>`) and configure (`#`). All the forensics queries here are operational.",
+      "cost": 25
+    },
+    {
+      "text": "`show configuration | display set` collapses the curly-brace tree into one set-statement per line \u2014 easy to grep with `| match`.",
+      "cost": 50
+    },
+    {
+      "text": "`show system commit` shows commit history with sequence numbers. The last commit is the one that landed the bad changes.",
+      "cost": 50
+    }
   ],
-  "skills": ["Juniper", "Junos", "SRX", "Live Forensics", "Set-style Config"],
-  "mitre_techniques": ["T1078", "T1556", "T1562.004", "T1071.001"],
+  "skills": [
+    "Juniper",
+    "Junos",
+    "SRX",
+    "Live Forensics",
+    "Set-style Config"
+  ],
+  "mitre_techniques": [
+    "T1078",
+    "T1556",
+    "T1562.004",
+    "T1071.001"
+  ],
   "docker_image": "siege/device-juniper-junos-live:latest",
   "docker_port": 2222,
-  "docker_config": {"profile": "default-strict"}
+  "docker_config": {
+    "profile": "default-strict"
+  }
 }

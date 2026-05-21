@@ -6,10 +6,9 @@
   "team": "red",
   "difficulty": 3,
   "points": 400,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
-      "text": "Registration is parameterised — but the stored value is later interpolated into a different query. What username would terminate a string literal and comment out the rest of the WHERE clause?",
+      "text": "Registration is parameterised \u2014 but the stored value is later interpolated into a different query. What username would terminate a string literal and comment out the rest of the WHERE clause?",
       "cost": 50
     },
     {
@@ -17,8 +16,15 @@
       "cost": 100
     }
   ],
-  "skills": ["SQL Injection", "Second-Order", "Data Trust Boundaries"],
-  "mitre_techniques": ["T1190", "T1078"],
+  "skills": [
+    "SQL Injection",
+    "Second-Order",
+    "Data Trust Boundaries"
+  ],
+  "mitre_techniques": [
+    "T1190",
+    "T1078"
+  ],
   "docker_image": "siege/second-order-sqli:latest",
   "docker_port": 5000
 }

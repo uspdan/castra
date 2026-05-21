@@ -1,19 +1,18 @@
 {
-  "title": "Device Forensics: FortiGate — Live CLI",
+  "title": "Device Forensics: FortiGate \u2014 Live CLI",
   "slug": "device-fortigate-live",
-  "description": "FGT-PERIM-02 is still up. Connect to the device, run real FortiOS commands — `show system admin`, `show full-configuration`, `execute log display` — and reconstruct exactly how the attacker got in and what they changed.",
+  "description": "FGT-PERIM-02 is still up. Connect to the device, run real FortiOS commands \u2014 `show system admin`, `show full-configuration`, `execute log display` \u2014 and reconstruct exactly how the attacker got in and what they changed.",
   "category": "Network Device Forensics",
   "team": "blue",
   "difficulty": 4,
   "points": 550,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
       "text": "`connect fgt-perim-02`, any user/password. Start with `show system admin` and compare against ~/approved-admins.txt.",
       "cost": 25
     },
     {
-      "text": "The HTTPS admin access log is exposed for this exercise as `show admin-https-log` — pipe it with `| include Forwarded`.",
+      "text": "The HTTPS admin access log is exposed for this exercise as `show admin-https-log` \u2014 pipe it with `| include Forwarded`.",
       "cost": 50
     },
     {
@@ -21,9 +20,22 @@
       "cost": 50
     }
   ],
-  "skills": ["FortiOS", "Live Forensics", "Network Device", "Incident Response"],
-  "mitre_techniques": ["T1190", "T1078.003", "T1556", "T1098", "T1078"],
+  "skills": [
+    "FortiOS",
+    "Live Forensics",
+    "Network Device",
+    "Incident Response"
+  ],
+  "mitre_techniques": [
+    "T1190",
+    "T1078.003",
+    "T1556",
+    "T1098",
+    "T1078"
+  ],
   "docker_image": "siege/device-fortigate-live:latest",
   "docker_port": 2222,
-  "docker_config": {"profile": "default-strict"}
+  "docker_config": {
+    "profile": "default-strict"
+  }
 }

@@ -10,40 +10,63 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "What is the full path of the unauthorised setuid binary\nthe attacker dropped on LNX-WEB-01? (Absolute path.)",
         "hint": "auditd SYSCALL type=PATH with mode=04... \u2014 chmod\n4755 against a binary outside the normal setuid set.",
-        "answer": "REDACTED",
         "technique": "T1548.001"
     },
     "2": {
         "prompt": "What is the filename of the DLL injected into MsiExec.exe\non WIN-FIN-04? (Filename only, no path.)",
         "hint": "Sysmon EventID 7 (Image loaded) against `MsiExec.exe`\nfor an image outside `C:\\Windows\\System32`, immediately\nfollowed by EventID 8 with TargetImage=MsiExec.exe.",
-        "answer": "REDACTED",
         "technique": "T1055.001"
     },
     "3": {
         "prompt": "Which non-System SID was the parent logon for the new\nREDACTED that suddenly held SeTcbPrivilege on WIN-FIN-09?\n(SID format S-1-5-21-...-XXXX.)",
         "hint": "REDACTED 4672 \u2014 SeTcbPrivilege granted to REDACTED; trace\nthe SubjectLogonId back to its 4624 row for the SID.",
-        "answer": "REDACTED",
         "technique": "T1134.001"
     },
     "4": {
         "prompt": "Which dormant local account did the attacker reactivate\non LNX-WEB-02 to climb to root? (Username only.)",
         "hint": "auditd USER_CHAUTHTOK followed by a successful sshd\naccept for that user from 127.0.0.1.",
-        "answer": "REDACTED",
         "technique": "T1078.003"
     },
     "5": {
         "prompt": "What was the exact registry value written under the\nms-settings shell-open hijack key on WIN-FIN-04? (The\nData field of the (Default) value, verbatim.)",
         "hint": "Sysmon EventID 13 (RegistryValueSet) \u2014 TargetObject ends\nwith `\\ms-settings\\shell\\open\\command\\(Default)`.",
-        "answer": "C:\\Users\\REDACTED\\AppData\\Local\\Temp\\stage2.exe",
         "technique": "T1548.002"
     }
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:

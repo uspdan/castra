@@ -6,16 +6,23 @@
   "team": "red",
   "difficulty": 2,
   "points": 200,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
       "text": "Check for SUID binaries with find / -perm -4000",
       "cost": 50
     }
   ],
-  "skills": ["Privilege Escalation", "SUID", "PATH Hijacking"],
-  "mitre_techniques": ["T1548.001"],
+  "skills": [
+    "Privilege Escalation",
+    "SUID",
+    "PATH Hijacking"
+  ],
+  "mitre_techniques": [
+    "T1548.001"
+  ],
   "docker_image": "siege/suid-privesc:latest",
   "docker_port": 2222,
-  "docker_config": {"profile": "suid-allowed"}
+  "docker_config": {
+    "profile": "suid-allowed"
+  }
 }

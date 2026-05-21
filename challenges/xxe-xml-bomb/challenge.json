@@ -1,12 +1,11 @@
 {
-  "title": "XXE — XML eXternal Entity",
+  "title": "XXE \u2014 XML eXternal Entity",
   "slug": "xxe-xml-bomb",
   "description": "InvoiceLab ingests XML invoices with external-entity resolution enabled. Exfiltrate /flag.txt via an XXE entity reference.",
   "category": "Web Exploitation",
   "team": "red",
   "difficulty": 3,
   "points": 400,
-  "flag": "CTF{REDACTED}",
   "hints": [
     {
       "text": "Define a !ENTITY referencing file:///flag.txt and use it inside any of the invoice fields the response echoes back.",
@@ -17,8 +16,16 @@
       "cost": 75
     }
   ],
-  "skills": ["XXE", "XML", "lxml", "File Disclosure"],
-  "mitre_techniques": ["T1190", "T1005"],
+  "skills": [
+    "XXE",
+    "XML",
+    "lxml",
+    "File Disclosure"
+  ],
+  "mitre_techniques": [
+    "T1190",
+    "T1005"
+  ],
   "docker_image": "siege/xxe-xml-bomb:latest",
   "docker_port": 5000
 }

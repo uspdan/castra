@@ -10,7 +10,6 @@ category: Threat Hunting
 team: blue
 difficulty: 3
 points: 450
-flag: "CTF{REDACTED}"
 tactic_id: TA0010
 docker_port: 2222
 profile: default-strict
@@ -27,7 +26,6 @@ techniques:
       hint: |
         proxy.log — sum bytes_out for the host's beacon domain.
         Spike from the usual ~500-byte beacon size is the giveaway.
-      answer: 240
 
   - id: T1048.003
     description: |
@@ -41,7 +39,6 @@ techniques:
       hint: |
         dns_queries.log — RND-7's queries land on an unfamiliar
         SLD with a single record type repeated.
-      answer: REDACTED
 
   - id: T1567.002
     description: |
@@ -53,7 +50,6 @@ techniques:
         from host HR-3? (Just the bucket name, no s3:// prefix.)
       hint: |
         cli_history.log — search for aws s3 cp commands.
-      answer: REDACTED
 
   - id: T1029
     description: |
@@ -67,7 +63,6 @@ techniques:
       hint: |
         timeline.log on LEGAL-1 — the exfil transfers all
         share an identical hour window.
-      answer: REDACTED
 
   - id: T1020
     description: |
@@ -81,7 +76,6 @@ techniques:
         watcher.log.)
       hint: |
         watcher.log — line with `watch_path=…` and `event=created`.
-      answer: REDACTED
 
 logs:
   proxy.log: |

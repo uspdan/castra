@@ -10,40 +10,63 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+# Flag is not committed to the public source. The challenge container's
+# Dockerfile copies a sealed flag file (gitignored, root-owned mode 0600)
+# to /opt/flag.txt at build time, and we read it here.
+_FLAG_PATH = _os.environ.get("SIEGE_FLAG_PATH", "/opt/flag.txt")
+try:
+    with open(_FLAG_PATH) as _fh:
+        FLAG = _fh.read().strip()
+except FileNotFoundError:
+    FLAG = ""
 QUESTIONS = {
     "1": {
         "prompt": "What value did the attacker put in the `Forwarded:` header's\n`for=` parameter to trigger the auth bypass? (Exact value\nas it appears after `for=` and before the next semicolon\nor end of header.)",
         "hint": "admin-https.log \u2014 requests with `Forwarded: for=...;\nby=...` immediately before the rogue admin appears. The\ncanonical CVE-2022-40684 trick uses a specific local-looking\nidentity here.",
-        "answer": "REDACTED",
         "technique": "T1190"
     },
     "2": {
         "prompt": "What is the username of the rogue super_admin account\nadded during the bypass window? (Lowercase, as it appears\nin the config diff.)",
         "hint": "config-diff.txt \u2014 the `+config system admin / + edit ...`\nblock. The legitimate roster (in approved-admins.txt) does\nnot contain it.",
-        "answer": "REDACTED",
         "technique": "T1078.003"
     },
     "3": {
         "prompt": "Which FortiOS admin profile setting did the attacker leave\nunrestricted on the rogue account so it would accept\nlogins from any source IP? (Exact CLI config keyword.)",
         "hint": "config-diff.txt for that account \u2014 look for the absence /\nwildcard of `REDACTED`.",
-        "answer": "REDACTED",
         "technique": "T1556"
     },
     "4": {
         "prompt": "Which CIDR was added to the SSL-VPN portal's split-tunnel\nrouting-address list to expose the internal management\nsubnet? (Format x.x.x.x/yy.)",
         "hint": "config-diff.txt \u2014 within `config vpn ssl web portal / edit\nfull-access`, look for the new entry under\n`set split-tunneling-routing-address` or a referenced\nfirewall address group.",
-        "answer": "REDACTED",
         "technique": "T1098"
     },
     "5": {
         "prompt": "What is the source IP from which the rogue admin\nsubsequently authenticated via the web GUI? (Format x.x.x.x.)",
         "hint": "system-event.log \u2014 `event=login` with `status=success`\nand the new username from the previous question.",
-        "answer": "REDACTED",
         "technique": "T1078"
     }
 }
+
+
+# Answers are not committed to the public source. The challenge
+# container's Dockerfile copies ``secrets/answers/validators/<slug>.json``
+# (gitignored) to ``/opt/answers.json`` at build time, and the
+# loader below merges them into QUESTIONS before the validator
+# starts serving.
+import json as _json
+import os as _os
+
+_ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
+try:
+    with open(_ANSWERS_PATH) as _fh:
+        _SEALED_ANSWERS = _json.load(_fh)
+except FileNotFoundError:
+    _SEALED_ANSWERS = {}
+
+for _qid, _val in (_SEALED_ANSWERS or {}).items():
+    if _qid in QUESTIONS:
+        QUESTIONS[_qid]["answer"] = _val
+
 
 
 def _normalise(s: str) -> str:
