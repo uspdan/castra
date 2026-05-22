@@ -113,6 +113,7 @@ jobs:
           # tracked in docs/author-onboarding.md as a follow-up.
           if git grep -nE 'CTF\{[^}]+\}' \
               -- ':!*.flag.txt' ':!examples/' ':!docs/' \
+                 ':!.github/workflows/ci.yml' \
               | grep -v 'CTF{REDACTED}' \
               | grep -v 'CTF{EXAMPLE_flag_string}' \
               | grep -v 'CTF{<' ; then

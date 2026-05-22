@@ -36,7 +36,7 @@ container:
 flags:
   - id: f1
     type: exact
-    value: "CTF{REDACTED}}"
+    value: "CTF{{REDACTED}}"
     points: 100
 """,
         encoding="utf-8",
