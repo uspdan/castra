@@ -7,7 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 COPY docs/ /var/www/docs/
-COPY flag.txt /flag.txt
+COPY .flag.txt /flag.txt
 RUN chmod 0444 /flag.txt
 
 

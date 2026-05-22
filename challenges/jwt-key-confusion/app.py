@@ -22,8 +22,8 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+with open('/opt/flag.txt') as _f:
+    FLAG = _f.read().strip()
 # Generate an RS256 keypair once at startup.
 _priv = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 _pub = _priv.public_key()

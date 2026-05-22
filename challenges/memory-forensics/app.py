@@ -9,8 +9,8 @@ app = Flask(__name__)
 with open("/data/dump.json") as f:
     DUMP = json.load(f)
 
-FLAG = "CTF{REDACTED}"
-
+with open('/opt/flag.txt') as _f:
+    FLAG = _f.read().strip()
 HELP_TEXT = """Available commands:
   pslist          - List running processes
   netscan         - Show network connections

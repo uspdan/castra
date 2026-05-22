@@ -19,8 +19,8 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+with open('/opt/flag.txt') as _f:
+    FLAG = _f.read().strip()
 POSTS = [
     {"id": 1, "title": "Welcome to BlogQL", "body": "First post! Welcome.", "author": "team"},
     {"id": 2, "title": "On reliability",   "body": "Pillars: …",            "author": "team"},

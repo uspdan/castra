@@ -10,7 +10,7 @@ RUN { \
 
 COPY index.php /var/www/html/index.php
 COPY style.css /var/www/html/style.css
-COPY flag.txt /flag.txt
+COPY .flag.txt /flag.txt
 RUN chmod 0444 /flag.txt \
  && mkdir -p /var/www/html/uploads \
  && chown www-data:www-data /var/www/html/uploads \

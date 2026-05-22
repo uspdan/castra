@@ -8,7 +8,8 @@ app = Flask(__name__)
 with open("/data/logs.txt") as f:
     LOG_LINES = f.read().splitlines()
 
-FLAG = "CTF{REDACTED}"
+with open('/opt/flag.txt') as _f:
+    FLAG = _f.read().strip()
 CORRECT_IP = "10.0.0.47"
 CORRECT_USER = "admin"
 CORRECT_TIMESTAMP = "2024-03-15T14:23:47Z"

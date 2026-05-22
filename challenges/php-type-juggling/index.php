@@ -16,7 +16,7 @@
 // Don't tell anyone.
 
 $ADMIN_HASH = '0e462097431906509019562988736854';
-$FLAG = 'CTF{REDACTED}';
+$FLAG = trim(file_get_contents('/opt/flag.txt'));
 
 $error = '';
 $flag = '';

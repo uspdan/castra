@@ -18,9 +18,8 @@ PCAP_NETWORK = 1  # LINKTYPE_ETHERNET
 
 OUTPUT_PATH = '/output/capture.pcap'
 
-FLAG = 'CTF{REDACTED}'
-
-
+with open('/opt/flag.txt') as _f:
+    FLAG = _f.read().strip()
 def write_pcap_header(f):
     f.write(struct.pack('<IHHiIII',
         PCAP_MAGIC, PCAP_VERSION_MAJOR, PCAP_VERSION_MINOR,

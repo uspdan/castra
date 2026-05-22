@@ -20,8 +20,8 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 DB = "/tmp/accountvault.db"
-FLAG = "CTF{REDACTED}"
-
+with open('/opt/flag.txt') as _f:
+    FLAG = _f.read().strip()
 # Token -> account row id. In-memory; fresh per container.
 SESSIONS: dict[str, int] = {}
 

@@ -18,7 +18,8 @@ from flask import Flask, request, jsonify, make_response
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
+with open('/opt/flag.txt') as _f:
+    FLAG = _f.read().strip()
 COUPON_CODE = "WELCOME100"
 PROMO_VALUE = 100
 FLAG_PRICE = 1000

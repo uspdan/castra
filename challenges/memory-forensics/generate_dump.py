@@ -7,7 +7,8 @@ import random
 
 random.seed(42)
 
-FLAG = "CTF{REDACTED}"
+with open('/opt/flag.txt') as _f:
+    FLAG = _f.read().strip()
 FLAG_B64 = base64.b64encode(FLAG.encode()).decode()
 
 # Process list - normal Windows processes + one suspicious

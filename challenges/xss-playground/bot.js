@@ -18,7 +18,7 @@ module.exports = {
 
       await page.setCookie({
         name: 'flag',
-        value: 'CTF{REDACTED}',
+        value: require('fs').readFileSync('/opt/flag.txt', 'utf8').trim(),
         domain: 'localhost',
         path: '/',
         httpOnly: false,

@@ -10,8 +10,8 @@ app = Flask(__name__)
 with open("/data/logs.json") as f:
     LOGS = json.load(f)
 
-FLAG = "CTF{REDACTED}"
-
+with open('/opt/flag.txt') as _f:
+    FLAG = _f.read().strip()
 # Attack log indices (0-based) that must be detected
 ATTACK_INDICES = {3, 4}  # encoded powershell and schtasks persistence
 

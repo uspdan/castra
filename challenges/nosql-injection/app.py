@@ -15,8 +15,8 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+with open('/opt/flag.txt') as _f:
+    FLAG = _f.read().strip()
 # Admin is intentionally first — so any "match-anything" bypass
 # hits admin before it hits guest.
 USERS = [

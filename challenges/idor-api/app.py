@@ -11,6 +11,10 @@ admin's private note containing the flag.
 
 from flask import Flask, request, jsonify
 
+with open('/opt/flag.txt') as _f:
+    FLAG = _f.read().strip()
+
+
 app = Flask(__name__)
 
 # Static demo dataset. The flag is inside admin's note #1.
@@ -27,7 +31,7 @@ NOTES = {
     19:   [{"id": 301, "title": "passwords",       "body": "see 1password"}],
     1001: [
         {"id": 901, "title": "incident-handover",
-         "body": "Flag rotation key: CTF{REDACTED}"},
+         "body": f"Flag rotation key: {FLAG}"},
         {"id": 902, "title": "ops-runbook",
          "body": "Restart sequence: db -> cache -> api"},
     ],

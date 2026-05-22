@@ -8,8 +8,8 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 SAMPLES_DIR = "/samples"
-FLAG = "CTF{REDACTED}"
-
+with open('/opt/flag.txt') as _f:
+    FLAG = _f.read().strip()
 with open(os.path.join(SAMPLES_DIR, "manifest.json")) as f:
     MANIFEST = json.load(f)
 

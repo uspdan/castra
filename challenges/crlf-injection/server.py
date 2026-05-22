@@ -17,8 +17,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote
 import re
 
-FLAG = b"CTF{REDACTED}"
-
+with open('/opt/flag.txt', 'rb') as _f:
+    FLAG = _f.read().strip()
 INDEX = b"""<!doctype html>
 <html><head><title>RedirectorCo</title><style>
 body{font-family:system-ui;background:#0c0c18;color:#e8e8e8;padding:32px;max-width:760px;margin:auto}

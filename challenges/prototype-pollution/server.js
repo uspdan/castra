@@ -13,7 +13,7 @@ const express = require('express');
 const app = express();
 app.use(express.json({ limit: '64kb' }));
 
-const FLAG = 'CTF{REDACTED}';
+const FLAG = require('fs').readFileSync('/opt/flag.txt', 'utf8').trim();
 const SESSIONS = Object.create(null);  // safe — but the prefs INSIDE are not
 
 function newSession() {

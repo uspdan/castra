@@ -4,8 +4,8 @@ from urllib.parse import urlparse
 
 app = Flask(__name__)
 
-FLAG = 'CTF{REDACTED}'
-
+with open('/opt/flag.txt') as _f:
+    FLAG = _f.read().strip()
 BLOCKED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0']
 
 

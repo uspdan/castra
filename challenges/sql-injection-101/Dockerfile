@@ -4,8 +4,6 @@ COPY index.php /var/www/html/index.php
 COPY setup.php /var/www/html/setup.php
 COPY style.css /var/www/html/style.css
 RUN mkdir -p /var/www/data && chown www-data:www-data /var/www/data
-RUN php /var/www/html/setup.php
-
 # Sealed answer + flag sidecars staged by scripts/stage-answers.sh
 # before docker build. Root-owned, mode 0600 inside the image —
 # readable by the validator (root) and unreadable by the player
@@ -15,6 +13,8 @@ COPY .flag.txt /opt/flag.txt
 
 RUN chmod 600 /opt/answers.json /opt/flag.txt && \
     chown root:root /opt/answers.json /opt/flag.txt
+
+RUN php /var/www/html/setup.php
 
 EXPOSE 80
 CMD ["apache2-foreground"]

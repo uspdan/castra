@@ -6,9 +6,8 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 SECRET_KEY = 's3cr3t_k3y_d0_n0t_l34k'
-FLAG = 'CTF{REDACTED}'
-
-
+with open('/opt/flag.txt') as _f:
+    FLAG = _f.read().strip()
 @app.route('/')
 def index():
     return '''<!DOCTYPE html>

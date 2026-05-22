@@ -14,8 +14,8 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-FLAG = "CTF{REDACTED}"
-
+with open('/opt/flag.txt') as _f:
+    FLAG = _f.read().strip()
 DIRECTORY = [
     {"uid": "admin", "password": "H4nd3d-D0wn-1n-secret", "role": "admin", "cn": "Site Admin"},
     {"uid": "guest", "password": "guest",                "role": "user",  "cn": "Guest Account"},

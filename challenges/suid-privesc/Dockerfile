@@ -20,7 +20,17 @@ RUN useradd -m -s /bin/bash ctfuser && \
     echo 'ctfuser:ctfuser' | chpasswd
 
 # Create the flag file owned by root
-RUN echo 'CTF{REDACTED}' > /root/flag.txt && \
+# Sealed answer + flag sidecars staged by scripts/stage-answers.sh
+# before docker build. Root-owned, mode 0600 inside the image —
+# readable by the validator (root) and unreadable by the player
+# (hunter).
+COPY .answers.json /opt/answers.json
+COPY .flag.txt /opt/flag.txt
+
+RUN chmod 600 /opt/answers.json /opt/flag.txt && \
+    chown root:root /opt/answers.json /opt/flag.txt
+
+RUN cp /opt/flag.txt /root/flag.txt && \
     chmod 600 /root/flag.txt
 
 # Create dummy data files for the backup tool
@@ -38,16 +48,6 @@ RUN gcc -o /usr/local/bin/siege-backup /tmp/siege-backup.c && \
     chmod u+s /usr/local/bin/siege-backup && \
     rm /tmp/siege-backup.c
 
-
-# Sealed answer + flag sidecars staged by scripts/stage-answers.sh
-# before docker build. Root-owned, mode 0600 inside the image —
-# readable by the validator (root) and unreadable by the player
-# (hunter).
-COPY .answers.json /opt/answers.json
-COPY .flag.txt /opt/flag.txt
-
-RUN chmod 600 /opt/answers.json /opt/flag.txt && \
-    chown root:root /opt/answers.json /opt/flag.txt
 
 EXPOSE 2222
 
