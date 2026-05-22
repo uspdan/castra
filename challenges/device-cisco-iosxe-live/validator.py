@@ -1,6 +1,7 @@
 """Loopback validator for the Cisco IOS XE CVE-2023-20198 challenge."""
 
 import re
+import os as _os
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
@@ -77,7 +78,6 @@ QUESTIONS = {
 # loader below merges them into QUESTIONS before the validator
 # starts serving.
 import json as _json
-import os as _os
 
 _ANSWERS_PATH = _os.environ.get("SIEGE_ANSWERS_PATH", "/opt/answers.json")
 try:
