@@ -18,15 +18,6 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 20
 
-    services:
-      docker:
-        image: docker:24-dind
-        options: >-
-          --privileged
-          --health-cmd="docker info >/dev/null 2>&1 || exit 1"
-          --health-interval=10s
-          --health-retries=5
-
     steps:
       - name: checkout
         uses: actions/checkout@v4
@@ -58,7 +49,6 @@ jobs:
     name: frontend — vite build + lint
     runs-on: ubuntu-22.04
     timeout-minutes: 10
-    if: hashFiles('frontend/package.json') != ''
 
     steps:
       - name: checkout
