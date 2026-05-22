@@ -1,0 +1,134 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-flight runs when a branch is pushed twice in quick
+# succession — the older run's signal is no longer load-bearing.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-tests:
+    name: backend — pytest + coverage gate
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+
+    services:
+      docker:
+        image: docker:24-dind
+        options: >-
+          --privileged
+          --health-cmd="docker info >/dev/null 2>&1 || exit 1"
+          --health-interval=10s
+          --health-retries=5
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: set up python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements*.txt
+
+      - name: install backend deps
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-test.txt
+
+      - name: run pytest with coverage gate
+        working-directory: backend
+        env:
+          APP_ENV: test
+          SECRET_KEY: ci-test-secret-do-not-use-in-prod-0123456789abcdef0123456789abcdef
+          ADMIN_PASSWORD: CIAdminPasswordA1!
+          ALLOWED_ORIGINS: http://localhost:3000
+        run: |
+          python -m pytest tests/ -v
+
+  frontend-build:
+    name: frontend — vite build + lint
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    if: hashFiles('frontend/package.json') != ''
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: set up node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: install
+        working-directory: frontend
+        run: npm ci
+
+      - name: lint
+        working-directory: frontend
+        run: npm run lint --if-present
+
+      - name: build
+        working-directory: frontend
+        run: npm run build
+
+  secret-scan:
+    name: secret-scan — trufflehog
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: trufflehog (verified-only)
+        uses: trufflesecurity/trufflehog@v3.81.10
+        with:
+          path: ./
+          # Only verified secrets fail the build. Heuristic-only hits
+          # become PR comments via the action's default behaviour.
+          extra_args: --only-verified
+
+  flag-leak-check:
+    name: flag-leak — refuse cleartext CTF flags in tracked source
+    runs-on: ubuntu-22.04
+    timeout-minutes: 2
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: scan tracked files for ``CTF{...}`` literals
+        run: |
+          set -eu
+          # Permit the redacted marker and the explicit template
+          # placeholder. Anything else means cleartext flag back in
+          # the tree — fail the build.
+          # examples/ ships intentionally-leaky training artefacts
+          # (pre-rendered memory dumps, sample evtx, etc.) for the
+          # challenge-author tutorial. Out of scope for this gate —
+          # tracked in docs/author-onboarding.md as a follow-up.
+          if git grep -nE 'CTF\{[^}]+\}' \
+              -- ':!*.flag.txt' ':!examples/' ':!docs/' \
+              | grep -v 'CTF{REDACTED}' \
+              | grep -v 'CTF{EXAMPLE_flag_string}' \
+              | grep -v 'CTF{<' ; then
+            echo
+            echo "::error::Cleartext CTF flag literal detected in tracked source."
+            echo "::error::Flags must live under secrets/ and be staged via scripts/stage-answers.sh"
+            exit 1
+          fi
+          echo "no cleartext CTF{...} literals in tracked source — ok"
