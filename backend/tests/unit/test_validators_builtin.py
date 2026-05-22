@@ -38,15 +38,15 @@ class TestExact:
 
     async def test_wrong_submission_returns_false(self, context):
         v = ExactValidator()
-        digest = hashlib.sha256(b"CTF{REDACTED}").hexdigest()
-        r = await v.validate("CTF{REDACTED}", {"value_hash": digest}, context)
+        digest = hashlib.sha256(b"expected-value").hexdigest()
+        r = await v.validate("some-other-submission", {"value_hash": digest}, context)
         assert r.correct is False
 
     async def test_case_insensitive_mode(self, context):
         v = ExactValidator()
-        digest = hash_exact_value("CTF{REDACTED}", case_sensitive=False)
+        digest = hash_exact_value("EXPECTED-VALUE", case_sensitive=False)
         r = await v.validate(
-            "ctf{example}", {"value_hash": digest, "case_sensitive": False}, context
+            "expected-value", {"value_hash": digest, "case_sensitive": False}, context
         )
         assert r.correct is True
 
@@ -74,7 +74,7 @@ class TestRegex:
     async def test_full_match(self, context):
         v = RegexValidator()
         r = await v.validate(
-            "CTF{REDACTED}", {"pattern": r"CTF\{[a-z0-9]+\}"}, context
+            "FLAG{abc123}", {"pattern": r"FLAG\{[a-z0-9]+\}"}, context
         )
         assert r.correct is True
 
@@ -89,8 +89,8 @@ class TestRegex:
         # Substring match should NOT be accepted; the spec is fullmatch.
         v = RegexValidator()
         r = await v.validate(
-            "garbage CTF{REDACTED} trailing",
-            {"pattern": r"CTF\{[a-z]+\}"},
+            "garbage FLAG{abc} trailing",
+            {"pattern": r"FLAG\{[a-z]+\}"},
             context,
         )
         assert r.correct is False

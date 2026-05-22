@@ -29,12 +29,12 @@ flags:
     type: exact
     points: 100
     label: "Elevation timestamp"
-    value: "CTF{REDACTED}"
+    value: "CTF{2026-04-20T23:43:14Z}"
 
 hints:
   - text: "Filter for `action=elevate` events — there is exactly one in the log."
     cost: 10
-  - text: "The flag is wrapped as `CTF{REDACTED}`."
+  - text: "The flag is wrapped as `CTF{<iso-8601-timestamp>}`."
     cost: 25
 
 skills:
@@ -56,11 +56,11 @@ tests:
   cases:
     - name: "correct timestamp passes"
       flag_id: elevation_ts
-      submission: "CTF{REDACTED}"
+      submission: "CTF{2026-04-20T23:43:14Z}"
       expected: pass
     - name: "different timestamp fails"
       flag_id: elevation_ts
-      submission: "CTF{REDACTED}"
+      submission: "CTF{2026-04-20T15:00:00Z}"
       expected: fail
     - name: "missing wrapper fails"
       flag_id: elevation_ts

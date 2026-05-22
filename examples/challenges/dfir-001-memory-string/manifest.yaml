@@ -53,9 +53,9 @@ tests:
   cases:
     - name: "exact flag passes"
       flag_id: env_flag
-      submission: "CTF{REDACTED}"
+      submission: "CTF{m3m_str1ngs_dont_l13}"
       expected: pass
     - name: "prefix-only fails"
       flag_id: env_flag
-      submission: "CTF{REDACTED}"
+      submission: "CTF{m3m_str1ngs}"
       expected: fail

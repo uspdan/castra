@@ -38,9 +38,9 @@ class TestLegacyPath:
 
     async def test_wrong_submission_returns_false(self):
         c = _bare_challenge()
-        c.flag_hash = hash_exact_value("CTF{REDACTED}")
+        c.flag_hash = hash_exact_value("expected-value")
         c.flag_definitions = []
-        result = await dispatch_submission("CTF{REDACTED}", c)
+        result = await dispatch_submission("some-other-thing", c)
         assert result.correct is False
         assert result.flag_id is None
 
@@ -74,11 +74,11 @@ class TestV1Path:
             flag_id="r1",
             flag_type="regex",
             points=100,
-            config={"pattern": r"CTF\{[a-z]+\}", "case_sensitive": True},
+            config={"pattern": r"FLAG\{[a-z]+\}", "case_sensitive": True},
         )
         c.flag_definitions = [flag]
         c.flag_hash = None
-        result = await dispatch_submission("CTF{REDACTED}", c)
+        result = await dispatch_submission("FLAG{matched}", c)
         assert result.correct is True
         assert result.flag_id == "r1"
 
@@ -102,19 +102,19 @@ class TestV1Path:
             flag_id="f1",
             flag_type="exact",
             points=50,
-            value_hash=hash_exact_value("CTF{REDACTED}"),
+            value_hash=hash_exact_value("first-expected"),
             config={"case_sensitive": True},
         )
         second = ChallengeFlag(
             flag_id="f2",
             flag_type="exact",
             points=50,
-            value_hash=hash_exact_value("CTF{REDACTED}"),
+            value_hash=hash_exact_value("second-expected"),
             config={"case_sensitive": True},
         )
         c.flag_definitions = [first, second]
         c.flag_hash = None
-        result = await dispatch_submission("CTF{REDACTED}", c)
+        result = await dispatch_submission("second-expected", c)
         assert result.correct is True
         assert result.flag_id == "f2"
 
