@@ -47,6 +47,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import WebhookDelivery, WebhookSubscription
+from app.services.webhook_ssrf import UnsafeUrlError, assert_url_safe
 
 
 logger = structlog.get_logger()
@@ -103,7 +104,13 @@ async def deliver_event(
     delivery_id = _secrets.token_hex(8)
     canonical_body = _canonical_body(event_type, delivery_id, payload)
 
+    # R32: production callers reuse the module-scoped client so the
+    # connection pool persists across attempts + fan-outs. Tests
+    # still pass ``http_client_factory`` to stub the HTTP layer.
     factory = http_client_factory or _default_http_client
+    shared_client = (
+        _get_shared_client() if http_client_factory is None else None
+    )
     # HTTP fan-out runs concurrently; the results (per-subscription
     # status / error) are persisted to the DB *serially* afterwards.
     # Mixing concurrent ``db.add`` / ``db.flush`` calls into the same
@@ -118,6 +125,7 @@ async def deliver_event(
                 delivery_id=delivery_id,
                 body=canonical_body,
                 factory=factory,
+                shared_client=shared_client,
             )
             for sub in subscriptions
         ),
@@ -186,16 +194,55 @@ def _canonical_body(
     )
 
 
-def _default_http_client():
-    # R24 audit finding — both options match the current httpx
-    # defaults, but pin them explicitly so a future httpx release
-    # can't quietly turn on redirect-following (re-introducing the
-    # SSRF surface tracked in R4) or relax TLS verification.
+def _new_http_client() -> httpx.AsyncClient:
+    """Construct a fresh client with the platform's TLS + redirect
+    pins. Used by the lazy module-scoped client below + by tests
+    that want a private client.
+
+    R24 audit finding: both options match the current httpx
+    defaults, but pin them explicitly so a future httpx release
+    can't quietly turn on redirect-following (re-introducing the
+    SSRF surface tracked in R4) or relax TLS verification.
+    """
+
     return httpx.AsyncClient(
         timeout=_DEFAULT_TIMEOUT_S,
         verify=True,
         follow_redirects=False,
     )
+
+
+# R32 audit finding — keep one httpx client per process and reuse
+# its connection pool. Construction-per-attempt was paying the full
+# TCP + TLS handshake on every dispatch, which is noticeable when a
+# fan-out hits many subscriptions or a high-frequency event type.
+_shared_client: httpx.AsyncClient | None = None
+
+
+def _get_shared_client() -> httpx.AsyncClient:
+    """Return the lazily-built module-scoped client. Idempotent."""
+
+    global _shared_client
+    if _shared_client is None or _shared_client.is_closed:
+        _shared_client = _new_http_client()
+    return _shared_client
+
+
+async def aclose_shared_client() -> None:
+    """Close the module client. Call from the FastAPI lifespan
+    shutdown hook; idempotent."""
+
+    global _shared_client
+    if _shared_client is not None and not _shared_client.is_closed:
+        await _shared_client.aclose()
+    _shared_client = None
+
+
+# Backwards-compatible alias preserved for any caller still passing
+# the old factory by name. Production code uses the shared client
+# directly via ``_get_shared_client()``.
+def _default_http_client():
+    return _new_http_client()
 
 
 @dataclass(frozen=True)
@@ -216,6 +263,7 @@ async def _attempt_one(
     delivery_id: str,
     body: bytes,
     factory,
+    shared_client: httpx.AsyncClient | None = None,
 ) -> _AttemptOutcome:
     """Pure HTTP attempt for a single subscription.
 
@@ -231,11 +279,39 @@ async def _attempt_one(
         _EVENT_HEADER: event_type,
     }
     started = time.monotonic()
+    # R4 audit finding — re-resolve at dispatch time. The
+    # create-time check (in routers/v1/webhooks.py) doesn't catch
+    # DNS-rebinding: an attacker-controlled hostname can return a
+    # public IP on the first lookup and a private IP on subsequent
+    # lookups. There's still a small TOCTOU window between this
+    # check and httpx's own resolve, but it dramatically narrows
+    # the surface; a transport-level resolved-IP pin is the next
+    # tier of hardening.
     try:
-        async with factory() as client:
-            response = await client.post(
+        assert_url_safe(subscription.target_url)
+    except UnsafeUrlError as exc:
+        elapsed_ms = max(0, int((time.monotonic() - started) * 1000))
+        return _AttemptOutcome(
+            subscription=subscription,
+            status="refused_ssrf",
+            http_status=None,
+            response_ms=elapsed_ms,
+            error=f"refused at dispatch: {exc}",
+        )
+    try:
+        if shared_client is not None:
+            # Production path — reuse the module client (R32). No
+            # ``async with`` here; closing the shared client between
+            # attempts defeats the whole point of sharing it. The
+            # lifespan shutdown hook closes it on app teardown.
+            response = await shared_client.post(
                 subscription.target_url, content=body, headers=headers
             )
+        else:
+            async with factory() as client:
+                response = await client.post(
+                    subscription.target_url, content=body, headers=headers
+                )
         elapsed_ms = max(0, int((time.monotonic() - started) * 1000))
         if 200 <= response.status_code < 300:
             return _AttemptOutcome(
@@ -310,12 +386,14 @@ async def replay_delivery(
         delivery.event_type, delivery.delivery_id, delivery.payload or {}
     )
     factory = http_client_factory or _default_http_client
+    shared_client = _get_shared_client() if http_client_factory is None else None
     outcome = await _attempt_one(
         subscription=subscription,
         event_type=delivery.event_type,
         delivery_id=delivery.delivery_id,
         body=canonical_body,
         factory=factory,
+        shared_client=shared_client,
     )
 
     # Update the subscription's "last_*" cache.

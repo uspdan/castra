@@ -148,6 +148,14 @@ async def lifespan(app: FastAPI):
         await redis_conn.close()
     except Exception:
         pass
+
+    # R32: close the module-scoped webhook httpx client so the
+    # outbound connection pool drains cleanly on shutdown.
+    try:
+        from app.services.webhook_dispatch import aclose_shared_client
+        await aclose_shared_client()
+    except Exception:
+        pass
     logger.info("Shutdown complete.")
 
 

@@ -11,6 +11,26 @@ from app.models import UserRole, WebhookSubscription
 pytestmark = pytest.mark.integration
 
 
+@pytest.fixture(autouse=True)
+def _bypass_ssrf_guard(monkeypatch):
+    """R4 SSRF guard refuses ``example.invalid`` (no DNS A record)
+    and ``127.0.0.1``. The webhook admin tests build subscriptions
+    against those by design — they're either asserting auth gates,
+    listing/deleting rows, or capturing the dispatch behaviour via
+    a stub HTTP client. Bypass the guard so the existing fixtures
+    keep working; the guard itself is exercised in
+    ``test_webhook_ssrf.py``."""
+
+    monkeypatch.setattr(
+        "app.routers.v1.webhooks.assert_url_safe",
+        lambda url: None,
+    )
+    monkeypatch.setattr(
+        "app.services.webhook_dispatch.assert_url_safe",
+        lambda url: None,
+    )
+
+
 # ---------------------------------------------------------------------------
 # auth gates
 # ---------------------------------------------------------------------------

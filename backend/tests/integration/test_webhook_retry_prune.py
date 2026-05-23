@@ -18,6 +18,19 @@ from app.services.webhook_dispatch import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _bypass_ssrf_guard(monkeypatch):
+    """R4 SSRF guard refuses ``example.invalid`` (no DNS A record).
+    These tests stub the HTTP client wholesale, so the guard isn't
+    validating real reachability — bypass it. The guard itself is
+    exercised in ``test_webhook_ssrf.py``."""
+
+    monkeypatch.setattr(
+        "app.services.webhook_dispatch.assert_url_safe",
+        lambda url: None,
+    )
+
+
 pytestmark = pytest.mark.integration
 
 

@@ -112,4 +112,18 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         if request.url.path not in _DOC_PATHS:
             response.headers.setdefault("Content-Security-Policy", self._csp)
 
+        # R33 audit finding — refuse to let intermediate caches store
+        # per-user responses. We can't reliably tell *here* whether
+        # the request carried an Authorization header (the actual
+        # principal is resolved deeper, inside route deps), so apply
+        # the strict ``private, no-store`` policy whenever the
+        # client presented a bearer token at all. Endpoints that
+        # legitimately want caching (eg. the static SPA + health
+        # endpoints) don't carry Authorization headers from the
+        # SPA, so they're untouched.
+        if request.headers.get("authorization"):
+            response.headers.setdefault(
+                "Cache-Control", "private, no-store"
+            )
+
         return response

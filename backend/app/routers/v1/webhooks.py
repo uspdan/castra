@@ -30,6 +30,7 @@ from app.services.webhook_dispatch import (
     generate_subscription_secret,
     replay_delivery,
 )
+from app.services.webhook_ssrf import UnsafeUrlError, assert_url_safe
 
 
 router = APIRouter()
@@ -46,6 +47,14 @@ async def create_webhook_v1(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> WebhookCreatedResponse:
+    # R4 audit finding — refuse subscriptions that point at internal
+    # services (loopback, link-local, private CIDRs, cloud IMDS) so
+    # an admin-token compromise can't pivot the dispatch worker into
+    # the deployment network.
+    try:
+        assert_url_safe(str(payload.target_url))
+    except UnsafeUrlError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     secret = generate_subscription_secret()
     sub = WebhookSubscription(
         owner_user_id=admin.id,

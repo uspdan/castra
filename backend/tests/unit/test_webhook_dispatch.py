@@ -28,6 +28,19 @@ from app.services.webhook_dispatch import (
 pytestmark = pytest.mark.integration  # uses db_session
 
 
+@pytest.fixture(autouse=True)
+def _bypass_ssrf_guard(monkeypatch):
+    """The R4 SSRF guard refuses ``example.invalid`` (won't resolve)
+    and any loopback target the dispatch happy-path tests reuse.
+    Tests in this file mock the HTTP client wholesale, so the guard
+    isn't validating real network reachability — bypass it."""
+
+    monkeypatch.setattr(
+        "app.services.webhook_dispatch.assert_url_safe",
+        lambda url: None,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Pure helpers
 # ---------------------------------------------------------------------------

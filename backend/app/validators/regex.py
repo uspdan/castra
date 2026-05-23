@@ -34,13 +34,29 @@ try:  # pragma: no cover — exercised in CI; local fallback varies by platform
 
     _ENGINE = "re2"
 except ImportError:  # pragma: no cover
+    # R27 audit finding — until this commit we silently fell back to
+    # stdlib ``re`` and warn-logged. That left the regex flag
+    # validator exposed to catastrophic-backtracking patterns
+    # (ReDoS) on any deploy where google-re2 failed to install.
+    # Allow the fallback only when SIEGE_ALLOW_RE_FALLBACK is set
+    # (dev escape hatch); production refuses to boot.
+    import os as _os
+
     _re2 = None
-    _ENGINE = "re"
-    _logger.warning(
-        "google-re2 not importable; falling back to stdlib 're' — patterns "
-        "vulnerable to catastrophic backtracking will run unsandboxed. The "
-        "platform still enforces an outer asyncio.timeout per submission."
-    )
+    if _os.environ.get("SIEGE_ALLOW_RE_FALLBACK") == "1":
+        _ENGINE = "re"
+        _logger.warning(
+            "google-re2 not importable; falling back to stdlib 're' under "
+            "SIEGE_ALLOW_RE_FALLBACK=1. ReDoS patterns will be evaluated "
+            "without backtracking protection. Refuse to set this in prod."
+        )
+    else:
+        raise RuntimeError(
+            "google-re2 is required for the regex flag validator (ReDoS "
+            "defence). Install it via ``pip install google-re2``, or set "
+            "SIEGE_ALLOW_RE_FALLBACK=1 for a local dev workaround. The "
+            "fallback is refused in production."
+        )
 
 
 def _compile_re2(pattern: str, *, case_sensitive: bool):
