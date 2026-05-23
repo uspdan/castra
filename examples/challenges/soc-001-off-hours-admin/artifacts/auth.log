@@ -1,0 +1,14 @@
+2026-04-20T08:54:11Z auth-server INFO  user=jsmith         action=login        result=success ip=10.10.4.18    mfa=ok
+2026-04-20T09:12:34Z auth-server INFO  user=mchen          action=login        result=success ip=10.10.4.27    mfa=ok
+2026-04-20T11:48:02Z auth-server INFO  user=jsmith         action=logout       result=success ip=10.10.4.18
+2026-04-20T13:33:48Z auth-server INFO  user=mchen          action=logout       result=success ip=10.10.4.27
+2026-04-20T17:02:55Z auth-server INFO  user=jsmith         action=login        result=success ip=10.10.4.18    mfa=ok
+2026-04-20T17:50:08Z auth-server INFO  user=jsmith         action=logout       result=success ip=10.10.4.18
+2026-04-20T23:41:17Z auth-server WARN  user=svc_backup     action=login        result=failure ip=185.220.101.4 reason=password
+2026-04-20T23:41:42Z auth-server WARN  user=svc_backup     action=login        result=failure ip=185.220.101.4 reason=password
+2026-04-20T23:42:09Z auth-server INFO  user=svc_backup     action=login        result=success ip=185.220.101.4 mfa=bypass_admin_token
+2026-04-20T23:43:14Z auth-server INFO  user=svc_backup     action=elevate      result=success target_role=domain_admin
+2026-04-20T23:51:02Z auth-server INFO  user=svc_backup     action=read         result=success resource=//fileserver/finance/2025-Q4
+2026-04-21T00:09:48Z auth-server INFO  user=svc_backup     action=read         result=success resource=//fileserver/hr/comp-bands
+2026-04-21T00:14:31Z auth-server INFO  user=svc_backup     action=logout       result=success ip=185.220.101.4
+2026-04-21T07:55:43Z auth-server INFO  user=jsmith         action=login        result=success ip=10.10.4.18    mfa=ok

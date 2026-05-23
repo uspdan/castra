@@ -49,6 +49,10 @@ nginx/certs/
 # synthetic data the hunter must analyse; without them the
 # challenge doesn't work.
 !challenges/**/logs/*.log
+# Example challenge artefacts (training material) — keep them tracked
+# so the loader integration tests can validate against the manifest
+# digests committed alongside.
+!examples/challenges/**/artifacts/*.log
 .memory-backups/
 .env.local
 .env.*.local

@@ -20,48 +20,8 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  backend-tests-unit:
-    name: backend — unit tests + coverage gate
-    runs-on: ubuntu-22.04
-    timeout-minutes: 15
-
-    steps:
-      - name: checkout
-        uses: actions/checkout@v4
-
-      - name: set up python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
-          cache-dependency-path: backend/requirements*.txt
-
-      - name: install backend deps
-        working-directory: backend
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt -r requirements-test.txt
-
-      - name: generate ephemeral CI test secret
-        id: ci-env
-        run: |
-          # Match Settings.SECRET_KEY min_length=32 — generate per-job.
-          echo "SECRET_KEY=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
-
-      - name: run unit tests with coverage gate
-        working-directory: backend
-        env:
-          APP_ENV: test
-          ADMIN_PASSWORD: CIAdminPasswordA1!
-          ALLOWED_ORIGINS: http://localhost:3000
-        run: |
-          # The project-wide coverage floor lives in pytest.ini
-          # (--cov-fail-under=80). We honour it on the unit tier;
-          # the integration tier runs separately below.
-          python -m pytest tests/unit/ -v
-
-  backend-tests-integration:
-    name: backend — integration tests
+  backend-tests:
+    name: backend — full test suite + coverage gate
     runs-on: ubuntu-22.04
     timeout-minutes: 25
 
@@ -109,9 +69,10 @@ jobs:
 
       - name: generate ephemeral CI test secret
         run: |
+          # Match Settings.SECRET_KEY min_length=32 — generate per-job.
           echo "SECRET_KEY=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
 
-      - name: run integration tests
+      - name: run full test suite (unit + integration) with coverage gate
         working-directory: backend
         env:
           APP_ENV: test
@@ -120,11 +81,12 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://siege:siege_secret@localhost:5432/siege_range_test
           REDIS_URL: redis://localhost:6379/0
         run: |
-          # Integration suite hits the real Postgres + Redis services
-          # above. --no-cov here because coverage is enforced on the
-          # unit tier; running both tiers under the same gate would
-          # double-count.
-          python -m pytest tests/integration/ -v --no-cov
+          # Combined unit + integration run so the project-wide
+          # 80% coverage gate from pytest.ini sees the full call
+          # graph. Running them separately under the same gate
+          # double-counts shared modules without covering the
+          # ones only one tier exercises.
+          python -m pytest tests/ -v
 
   frontend-build:
     name: frontend — vite build + lint
@@ -172,14 +134,15 @@ jobs:
         run: pip install pip-audit
 
       - name: audit backend requirements
-        # R13 / R14: fail on HIGH or CRITICAL findings. Lower
-        # severities are reported but don't block. The
-        # ``--vulnerability-service osv`` flag uses the OSV
-        # database, which is what GitHub uses for advisory data.
+        # R13 / R14: fail on HIGH or CRITICAL findings. The
+        # editable ``../packages/bluerange-spec`` line in
+        # requirements-test.txt resolves relative to backend/, so
+        # cd in first.
+        working-directory: backend
         run: |
           pip-audit \
-            --requirement backend/requirements.txt \
-            --requirement backend/requirements-test.txt \
+            --requirement requirements.txt \
+            --requirement requirements-test.txt \
             --strict \
             --vulnerability-service osv
 
@@ -247,6 +210,7 @@ jobs:
           # tracked in docs/author-onboarding.md as a follow-up.
           if git grep -nE 'CTF\{[^}]+\}' \
               -- ':!*.flag.txt' ':!examples/' ':!docs/' \
+                 ':!.claude/' \
                  ':!.github/workflows/ci.yml' \
               | grep -v 'CTF{REDACTED}' \
               | grep -v 'CTF{{REDACTED}}' \

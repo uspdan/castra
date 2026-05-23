@@ -193,6 +193,13 @@ function MfaSection({ user, setUser }) {
   const [code, setCode] = useState('')
   const [recoveryCodes, setRecoveryCodes] = useState(null)
   const [busy, setBusy] = useState(false)
+  // R10 audit finding — both /mfa/enroll and /mfa/confirm now require
+  // the caller's current account password. We collect it on the
+  // "Enable MFA" panel and keep it in state through confirm so we
+  // don't ask twice. The password is held in component state only
+  // (never persisted) and cleared once enrolment completes.
+  const [enrollPw, setEnrollPw] = useState('')
+  const [enrollCurrentCode, setEnrollCurrentCode] = useState('')
   const [disablePw, setDisablePw] = useState('')
   const [disableCode, setDisableCode] = useState('')
 
@@ -201,7 +208,14 @@ function MfaSection({ user, setUser }) {
   const handleStartEnroll = async () => {
     setBusy(true)
     try {
-      const res = await client.post('/api/v1/auth/mfa/enroll')
+      const body = { password: enrollPw }
+      // If MFA is already enabled, the backend also requires a valid
+      // current TOTP so a stolen access token cannot rotate the
+      // factor without knowing the live one.
+      if (mfaEnabled && enrollCurrentCode) {
+        body.current_code = enrollCurrentCode
+      }
+      const res = await client.post('/api/v1/auth/mfa/enroll', body)
       setEnrollData(res.data)
       setEnrolling(true)
     } catch (err) {
@@ -214,10 +228,15 @@ function MfaSection({ user, setUser }) {
   const handleConfirm = async () => {
     setBusy(true)
     try {
-      const res = await client.post('/api/v1/auth/mfa/confirm', { code })
+      const res = await client.post('/api/v1/auth/mfa/confirm', {
+        password: enrollPw,
+        code,
+      })
       setRecoveryCodes(res.data.recovery_codes || [])
       setEnrolling(false)
       setCode('')
+      setEnrollPw('')
+      setEnrollCurrentCode('')
       // Refresh user state to pick up mfa_enabled=true.
       const me = await client.get('/api/v1/auth/me')
       setUser?.(me.data)
@@ -361,9 +380,19 @@ function MfaSection({ user, setUser }) {
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             Add a second factor to your account. You'll be asked for a code from your authenticator app each time you sign in.
           </p>
+          <Field label="Current password">
+            <input
+              type="password"
+              value={enrollPw}
+              onChange={(e) => setEnrollPw(e.target.value)}
+              data-testid="settings-mfa-enroll-password"
+              className="w-full px-3 py-2 rounded text-sm"
+              style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            />
+          </Field>
           <button
             onClick={handleStartEnroll}
-            disabled={busy}
+            disabled={busy || !enrollPw}
             data-testid="settings-mfa-enroll"
             className="px-4 py-2 rounded text-sm font-bold disabled:opacity-50"
             style={{ background: 'var(--accent-cyan)', color: 'var(--bg-primary)' }}
