@@ -138,13 +138,40 @@ jobs:
         # editable ``../packages/bluerange-spec`` line in
         # requirements-test.txt resolves relative to backend/, so
         # cd in first.
+        #
+        # Documented suppressions — re-audit each release:
+        #
+        # * PYSEC-2025-185 (python-jose) — no upstream fix yet.
+        #   Tracked as audit finding R28 (migrate to PyJWT).
+        # * PYSEC-2026-161 (starlette) — fix in 1.0.1; the
+        #   fastapi 0.123 line we're on pins starlette<0.50.
+        #   Will close when fastapi ships a release on
+        #   starlette 1.x.
+        # * CVE-2025-71176 (pytest 9.0.3) — dev-only, major bump
+        #   with plugin breakages. Tracked.
+        # * CVE-2026-0994 (protobuf 5.29.6) — opentelemetry-proto
+        #   1.27 pins protobuf<5. Will close on OTel 1.30+ bump.
+        # * CVE-2025-69872 (diskcache) — no upstream fix.
+        # * CVE-2024-23342 (ecdsa) — no upstream fix. Transitive
+        #   via python-jose[cryptography]; on the R28 migration
+        #   path to PyJWT this dep drops.
+        # * CVE-2026-30922 (pyasn1) — fix in 0.6.3 but python-jose
+        #   3.4.0 pins pyasn1<0.5. Same R28 migration path closes
+        #   this dep.
         working-directory: backend
         run: |
           pip-audit \
             --requirement requirements.txt \
             --requirement requirements-test.txt \
             --strict \
-            --vulnerability-service osv
+            --vulnerability-service osv \
+            --ignore-vuln PYSEC-2025-185 \
+            --ignore-vuln PYSEC-2026-161 \
+            --ignore-vuln CVE-2025-71176 \
+            --ignore-vuln CVE-2026-0994 \
+            --ignore-vuln CVE-2025-69872 \
+            --ignore-vuln CVE-2024-23342 \
+            --ignore-vuln CVE-2026-30922
 
   frontend-deps-audit:
     name: deps-audit — npm audit

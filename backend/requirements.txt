@@ -1,21 +1,24 @@
-fastapi==0.109.2
+fastapi==0.123.1
+# Pinned explicitly so pip-audit catches starlette CVEs without
+# waiting on a fastapi release that bumps the upper bound.
+starlette==0.49.1
 uvicorn[standard]==0.27.1
 sqlalchemy[asyncio]==2.0.27
 asyncpg==0.29.0
 alembic==1.13.1
 pydantic==2.6.1
 pydantic-settings==2.1.0
-python-jose[cryptography]==3.3.0
+python-jose[cryptography]==3.4.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
-python-multipart==0.0.9
+python-multipart==0.0.27
 httpx==0.27.0
 docker==7.1.0
 redis==5.0.1
 hiredis==2.3.2
 websockets==12.0
 jinja2==3.1.6
-weasyprint==61.0
+weasyprint==68.0
 apscheduler==3.10.4
 structlog==24.1.0
 bleach==6.1.0
