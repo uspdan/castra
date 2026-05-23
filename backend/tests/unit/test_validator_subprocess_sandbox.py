@@ -77,6 +77,119 @@ class _SubprocessHangs(Validator):
         return ValidationResult(correct=True)
 
 
+# --- escape-attempt probes (R19 audit finding) --------------------------
+# Each of these tries to do something the sandbox should refuse. The
+# tests assert the failure mode — either a ValidatorError (child died
+# under a rlimit kill) or a ValidatorTimeoutError. Probes that the
+# current rlimit-only sandbox doesn't block are flagged xfail with a
+# strict=False so the matrix is self-documenting.
+
+
+class _MemoryBurst(Validator):
+    """Try to allocate ~1 GiB. The 512 MiB RLIMIT_AS ceiling should
+    kill the child with MemoryError → ValidatorError."""
+
+    name = "_memory_burst"
+    requires_subprocess = True
+    default_timeout_s = 10.0
+
+    async def validate(self, submission, config, context):
+        # Allocate a contiguous bytearray well over the 512 MiB cap.
+        _ = bytearray(1_073_741_824)  # 1 GiB
+        return ValidationResult(correct=True)
+
+
+class _CpuBurn(Validator):
+    """Busy-loop past the wall-clock budget. The parent
+    ``asyncio.timeout`` raises ValidatorTimeoutError; RLIMIT_CPU
+    backs it up with SIGXCPU."""
+
+    name = "_cpu_burn"
+    requires_subprocess = True
+    default_timeout_s = 0.3
+
+    async def validate(self, submission, config, context):
+        end_after_s = 30
+        import time
+
+        start = time.monotonic()
+        x = 0
+        while time.monotonic() - start < end_after_s:
+            x = (x + 1) % 2**31
+        return ValidationResult(correct=True)
+
+
+class _StdoutFlood(Validator):
+    """Write past RLIMIT_FSIZE (16 MiB cap on stdout writes). The
+    kernel sends SIGXFSZ; the child dies and the parent surfaces a
+    ValidatorError."""
+
+    name = "_stdout_flood"
+    requires_subprocess = True
+    default_timeout_s = 10.0
+
+    async def validate(self, submission, config, context):
+        import sys
+
+        chunk = "A" * (1024 * 1024)
+        # 32 MiB > RLIMIT_FSIZE cap.
+        for _ in range(32):
+            sys.stdout.write(chunk)
+        return ValidationResult(correct=True)
+
+
+class _ForkBomb(Validator):
+    """Try to spawn more processes than RLIMIT_NPROC permits. The
+    fork() call raises BlockingIOError → ValidatorError."""
+
+    name = "_fork_bomb"
+    requires_subprocess = True
+    default_timeout_s = 10.0
+
+    async def validate(self, submission, config, context):
+        import multiprocessing
+
+        children = []
+        try:
+            # Try to start more children than the 32-NPROC ceiling.
+            for _ in range(64):
+                p = multiprocessing.Process(
+                    target=lambda: None
+                )
+                p.start()
+                children.append(p)
+        finally:
+            for p in children:
+                try:
+                    p.join(timeout=0.1)
+                except Exception:
+                    pass
+        return ValidationResult(correct=True)
+
+
+class _SocketOpenIPv4(Validator):
+    """Try to open an outbound IPv4 connection. The current
+    rlimit-only sandbox does NOT block this — documents the gap
+    (tracked as a future seccomp / netns sprint)."""
+
+    name = "_socket_open_v4"
+    requires_subprocess = True
+    default_timeout_s = 5.0
+
+    async def validate(self, submission, config, context):
+        import socket
+
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            # Don't actually connect — just construct the socket. If
+            # the sandbox blocks AF_INET creation, ``socket()`` raises
+            # PermissionError; if it doesn't, we close cleanly.
+            s.close()
+            return ValidationResult(correct=True)
+        finally:
+            s.close()
+
+
 class _ArtifactProbe(Validator):
     """Defined at module level so the child subprocess can re-import it.
 
@@ -134,6 +247,67 @@ class TestRunValidatorSubprocess:
             _ArtifactProbe(), str(tmp_path), {}, ctx, timeout_s=10.0
         )
         assert result.correct is True
+
+    # -------------------------------------------------------------------
+    # R19 escape-attempt coverage. Documents what the rlimit-only
+    # sandbox actually blocks. Anything that currently *doesn't* block
+    # is marked xfail (strict=False) so the matrix is honest about
+    # residual surface — the audit register tracks the seccomp work
+    # that would close the gaps.
+    # -------------------------------------------------------------------
+    async def test_blocks_memory_burst(self, context):
+        v = _MemoryBurst()
+        with pytest.raises(ValidatorError):
+            # RLIMIT_AS (512 MiB) kills the child when bytearray
+            # tries to reserve 1 GiB. Surfaces as ValidatorError
+            # rather than MemoryError because the runner can't
+            # serialise the partial state back.
+            await run_validator_subprocess(
+                v, "x", {}, context, timeout_s=10.0
+            )
+
+    async def test_blocks_cpu_burn(self, context):
+        v = _CpuBurn()
+        # The parent's asyncio.timeout fires first under normal
+        # conditions; RLIMIT_CPU is the kernel backstop and would
+        # raise ValidatorError on a slow runner. Accept either.
+        with pytest.raises((ValidatorTimeoutError, ValidatorError)):
+            await run_validator_subprocess(
+                v, "x", {}, context, timeout_s=0.5
+            )
+
+    async def test_blocks_stdout_flood(self, context):
+        v = _StdoutFlood()
+        # The runner writes its JSON result to stdout; RLIMIT_FSIZE
+        # caps total writes. The flood exhausts the cap before the
+        # runner can emit its envelope, so the parent sees a dead
+        # child and raises ValidatorError. (On platforms where
+        # asyncio buffers more aggressively, the parent may see a
+        # truncated envelope and raise ValidatorError via the
+        # malformed-envelope branch.)
+        with pytest.raises(ValidatorError):
+            await run_validator_subprocess(
+                v, "x", {}, context, timeout_s=10.0
+            )
+
+    @pytest.mark.xfail(
+        reason=(
+            "Current sandbox is rlimit-only; AF_INET socket creation "
+            "is permitted. Closing this gap requires seccomp or a "
+            "network namespace, tracked in the audit register."
+        ),
+        strict=False,
+    )
+    async def test_blocks_outbound_socket(self, context):
+        v = _SocketOpenIPv4()
+        # No exception expected today (the rlimit sandbox doesn't
+        # block this). The xfail keeps the matrix honest: when the
+        # seccomp profile lands and starts blocking AF_INET, this
+        # test will start raising and we'll flip it to strict=True.
+        with pytest.raises(ValidatorError):
+            await run_validator_subprocess(
+                v, "x", {}, context, timeout_s=5.0
+            )
 
     async def test_malformed_envelope_raises_validator_error(self, context):
         # Direct hit on the runner — feed it broken JSON via subprocess
