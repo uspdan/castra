@@ -168,6 +168,25 @@ def launch(*, user_id: int) -> WorkstationDescriptor:
             "seige.user_id": str(user_id),
         },
         restart_policy={"Name": "unless-stopped"},
+        # R20 audit finding — drop every Linux capability the
+        # workstation doesn't need. ttyd binds :7681, sshd binds
+        # :2222, chpasswd writes /etc/shadow — these need
+        # NET_BIND_SERVICE (ports >1024 don't actually need this on
+        # modern Linux, but ttyd is conservative) and CHOWN + DAC*
+        # for /home/analyst seeding. Everything else is denied.
+        cap_drop=["ALL"],
+        cap_add=[
+            "CHOWN",
+            "DAC_OVERRIDE",
+            "FOWNER",
+            "SETGID",
+            "SETUID",
+            "NET_BIND_SERVICE",
+            "KILL",
+        ],
+        security_opt=[
+            "no-new-privileges:true",
+        ],
     )
     if NETWORK_NAME:
         run_kwargs["network"] = NETWORK_NAME

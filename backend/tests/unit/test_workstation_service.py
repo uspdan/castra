@@ -140,6 +140,45 @@ def test_launch_assigns_deterministic_ports():
     assert ports["7681/tcp"] == ("0.0.0.0", WEB_PORT_BASE + 9)
 
 
+def test_launch_drops_caps_and_sets_no_new_privileges():
+    """R20 audit finding — the workstation drops every Linux
+    capability it doesn't need (only CHOWN/DAC/FOWNER/SETUID/
+    SETGID/NET_BIND_SERVICE/KILL kept) and runs with
+    ``no-new-privileges``. Locking this in a test catches drift if
+    anyone adds back the default-Docker cap set."""
+
+    from app.services.workstation import launch, WorkstationDescriptor
+
+    fake = _fake_client()
+    new_c = MagicMock()
+    new_c.name = "seige-workstation-7"
+    new_c.attrs = {"NetworkSettings": {"Ports": {}}}
+    fake.containers.run.return_value = new_c
+
+    with patch("app.services.workstation.docker_client.get", return_value=fake), \
+         patch("app.services.workstation.get_status") as gs:
+        gs.return_value = WorkstationDescriptor(
+            user_id=7, container="seige-workstation-7", running=False,
+            ssh_host_port=None, web_host_port=None,
+        )
+        launch(user_id=7)
+
+    kwargs = fake.containers.run.call_args.kwargs
+    assert kwargs["cap_drop"] == ["ALL"]
+    # Pinned allow-list — adding a capability is a security event
+    # that should re-trigger this test.
+    assert set(kwargs["cap_add"]) == {
+        "CHOWN",
+        "DAC_OVERRIDE",
+        "FOWNER",
+        "SETGID",
+        "SETUID",
+        "NET_BIND_SERVICE",
+        "KILL",
+    }
+    assert "no-new-privileges:true" in kwargs["security_opt"]
+
+
 def test_attach_to_network_noop_when_stopped():
     from app.services.workstation import attach_to_network
 
