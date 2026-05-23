@@ -173,7 +173,10 @@ def launch(*, user_id: int) -> WorkstationDescriptor:
         # :2222, chpasswd writes /etc/shadow — these need
         # NET_BIND_SERVICE (ports >1024 don't actually need this on
         # modern Linux, but ttyd is conservative) and CHOWN + DAC*
-        # for /home/analyst seeding. Everything else is denied.
+        # for /home/analyst seeding. AUDIT_WRITE is required by
+        # pam_loginuid in sshd's PAM stack — without it sshd
+        # disconnects every session right after key exchange.
+        # Everything else is denied.
         cap_drop=["ALL"],
         cap_add=[
             "CHOWN",
@@ -183,6 +186,12 @@ def launch(*, user_id: int) -> WorkstationDescriptor:
             "SETUID",
             "NET_BIND_SERVICE",
             "KILL",
+            # AUDIT_WRITE — pam_loginuid in sshd's PAM stack.
+            "AUDIT_WRITE",
+            # SYS_CHROOT — sshd's privilege-separation child
+            # chroots to /run/sshd before accepting auth; without
+            # this cap the connection resets at the kex phase.
+            "SYS_CHROOT",
         ],
         security_opt=[
             "no-new-privileges:true",

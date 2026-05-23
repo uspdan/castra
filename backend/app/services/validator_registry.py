@@ -119,9 +119,14 @@ def discover_entry_points(
                 f"{type(instance).__name__}, expected bluerange_spec.Validator"
             )
         registry.register(instance, source=ep.value)
+        # ``name`` is reserved by stdlib LogRecord (it carries the
+        # logger name itself) — passing it via ``extra=`` raises
+        # ``KeyError: Attempt to overwrite 'name' in LogRecord`` on
+        # every call. Rename to ``ep_name`` so the field still
+        # surfaces in structured logs without colliding.
         _logger.info(
             "validator_registry.loaded",
-            extra={"name": ep.name, "target": ep.value},
+            extra={"ep_name": ep.name, "target": ep.value},
         )
     return registry
 

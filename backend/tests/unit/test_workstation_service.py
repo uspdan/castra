@@ -175,6 +175,8 @@ def test_launch_drops_caps_and_sets_no_new_privileges():
         "SETUID",
         "NET_BIND_SERVICE",
         "KILL",
+        "AUDIT_WRITE",
+        "SYS_CHROOT",
     }
     assert "no-new-privileges:true" in kwargs["security_opt"]
 

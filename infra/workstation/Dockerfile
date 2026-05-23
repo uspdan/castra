@@ -74,9 +74,19 @@ RUN curl -fsSL "https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION
 
 # SSH server config — non-root, password auth (the player picks
 # their own password at deploy via SIEGE_WORKSTATION_PASSWORD).
+#
+# pam_loginuid writes /proc/self/loginuid which requires
+# CAP_AUDIT_CONTROL — a capability the workstation deliberately
+# doesn't hold (see ``app.services.workstation`` cap allow-list).
+# Without the relaxation below sshd accepts the connection, fails
+# the PAM session step, and resets every login at the kex phase.
+# Marking the module ``optional`` lets the session start while
+# still recording loginuid when the host happens to grant the
+# capability (eg. CI / staging runs without the strict cap set).
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config \
     && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#Port 22/Port 2222/' /etc/ssh/sshd_config
+    && sed -i 's/#Port 22/Port 2222/' /etc/ssh/sshd_config \
+    && sed -i 's/^session\s\+required\s\+pam_loginuid.so/session optional pam_loginuid.so/' /etc/pam.d/sshd
 
 # Player account.
 RUN useradd -m -s /bin/bash analyst \
