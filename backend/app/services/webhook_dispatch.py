@@ -187,7 +187,15 @@ def _canonical_body(
 
 
 def _default_http_client():
-    return httpx.AsyncClient(timeout=_DEFAULT_TIMEOUT_S)
+    # R24 audit finding — both options match the current httpx
+    # defaults, but pin them explicitly so a future httpx release
+    # can't quietly turn on redirect-following (re-introducing the
+    # SSRF surface tracked in R4) or relax TLS verification.
+    return httpx.AsyncClient(
+        timeout=_DEFAULT_TIMEOUT_S,
+        verify=True,
+        follow_redirects=False,
+    )
 
 
 @dataclass(frozen=True)

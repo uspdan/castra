@@ -16,8 +16,17 @@ class WebSocketManager:
     def set_redis(self, redis_client):
         self._redis = redis_client
 
-    async def connect(self, websocket: WebSocket, user_id: int):
-        await websocket.accept()
+    async def connect(
+        self,
+        websocket: WebSocket,
+        user_id: int,
+        *,
+        subprotocol: str | None = None,
+    ):
+        # ``subprotocol`` must echo back exactly whichever
+        # client-offered subprotocol carried the auth token (R11).
+        # Passing ``None`` lets Starlette omit the response header.
+        await websocket.accept(subprotocol=subprotocol)
         if user_id not in self.connections:
             self.connections[user_id] = []
         self.connections[user_id].append(websocket)

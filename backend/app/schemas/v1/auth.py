@@ -242,9 +242,28 @@ class MfaEnrolResponse(BaseModel):
     provisioning_uri: str
 
 
+class MfaEnrolRequest(BaseModel):
+    """R10 audit finding — MFA enroll now requires a current-auth
+    proof so a stolen access token cannot hijack the second factor
+    on its own."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    # Always required: current account password.
+    password: str = Field(min_length=1, max_length=128)
+    # Required only if MFA is already enabled. Ignored on first-time
+    # enrolment when the user has no second factor yet. Accept TOTP
+    # or recovery codes; the verifier handles both.
+    current_code: str | None = Field(default=None, min_length=6, max_length=16)
+
+
 class MfaConfirmRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    # R10 audit finding — confirm also requires the current password
+    # so the bearer of a hot access token can't quietly flip
+    # ``mfa_enabled`` on the account.
+    password: str = Field(min_length=1, max_length=128)
     code: str = Field(min_length=6, max_length=8)
 
 

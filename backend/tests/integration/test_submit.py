@@ -122,12 +122,12 @@ class TestSubmitWrongFlag:
         self, client, user_factory, challenge_factory, auth_headers, db_session
     ):
         user = await user_factory()
-        await challenge_factory(slug="wrong", flag="CTF{REDACTED}")
+        await challenge_factory(slug="wrong", flag="correct-answer")
 
         r = await client.post(
             "/challenges/wrong/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "definitely-not-the-flag"},
         )
         assert r.status_code == 200
         body = r.json()
@@ -146,7 +146,7 @@ class TestSubmitWrongFlag:
         self, client, user_factory, challenge_factory, auth_headers, db_session
     ):
         user = await user_factory()
-        await challenge_factory(slug="lf", flag="CTF{REDACTED}")
+        await challenge_factory(slug="lf", flag="correct-answer")
 
         from app.models import AuditLedger
 
@@ -163,7 +163,7 @@ class TestSubmitWrongFlag:
         await client.post(
             "/challenges/lf/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "wrong-answer"},
         )
 
         after = len(

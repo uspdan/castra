@@ -14,11 +14,20 @@ from sqlalchemy import select
 pytestmark = pytest.mark.integration
 
 
-async def _enroll_and_confirm(client, user, auth_headers):
-    """Helper: walk through enroll → confirm using a real TOTP."""
+async def _enroll_and_confirm(
+    client, user, auth_headers, password: str = "TestUserPasswordA1!"
+):
+    """Helper: walk through enroll → confirm using a real TOTP.
+
+    R10 audit finding — both endpoints now require the caller's
+    current account password as anti-stolen-token defence; tests
+    forward whatever the user_factory used to mint the account.
+    """
 
     er = await client.post(
-        "/api/v1/auth/mfa/enroll", headers=auth_headers(user)
+        "/api/v1/auth/mfa/enroll",
+        headers=auth_headers(user),
+        json={"password": password},
     )
     secret = er.json()["secret"]
     totp = pyotp.TOTP(secret)
@@ -26,7 +35,7 @@ async def _enroll_and_confirm(client, user, auth_headers):
     cr = await client.post(
         "/api/v1/auth/mfa/confirm",
         headers=auth_headers(user),
-        json={"code": totp.now()},
+        json={"password": password, "code": totp.now()},
     )
     assert cr.status_code == 200, cr.text
     return secret, cr.json()["recovery_codes"]
@@ -37,7 +46,12 @@ async def _enroll_and_confirm(client, user, auth_headers):
 # ---------------------------------------------------------------------------
 class TestMfaEnroll:
     async def test_unauthenticated_rejected(self, client):
-        r = await client.post("/api/v1/auth/mfa/enroll")
+        # Even with the new required password body, unauth requests
+        # should be rejected at the auth layer before validation runs.
+        r = await client.post(
+            "/api/v1/auth/mfa/enroll",
+            json={"password": "TestUserPasswordA1!"},
+        )
         assert r.status_code in (401, 403)
 
     async def test_returns_secret_and_uri(
@@ -45,7 +59,9 @@ class TestMfaEnroll:
     ):
         user = await user_factory()
         r = await client.post(
-            "/api/v1/auth/mfa/enroll", headers=auth_headers(user)
+            "/api/v1/auth/mfa/enroll",
+            headers=auth_headers(user),
+            json={"password": "TestUserPasswordA1!"},
         )
         assert r.status_code == 200
         body = r.json()
@@ -60,13 +76,29 @@ class TestMfaEnroll:
 
         user = await user_factory()
         await client.post(
-            "/api/v1/auth/mfa/enroll", headers=auth_headers(user)
+            "/api/v1/auth/mfa/enroll",
+            headers=auth_headers(user),
+            json={"password": "TestUserPasswordA1!"},
         )
         fresh = (
             await db_session.execute(select(User).where(User.id == user.id))
         ).scalar_one()
         assert fresh.mfa_secret is not None
         assert fresh.mfa_enabled is False
+
+    async def test_rejects_wrong_password(
+        self, client, user_factory, auth_headers
+    ):
+        # R10 audit finding regression coverage — enroll must refuse
+        # when the caller can't prove they know the current password,
+        # even with a valid access token.
+        user = await user_factory()
+        r = await client.post(
+            "/api/v1/auth/mfa/enroll",
+            headers=auth_headers(user),
+            json={"password": "NotTheirPassword1!"},
+        )
+        assert r.status_code == 401
 
 
 # ---------------------------------------------------------------------------
@@ -93,12 +125,14 @@ class TestMfaConfirm:
     ):
         user = await user_factory()
         await client.post(
-            "/api/v1/auth/mfa/enroll", headers=auth_headers(user)
+            "/api/v1/auth/mfa/enroll",
+            headers=auth_headers(user),
+            json={"password": "TestUserPasswordA1!"},
         )
         r = await client.post(
             "/api/v1/auth/mfa/confirm",
             headers=auth_headers(user),
-            json={"code": "000000"},
+            json={"password": "TestUserPasswordA1!", "code": "000000"},
         )
         assert r.status_code == 400
 
@@ -109,7 +143,7 @@ class TestMfaConfirm:
         r = await client.post(
             "/api/v1/auth/mfa/confirm",
             headers=auth_headers(user),
-            json={"code": "123456"},
+            json={"password": "TestUserPasswordA1!", "code": "123456"},
         )
         assert r.status_code == 400
 
@@ -124,7 +158,9 @@ class TestMfaDisable:
         from app.models import MfaRecoveryCode, User
 
         user = await user_factory(password="GoodPass1!")
-        secret, _ = await _enroll_and_confirm(client, user, auth_headers)
+        secret, _ = await _enroll_and_confirm(
+            client, user, auth_headers, password="GoodPass1!"
+        )
         totp = pyotp.TOTP(secret)
 
         r = await client.post(
@@ -152,7 +188,9 @@ class TestMfaDisable:
         self, client, user_factory, auth_headers
     ):
         user = await user_factory(password="GoodPass1!")
-        secret, _ = await _enroll_and_confirm(client, user, auth_headers)
+        secret, _ = await _enroll_and_confirm(
+            client, user, auth_headers, password="GoodPass1!"
+        )
         totp = pyotp.TOTP(secret)
 
         r = await client.post(
@@ -166,7 +204,9 @@ class TestMfaDisable:
         self, client, user_factory, auth_headers
     ):
         user = await user_factory(password="GoodPass1!")
-        await _enroll_and_confirm(client, user, auth_headers)
+        await _enroll_and_confirm(
+            client, user, auth_headers, password="GoodPass1!"
+        )
         r = await client.post(
             "/api/v1/auth/mfa/disable",
             headers=auth_headers(user),
@@ -187,7 +227,9 @@ class TestLoginMfaFlow:
             username="mfaflow",
             password="GoodPass1!",
         )
-        secret, _ = await _enroll_and_confirm(client, user, auth_headers)
+        secret, _ = await _enroll_and_confirm(
+            client, user, auth_headers, password="GoodPass1!"
+        )
 
         r = await client.post(
             "/api/v1/auth/login",
@@ -209,7 +251,9 @@ class TestLoginMfaFlow:
             username="mfaverify",
             password="GoodPass1!",
         )
-        secret, _ = await _enroll_and_confirm(client, user, auth_headers)
+        secret, _ = await _enroll_and_confirm(
+            client, user, auth_headers, password="GoodPass1!"
+        )
 
         login = await client.post(
             "/api/v1/auth/login",
@@ -239,7 +283,7 @@ class TestLoginMfaFlow:
             password="GoodPass1!",
         )
         secret, recovery_codes = await _enroll_and_confirm(
-            client, user, auth_headers
+            client, user, auth_headers, password="GoodPass1!"
         )
 
         login = await client.post(
@@ -297,7 +341,9 @@ class TestLoginMfaFlow:
             username="wrongcodeuser",
             password="GoodPass1!",
         )
-        await _enroll_and_confirm(client, user, auth_headers)
+        await _enroll_and_confirm(
+            client, user, auth_headers, password="GoodPass1!"
+        )
 
         login = await client.post(
             "/api/v1/auth/login",

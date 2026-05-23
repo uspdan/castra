@@ -5,8 +5,8 @@ Headers applied to every response:
     - X-Frame-Options: DENY
     - Referrer-Policy: strict-origin-when-cross-origin
     - Permissions-Policy: minimal allowlist (camera/microphone/geolocation off)
-    - Strict-Transport-REDACTED: prod-only (1y, includeSubDomains)
-    - Content-REDACTED-Policy: locked down — no wildcards, no unsafe-eval
+    - Strict-Transport-Security: prod-only (1y, includeSubDomains)
+    - Content-Security-Policy: locked down — no wildcards, no unsafe-eval
 
 CSP is deliberately *not* applied to the OpenAPI/Swagger surfaces
 (``/docs``, ``/redoc``, ``/openapi.json``): both Swagger UI and ReDoc
@@ -85,7 +85,7 @@ def _build_csp(
     return "; ".join(directives)
 
 
-class REDACTEDHeadersMiddleware(BaseHTTPMiddleware):
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, *, is_production: bool) -> None:
         super().__init__(app)
         self._is_production = is_production
@@ -105,11 +105,11 @@ class REDACTEDHeadersMiddleware(BaseHTTPMiddleware):
 
         if self._is_production:
             response.headers.setdefault(
-                "Strict-Transport-REDACTED",
+                "Strict-Transport-Security",
                 "max-age=31536000; includeSubDomains",
             )
 
         if request.url.path not in _DOC_PATHS:
-            response.headers.setdefault("Content-REDACTED-Policy", self._csp)
+            response.headers.setdefault("Content-Security-Policy", self._csp)
 
         return response

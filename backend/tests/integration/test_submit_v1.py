@@ -115,7 +115,7 @@ class TestExactFlagV1:
                     flag_id="primary",
                     flag_type="exact",
                     points=100,
-                    value_hash=hash_exact_value("CTF{REDACTED}"),
+                    value_hash=hash_exact_value("expected-value"),
                     config={"case_sensitive": True},
                 )
             ],
@@ -124,7 +124,7 @@ class TestExactFlagV1:
         r = await client.post(
             "/challenges/v1-exact-wrong/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "some-other-thing"},
         )
         assert r.status_code == 200
         assert r.json()["correct"] is False
@@ -144,7 +144,7 @@ class TestRegexFlagV1:
                     flag_type="regex",
                     points=100,
                     config={
-                        "pattern": r"CTF\{[a-f0-9]{8}\}",
+                        "pattern": r"FLAG\{[a-f0-9]{8}\}",
                         "case_sensitive": True,
                     },
                 )
@@ -154,7 +154,7 @@ class TestRegexFlagV1:
         r = await client.post(
             "/challenges/v1-regex/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "FLAG{deadbeef}"},
         )
         assert r.status_code == 200
         assert r.json()["correct"] is True

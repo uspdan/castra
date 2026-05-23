@@ -63,6 +63,15 @@ class Settings(BaseSettings):
     # back to local Vite/React ports.
     ALLOWED_ORIGINS: str = ""
 
+    # Phase 13 (R6 audit) — when set, the rate-limit middleware reads
+    # the left-most non-empty token in ``X-Forwarded-For`` as the
+    # client IP. Should only be enabled when an upstream proxy (Nginx
+    # in our reference deploy) sets the header and strips any
+    # client-supplied value first. Defaults off so a misconfigured
+    # deploy fails closed (per-bucket sharing across all callers from
+    # the proxy hop) rather than trusting attacker-controlled headers.
+    TRUST_PROXY_HEADERS: bool = False
+
     DOCKER_HOST: str = "tcp://orchestrator:2376"
     REDIS_URL: str = "redis://redis:6379/0"
     CONTAINER_TIMEOUT: int = 7200

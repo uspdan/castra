@@ -346,9 +346,13 @@ class TestMe:
 # OpenAPI contract snapshot
 # ---------------------------------------------------------------------------
 async def test_openapi_v1_paths_present(client):
-    r = await client.get("/openapi.json")
-    assert r.status_code == 200
-    spec = r.json()
+    # R2 audit finding: /openapi.json is no longer exposed over HTTP
+    # outside the development environment. Generate the spec
+    # in-process so the contract assertions still run under the
+    # test profile.
+    from app.main import app
+
+    spec = app.openapi()
     paths = spec["paths"]
     expected = {
         "/api/v1/challenges",

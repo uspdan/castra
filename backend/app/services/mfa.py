@@ -37,7 +37,14 @@ _RECOVERY_CODE_COUNT = 10
 _RECOVERY_CODE_LENGTH = 8
 _RECOVERY_CODE_ALPHABET = string.ascii_uppercase + string.digits
 
-_MFA_PENDING_TTL_SECONDS = 5 * 60
+# R8 audit finding — was 5 min, dropped to 90s. The pending token
+# is consumed by the very next request from the same client; a
+# longer TTL is just an extra brute-force window.
+_MFA_PENDING_TTL_SECONDS = 90
+
+# Cap per-jti attempt count to defeat code brute-force inside a
+# single pending token. Enforced in the mfa/verify handler.
+MFA_PENDING_MAX_ATTEMPTS = 5
 
 
 class InvalidMfaCode(ValueError):
@@ -210,7 +217,13 @@ async def _verify_or_raise(
 # Pending-token plumbing for the two-step login flow
 # ---------------------------------------------------------------------------
 def issue_mfa_pending_token(user_id: int) -> str:
-    """Short-lived JWT carrying ``{type:"mfa_pending"}`` + sub.
+    """Short-lived JWT carrying ``{type:"mfa_pending"}`` + sub + jti.
+
+    The ``jti`` lets the verify endpoint track failed attempts in
+    Redis (R8 audit finding) — once
+    :data:`MFA_PENDING_MAX_ATTEMPTS` failures accumulate against a
+    single jti, the token is rejected even if the bearer guesses a
+    valid TOTP afterwards.
 
     Uses the same ``python-jose`` library as the rest of the auth
     stack so signature verification is uniform.
@@ -222,6 +235,7 @@ def issue_mfa_pending_token(user_id: int) -> str:
     payload = {
         "sub": str(user_id),
         "type": "mfa_pending",
+        "jti": secrets.token_urlsafe(16),
         "exp": int(
             (
                 datetime.now(timezone.utc)
@@ -232,8 +246,24 @@ def issue_mfa_pending_token(user_id: int) -> str:
     return jose_jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
 
+@dataclass(frozen=True)
+class MfaPendingClaims:
+    user_id: int
+    jti: str
+
+
 def decode_mfa_pending_token(token: str) -> int:
-    """Validate the pending token and return the user_id."""
+    """Backwards-compatible: return only the user_id.
+
+    Callers that need the jti for the attempt-counter (R8) should
+    use :func:`decode_mfa_pending_claims` instead.
+    """
+
+    return decode_mfa_pending_claims(token).user_id
+
+
+def decode_mfa_pending_claims(token: str) -> MfaPendingClaims:
+    """Validate the pending token and return both user_id and jti."""
 
     from jose import jwt as jose_jwt, JWTError
 
@@ -247,8 +277,13 @@ def decode_mfa_pending_token(token: str) -> int:
     if decoded.get("type") != "mfa_pending":
         raise InvalidMfaCode("wrong token type")
     sub = decoded.get("sub")
+    jti = decoded.get("jti")
+    if not isinstance(jti, str) or not jti:
+        # Token issued by a pre-R8 server — refuse rather than
+        # leaving the attempt counter ungated.
+        raise InvalidMfaCode("pending token missing jti — re-login")
     try:
-        return int(sub)
+        return MfaPendingClaims(user_id=int(sub), jti=jti)
     except (TypeError, ValueError) as exc:
         raise InvalidMfaCode("malformed pending token") from exc
 
@@ -258,7 +293,10 @@ __all__ = [
     "EnrolStartResult",
     "InvalidMfaCode",
     "MfaNotEnrolled",
+    "MfaPendingClaims",
+    "MFA_PENDING_MAX_ATTEMPTS",
     "confirm_enrolment",
+    "decode_mfa_pending_claims",
     "decode_mfa_pending_token",
     "disable_mfa",
     "issue_mfa_pending_token",

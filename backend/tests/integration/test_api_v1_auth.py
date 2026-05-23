@@ -197,7 +197,7 @@ class TestLoginV1:
         )
         r = await client.post(
             "/api/v1/auth/login",
-            json={"email": "CASE@TEST.REDACTED", "password": "GoodPassword1!"},
+            json={"email": "CASE@TEST.LOCAL", "password": "GoodPassword1!"},
         )
         assert r.status_code == 200
 

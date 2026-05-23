@@ -115,7 +115,10 @@ def _validate_auth_login_success(payload: dict[str, Any]) -> None:
 
 
 def _validate_auth_login_failed(payload: dict[str, Any]) -> None:
-    _require_keys(payload, ("email", "reason"))
+    # R12 audit finding — cleartext ``email`` is no longer carried;
+    # callers either drop it (known actor — ``actor_id`` identifies
+    # the subject) or replace it with ``email_hash`` (HMAC).
+    _require_keys(payload, ("reason",))
 
 
 def _validate_flag_submit(payload: dict[str, Any]) -> None:

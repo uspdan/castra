@@ -151,7 +151,21 @@ async def lifespan(app: FastAPI):
     logger.info("Shutdown complete.")
 
 
-app = FastAPI(title="Siege Range API", version="2.5.0", lifespan=lifespan)
+# Expose the OpenAPI spec + Swagger UI + ReDoc only in development.
+# In test/staging/production the interactive surfaces are off — they
+# leak the full route + schema inventory to anonymous traffic
+# (audit finding R2). Spec generation can still be invoked locally
+# via `python -m app.openapi_export`.
+_DOCS_ENABLED = _settings.APP_ENV == "development"
+
+app = FastAPI(
+    title="Siege Range API",
+    version="2.5.0",
+    lifespan=lifespan,
+    docs_url="/docs" if _DOCS_ENABLED else None,
+    redoc_url="/redoc" if _DOCS_ENABLED else None,
+    openapi_url="/openapi.json" if _DOCS_ENABLED else None,
+)
 
 # Sprint 11 Phase C — opt-in OpenTelemetry tracing. No-op when
 # OTEL_EXPORTER_OTLP_ENDPOINT is unset. Failure to configure
@@ -164,13 +178,13 @@ configure_tracing(app, _db_engine)
 
 from app.middleware.logging_mw import LoggingMiddleware
 from app.middleware.metrics import PrometheusMetricsMiddleware
-from app.middleware.security_headers import REDACTEDHeadersMiddleware
+from app.middleware.security_headers import SecurityHeadersMiddleware
 
 # Middleware order: outer-most runs last on the response. We want the
 # request-id logger to see the response **after** security headers have
 # been attached, so register the headers middleware first (it ends up
 # inner-most relative to LoggingMiddleware).
-app.add_middleware(REDACTEDHeadersMiddleware, is_production=_settings.is_production)
+app.add_middleware(SecurityHeadersMiddleware, is_production=_settings.is_production)
 app.add_middleware(LoggingMiddleware)
 # Prometheus metrics — outermost, so it sees the actual response
 # status code Starlette returns to the client (after any later
@@ -194,7 +208,9 @@ app.add_middleware(
     max_age=600,
 )
 
-from app.routers.auth import router as auth_router
+# Legacy /auth/* router (R3 audit finding) removed in v2.5.1 —
+# bypassed MFA and email verification. All clients must use
+# /api/v1/auth/*.
 from app.routers.challenges import router as challenges_router
 from app.routers.health import router as health_router
 from app.routers.instances import router as instances_router
@@ -208,7 +224,6 @@ from app.routers.ws import router as ws_router
 from app.routers.v1 import router as api_v1_router
 
 app.include_router(health_router)
-app.include_router(auth_router)
 app.include_router(challenges_router)
 app.include_router(instances_router)
 app.include_router(leaderboard_router)

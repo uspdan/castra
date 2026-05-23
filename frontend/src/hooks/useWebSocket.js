@@ -14,10 +14,14 @@ export default function useWebSocket() {
   const connect = useCallback(() => {
     if (!accessToken) return
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const url = `${protocol}//${window.location.host}/api/ws?token=${accessToken}`
+    const url = `${protocol}//${window.location.host}/api/ws`
 
+    // R11 audit finding — pass auth via Sec-WebSocket-Protocol
+    // subprotocol so the JWT stays out of the URL (and out of
+    // uvicorn / nginx access logs). The server reflects the
+    // matching subprotocol back in its handshake response.
     setConnectionState('connecting')
-    const ws = new WebSocket(url)
+    const ws = new WebSocket(url, [`siege-auth.${accessToken}`])
     wsRef.current = ws
 
     ws.onopen = () => {

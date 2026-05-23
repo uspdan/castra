@@ -70,11 +70,11 @@ class TestSubmitFlag:
         self, client, user_factory, auth_headers, challenge_factory, db_session
     ):
         user = await user_factory()
-        await challenge_factory(slug="v1-submit-wrong", flag="CTF{REDACTED}")
+        await challenge_factory(slug="v1-submit-wrong", flag="expected-value")
         r = await client.post(
             "/api/v1/challenges/v1-submit-wrong/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "some-other-thing"},
         )
         assert r.status_code == 200
         body = r.json()

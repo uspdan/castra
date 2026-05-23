@@ -1,9 +1,8 @@
 """``/api/v1/auth/*`` — locked auth contract.
 
-The legacy ``/auth/*`` endpoints stay live for compatibility; this
-surface is the one the migrated frontend (and any external clients)
-consumes. Every response is a Pydantic model with
-``ConfigDict(extra="forbid")`` so internal columns cannot leak.
+The only auth surface as of v2.5.1 — the legacy ``/auth/*`` router
+was removed (R3 audit finding). Every response is a Pydantic model
+with ``ConfigDict(extra="forbid")`` so internal columns cannot leak.
 
 Endpoints:
 
@@ -13,14 +12,17 @@ Endpoints:
 - ``POST /api/v1/auth/logout``   — revoke refresh token (best-effort).
 - ``GET  /api/v1/auth/me``       — same shape as ``GET /api/v1/me``.
 
-Audit-ledger emit, account lockout, and refresh-token blacklist
-behaviour mirrors the legacy router (see ``app/routers/auth.py``).
+All write endpoints carry per-IP rate limits via
+``auth_rate_limit`` / ``auth_burst_rate_limit`` (R5 audit finding).
 """
 
 from __future__ import annotations
 
+import logging
 import time
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -28,6 +30,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.middleware.rate_limit import auth_burst_rate_limit, auth_rate_limit
 from app.database import get_db
 from app.models import TeamType, User
 from app.schemas.v1.auth import (
@@ -47,6 +50,7 @@ from app.schemas.v1.auth import (
     MfaConfirmResponse,
     MfaDisableRequest,
     MfaDisableResponse,
+    MfaEnrolRequest,
     MfaEnrolResponse,
     MfaPendingResponse,
     MfaVerifyRequest,
@@ -59,8 +63,10 @@ from app.schemas.v1.auth import (
 )
 from app.services.mfa import (
     InvalidMfaCode,
+    MFA_PENDING_MAX_ATTEMPTS,
     MfaNotEnrolled,
     confirm_enrolment,
+    decode_mfa_pending_claims,
     decode_mfa_pending_token,
     disable_mfa,
     issue_mfa_pending_token,
@@ -72,6 +78,7 @@ from app.services.audit.request_context import context_from_request
 from app.services.auth import (
     check_account_lockout,
     clear_failed_logins,
+    ghost_login_check,
     create_access_token,
     create_refresh_token,
     decode_token,
@@ -83,6 +90,31 @@ from app.services.auth import (
 
 
 router = APIRouter(prefix="/auth", tags=["v1-auth"])
+
+
+def _safe_email_payload(email: str, *, actor_id: int | None) -> dict:
+    """R12 audit finding — keep cleartext email out of audit_ledger.
+
+    For *known* actors the ``actor_id`` already identifies the
+    subject; the email field is dropped entirely. For *unknown*
+    actors (anonymous traffic, enumeration probes) we hash the
+    address with HMAC-SHA256 keyed on the platform secret so
+    correlation across rows is still possible without exposing the
+    plaintext.
+    """
+
+    import hashlib as _hashlib
+    import hmac as _hmac
+
+    if actor_id is not None:
+        return {}
+    settings = get_settings()
+    digest = _hmac.new(
+        settings.SECRET_KEY.encode(),
+        email.lower().encode(),
+        _hashlib.sha256,
+    ).hexdigest()
+    return {"email_hash": digest}
 
 
 async def _get_redis():
@@ -114,7 +146,11 @@ def _to_auth_user(user: User) -> AuthUser:
     "/register",
     response_model=AuthTokenPairResponse,
     status_code=status.HTTP_201_CREATED,
-    responses={409: {"description": "Email or username already taken"}},
+    responses={
+        409: {"description": "Email or username already taken"},
+        429: {"description": "Rate limit exceeded"},
+    },
+    dependencies=[Depends(auth_rate_limit)],
 )
 async def register_v1(
     payload: AuthRegisterRequest,
@@ -218,8 +254,9 @@ async def register_v1(
         200: {"description": "Login success — token pair OR MFA pending"},
         401: {"description": "Invalid credentials"},
         403: {"description": "Account is disabled"},
-        429: {"description": "Account temporarily locked"},
+        429: {"description": "Account temporarily locked or rate limit exceeded"},
     },
+    dependencies=[Depends(auth_rate_limit)],
 )
 async def login_v1(
     payload: AuthLoginRequest,
@@ -245,19 +282,25 @@ async def login_v1(
     result = await db.execute(select(User).where(User.email == payload.email))
     user = result.scalar_one_or_none()
 
+    if user is None:
+        # R9: burn the equivalent bcrypt round so the response time
+        # against an unknown email matches the response time against
+        # a known email with a wrong password.
+        ghost_login_check(payload.password)
     if not user or not verify_password(payload.password, user.hashed_password):
         if user:
             await record_failed_login(payload.email, redis_client)
+        actor_id = user.id if user else None
         await audit_append(
             db,
             event_type=EventType.AUTH_LOGIN_FAILED,
             actor_type=ActorType.USER if user else ActorType.ANONYMOUS,
-            actor_id=user.id if user else None,
+            actor_id=actor_id,
             resource_type="user",
-            resource_id=user.id if user else None,
+            resource_id=actor_id,
             payload={
-                "email": payload.email,
                 "reason": "bad_password" if user else "unknown_user",
+                **_safe_email_payload(payload.email, actor_id=actor_id),
             },
             **ctx,
         )
@@ -272,7 +315,7 @@ async def login_v1(
             actor_id=user.id,
             resource_type="user",
             resource_id=user.id,
-            payload={"email": payload.email, "reason": "account_disabled"},
+            payload={"reason": "account_disabled"},
             **ctx,
         )
         await db.commit()
@@ -292,7 +335,7 @@ async def login_v1(
             actor_id=user.id,
             resource_type="user",
             resource_id=user.id,
-            payload={"email": payload.email, "reason": "email_not_verified"},
+            payload={"reason": "email_not_verified"},
             **ctx,
         )
         await db.commit()
@@ -349,7 +392,11 @@ async def login_v1(
 @router.post(
     "/refresh",
     response_model=AuthRefreshResponse,
-    responses={401: {"description": "Invalid or revoked refresh token"}},
+    responses={
+        401: {"description": "Invalid or revoked refresh token"},
+        429: {"description": "Rate limit exceeded"},
+    },
+    dependencies=[Depends(auth_rate_limit)],
 )
 async def refresh_v1(
     payload: AuthRefreshRequest,
@@ -410,6 +457,13 @@ async def logout_v1(
     if token:
         try:
             decoded = decode_token(token)
+        except HTTPException:
+            # decode_token raises 401 for malformed/expired tokens;
+            # logout is best-effort — swallow at debug, audit below
+            # still fires with actor_id=None.
+            decoded = None
+            logger.debug("logout token decode failed", exc_info=True)
+        if decoded is not None:
             exp = decoded.get("exp", 0)
             ttl = max(int(exp - time.time()), 0)
             if ttl > 0:
@@ -422,8 +476,6 @@ async def logout_v1(
                     actor_id = int(sub)
                 except (TypeError, ValueError):
                     actor_id = None
-        except Exception:
-            pass
 
     await audit_append(
         db,
@@ -454,11 +506,15 @@ async def me_v1(
     response_model=ForgotPasswordResponse,
     status_code=status.HTTP_202_ACCEPTED,
     responses={429: {"description": "Too many reset requests"}},
+    # R7: tight burst limit — password-reset is the cheap email-bomb
+    # surface. Per-email throttling lives inside the handler.
+    dependencies=[Depends(auth_burst_rate_limit)],
 )
 async def forgot_password_v1(
     payload: ForgotPasswordRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
+    redis_client=Depends(_get_redis),
 ) -> ForgotPasswordResponse:
     """Issue a password-reset token and email the link.
 
@@ -466,6 +522,10 @@ async def forgot_password_v1(
     the email matches a real account — leaking that information
     enables enumeration. The actual delivery happens only on a
     real match.
+
+    R7: a per-email throttle (3 mails per hour) layered on top of
+    the per-IP burst limit prevents an attacker who rotates IPs
+    from mail-bombing a known address.
     """
 
     from app.services.audit import (
@@ -479,6 +539,34 @@ async def forgot_password_v1(
 
     ctx = context_from_request(request)
     settings = get_settings()
+
+    # Per-email throttle. We hash the email before keying so the
+    # Redis dump doesn't carry plaintext addresses. The 202 is still
+    # returned to anonymous callers regardless of whether the
+    # email matched (no enumeration via 429-vs-202).
+    import hashlib as _hashlib
+
+    email_key = _hashlib.sha256(payload.email.lower().encode()).hexdigest()
+    rate_key = f"siege:ratelimit:pwreset-email:{email_key}"
+    now = int(time.time())
+    window = 3600
+    limit_per_email = 3
+    pipe = redis_client.pipeline()
+    await pipe.zremrangebyscore(rate_key, 0, now - window)
+    await pipe.zadd(rate_key, {str(now): now})
+    await pipe.zcard(rate_key)
+    await pipe.expire(rate_key, window)
+    results = await pipe.execute()
+    if results[2] > limit_per_email:
+        # Silent throttle — still return 202 so the response shape is
+        # identical to the match / no-match branches; the side-effect
+        # (email sent) just doesn't fire.
+        return ForgotPasswordResponse(
+            message=(
+                "If an account with that email exists, a password "
+                "reset link has been sent."
+            )
+        )
 
     user = (
         await db.execute(select(User).where(User.email == payload.email))
@@ -512,13 +600,17 @@ async def forgot_password_v1(
             actor_id=user.id,
             resource_type="user",
             resource_id=user.id,
-            payload={"email": payload.email},
+            # R12: actor_id identifies the subject; don't carry the
+            # cleartext email again.
+            payload={},
             **ctx,
         )
     else:
         # Audit even the no-match case so log analysis can spot
         # enumeration attempts (high-frequency requests for
-        # nonexistent emails from the same IP).
+        # nonexistent emails from the same IP). R12: HMAC the email
+        # so the same probe-target correlates across rows without
+        # leaking the address itself.
         await audit_append(
             db,
             event_type=EventType.AUTH_PASSWORD_RESET_REQUEST,
@@ -527,8 +619,8 @@ async def forgot_password_v1(
             resource_type=None,
             resource_id=None,
             payload={
-                "email": payload.email,
                 "matched": False,
+                **_safe_email_payload(payload.email, actor_id=None),
             },
             **ctx,
         )
@@ -545,7 +637,11 @@ async def forgot_password_v1(
 @router.post(
     "/reset-password",
     response_model=ResetPasswordResponse,
-    responses={400: {"description": "Invalid or expired reset token"}},
+    responses={
+        400: {"description": "Invalid or expired reset token"},
+        429: {"description": "Rate limit exceeded"},
+    },
+    dependencies=[Depends(auth_rate_limit)],
 )
 async def reset_password_v1(
     payload: ResetPasswordRequest,
@@ -692,6 +788,7 @@ async def update_profile_v1(
     },
 )
 async def mfa_enroll_v1(
+    payload: MfaEnrolRequest,
     request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -702,7 +799,51 @@ async def mfa_enroll_v1(
     via ``/mfa/confirm``. Calling this on a user who already has
     MFA fully enabled rotates the secret to a new one and resets
     them to the unconfirmed state — they have to re-confirm.
+
+    R10 audit finding: requires the current account password.
+    If MFA is already enabled, also requires a valid current TOTP
+    or recovery code in ``current_code`` — otherwise a stolen
+    access token could quietly rotate the second factor.
     """
+
+    if not verify_password(payload.password, current_user.hashed_password):
+        await audit_append(
+            db,
+            event_type=EventType.AUTH_MFA_ENROLL,
+            actor_type=ActorType.USER,
+            actor_id=current_user.id,
+            resource_type="user",
+            resource_id=current_user.id,
+            payload={"success": False, "reason": "password_incorrect"},
+            **context_from_request(request),
+        )
+        await db.commit()
+        raise HTTPException(status_code=401, detail="password incorrect")
+
+    if current_user.mfa_enabled:
+        if not payload.current_code:
+            raise HTTPException(
+                status_code=400,
+                detail="current_code required when MFA already enabled",
+            )
+        try:
+            # ``_verify_or_raise`` lives inside services.mfa but isn't
+            # exported; use the public verify_login_code wrapper
+            # which returns tokens we discard.
+            await verify_login_code(db, current_user, payload.current_code)
+        except (InvalidMfaCode, MfaNotEnrolled):
+            await audit_append(
+                db,
+                event_type=EventType.AUTH_MFA_ENROLL,
+                actor_type=ActorType.USER,
+                actor_id=current_user.id,
+                resource_type="user",
+                resource_id=current_user.id,
+                payload={"success": False, "reason": "current_code_rejected"},
+                **context_from_request(request),
+            )
+            await db.commit()
+            raise HTTPException(status_code=401, detail="current_code rejected")
 
     result = await start_enrolment(db, current_user)
     await audit_append(
@@ -742,7 +883,25 @@ async def mfa_confirm_v1(
     returned in cleartext **once**. The cleartext is never
     persisted — only sha256 hashes live in
     ``mfa_recovery_codes``.
+
+    R10 audit finding: requires the current account password so
+    that simply holding an access token isn't enough to enable
+    MFA for an account.
     """
+
+    if not verify_password(payload.password, current_user.hashed_password):
+        await audit_append(
+            db,
+            event_type=EventType.AUTH_MFA_CONFIRM,
+            actor_type=ActorType.USER,
+            actor_id=current_user.id,
+            resource_type="user",
+            resource_id=current_user.id,
+            payload={"success": False, "reason": "password_incorrect"},
+            **context_from_request(request),
+        )
+        await db.commit()
+        raise HTTPException(status_code=401, detail="password incorrect")
 
     try:
         result = await confirm_enrolment(db, current_user, payload.code)
@@ -843,12 +1002,15 @@ async def mfa_disable_v1(
     response_model=AuthTokenPairResponse,
     responses={
         401: {"description": "Pending token invalid or code rejected"},
+        429: {"description": "Rate limit exceeded"},
     },
+    dependencies=[Depends(auth_burst_rate_limit)],
 )
 async def mfa_verify_v1(
     payload: MfaVerifyRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
+    redis_client=Depends(_get_redis),
 ) -> AuthTokenPairResponse:
     """Second-factor step of the login flow.
 
@@ -856,17 +1018,29 @@ async def mfa_verify_v1(
     when MFA is enabled) plus the user's TOTP code (or a recovery
     code). Returns the real access + refresh token pair on
     success.
+
+    R8: an attempt counter keyed on the pending token's jti caps
+    brute-force at :data:`MFA_PENDING_MAX_ATTEMPTS`; once tripped
+    the token is permanently revoked (cap-key set with a 24h TTL,
+    far beyond the 90s token TTL).
     """
 
     ctx = context_from_request(request)
 
     try:
-        user_id = decode_mfa_pending_token(payload.mfa_pending_token)
+        claims = decode_mfa_pending_claims(payload.mfa_pending_token)
     except InvalidMfaCode as exc:
         raise HTTPException(status_code=401, detail=str(exc))
 
+    # Refuse a pending token that already burned through its
+    # attempt budget. Key TTL > token TTL so a replayed valid
+    # pending token after exhaustion still fails closed.
+    cap_key = f"siege:mfa:pending:capped:{claims.jti}"
+    if await redis_client.get(cap_key):
+        raise HTTPException(status_code=401, detail="pending token revoked")
+
     user = (
-        await db.execute(select(User).where(User.id == user_id))
+        await db.execute(select(User).where(User.id == claims.user_id))
     ).scalar_one_or_none()
     if user is None or not user.is_active:
         raise HTTPException(status_code=401, detail="user not found")
@@ -874,6 +1048,14 @@ async def mfa_verify_v1(
     try:
         access, refresh = await verify_login_code(db, user, payload.code)
     except (InvalidMfaCode, MfaNotEnrolled) as exc:
+        # Increment the per-jti failure counter and revoke once we
+        # hit the cap.
+        fail_key = f"siege:mfa:pending:fails:{claims.jti}"
+        count = await redis_client.incr(fail_key)
+        await redis_client.expire(fail_key, 24 * 3600)
+        if count >= MFA_PENDING_MAX_ATTEMPTS:
+            await redis_client.set(cap_key, "1", ex=24 * 3600)
+            await redis_client.delete(fail_key)
         await audit_append(
             db,
             event_type=EventType.AUTH_MFA_VERIFY_FAILED,
@@ -881,7 +1063,11 @@ async def mfa_verify_v1(
             actor_id=user.id,
             resource_type="user",
             resource_id=user.id,
-            payload={"reason": str(exc)},
+            payload={
+                "reason": str(exc),
+                "attempt": int(count),
+                "capped": bool(count >= MFA_PENDING_MAX_ATTEMPTS),
+            },
             **ctx,
         )
         await db.commit()
@@ -912,7 +1098,11 @@ async def mfa_verify_v1(
 @router.post(
     "/verify-email",
     response_model=VerifyEmailResponse,
-    responses={400: {"description": "Invalid or expired token"}},
+    responses={
+        400: {"description": "Invalid or expired token"},
+        429: {"description": "Rate limit exceeded"},
+    },
+    dependencies=[Depends(auth_rate_limit)],
 )
 async def verify_email_v1(
     payload: VerifyEmailRequest,
@@ -963,6 +1153,8 @@ async def verify_email_v1(
     "/resend-verification",
     response_model=ResendVerificationResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    responses={429: {"description": "Rate limit exceeded"}},
+    dependencies=[Depends(auth_burst_rate_limit)],
 )
 async def resend_verification_v1(
     request: Request,

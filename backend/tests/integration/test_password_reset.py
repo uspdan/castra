@@ -117,7 +117,7 @@ class TestForgotPassword:
         )
         r = await client.post(
             "/api/v1/auth/forgot-password",
-            json={"email": "CASE@TEST.REDACTED"},
+            json={"email": "CASE@TEST.LOCAL"},
         )
         assert r.status_code == 202
         assert len(CAPTURED_EMAILS) == 1

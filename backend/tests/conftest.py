@@ -189,7 +189,11 @@ async def client(
     from httpx import ASGITransport, AsyncClient
     from app.main import app
     from app.database import get_db
-    from app.routers.auth import get_redis
+    # v1 auth defines _get_redis as a private dep; we override on the
+    # singleton coroutine via app.dependency_overrides keyed by the
+    # actual function object. Importing inside the fixture defers the
+    # app import until the test process is wired.
+    from app.routers.v1.auth import _get_redis as _v1_get_redis
 
     async def _override_db():
         yield db_session
@@ -198,7 +202,7 @@ async def client(
         yield redis_client
 
     app.dependency_overrides[get_db] = _override_db
-    app.dependency_overrides[get_redis] = _override_redis
+    app.dependency_overrides[_v1_get_redis] = _override_redis
 
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://testserver"

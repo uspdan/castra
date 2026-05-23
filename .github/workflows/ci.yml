@@ -12,20 +12,27 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# CI test secrets — never used in real environments. Generated
+# per-job via openssl in the "ci-env" step so the workflow file
+# itself doesn't carry secret-shaped strings (R15 audit finding).
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '20'
+
 jobs:
-  backend-tests:
-    name: backend — pytest + coverage gate
+  backend-tests-unit:
+    name: backend — unit tests + coverage gate
     runs-on: ubuntu-22.04
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       - name: checkout
         uses: actions/checkout@v4
 
-      - name: set up python 3.11
+      - name: set up python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
           cache-dependency-path: backend/requirements*.txt
 
@@ -35,16 +42,89 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r requirements-test.txt
 
-      - name: run pytest — unit tests only (integration suite needs
-          testcontainers config that isn't wired into CI yet)
+      - name: generate ephemeral CI test secret
+        id: ci-env
+        run: |
+          # Match Settings.SECRET_KEY min_length=32 — generate per-job.
+          echo "SECRET_KEY=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+
+      - name: run unit tests with coverage gate
         working-directory: backend
         env:
           APP_ENV: test
-          SECRET_KEY: ci-test-secret-do-not-use-in-prod-0123456789abcdef0123456789abcdef
           ADMIN_PASSWORD: CIAdminPasswordA1!
           ALLOWED_ORIGINS: http://localhost:3000
         run: |
-          python -m pytest tests/unit/ -v --no-cov
+          # The project-wide coverage floor lives in pytest.ini
+          # (--cov-fail-under=80). We honour it on the unit tier;
+          # the integration tier runs separately below.
+          python -m pytest tests/unit/ -v
+
+  backend-tests-integration:
+    name: backend — integration tests
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: siege
+          POSTGRES_PASSWORD: siege_secret
+          POSTGRES_DB: siege_range_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U siege"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: set up python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: backend/requirements*.txt
+
+      - name: install backend deps
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-test.txt
+
+      - name: generate ephemeral CI test secret
+        run: |
+          echo "SECRET_KEY=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+
+      - name: run integration tests
+        working-directory: backend
+        env:
+          APP_ENV: test
+          ADMIN_PASSWORD: CIAdminPasswordA1!
+          ALLOWED_ORIGINS: http://localhost:3000
+          DATABASE_URL: postgresql+asyncpg://siege:siege_secret@localhost:5432/siege_range_test
+          REDIS_URL: redis://localhost:6379/0
+        run: |
+          # Integration suite hits the real Postgres + Redis services
+          # above. --no-cov here because coverage is enforced on the
+          # unit tier; running both tiers under the same gate would
+          # double-count.
+          python -m pytest tests/integration/ -v --no-cov
 
   frontend-build:
     name: frontend — vite build + lint
@@ -55,14 +135,14 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
 
-      - name: set up node 20
+      - name: set up node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: install
+      - name: install (npm ci — exact lockfile)
         working-directory: frontend
         run: npm ci
 
@@ -73,6 +153,59 @@ jobs:
       - name: build
         working-directory: frontend
         run: npm run build
+
+  python-deps-audit:
+    name: deps-audit — pip-audit
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: set up python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: install pip-audit
+        run: pip install pip-audit
+
+      - name: audit backend requirements
+        # R13 / R14: fail on HIGH or CRITICAL findings. Lower
+        # severities are reported but don't block. The
+        # ``--vulnerability-service osv`` flag uses the OSV
+        # database, which is what GitHub uses for advisory data.
+        run: |
+          pip-audit \
+            --requirement backend/requirements.txt \
+            --requirement backend/requirements-test.txt \
+            --strict \
+            --vulnerability-service osv
+
+  frontend-deps-audit:
+    name: deps-audit — npm audit
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: set up node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: install
+        working-directory: frontend
+        run: npm ci
+
+      - name: npm audit (high+ severity)
+        working-directory: frontend
+        run: npm audit --audit-level=high
 
   secret-scan:
     name: secret-scan — trufflehog
@@ -125,3 +258,25 @@ jobs:
             exit 1
           fi
           echo "no cleartext CTF{...} literals in tracked source — ok"
+
+  egg-info-check:
+    name: egg-info — refuse tracked build artefacts
+    runs-on: ubuntu-22.04
+    timeout-minutes: 2
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: ensure backend/siege_backend.egg-info is not tracked
+        # R31 audit finding — a previous packaging step had committed
+        # the egg-info directory despite it being gitignored. Catch
+        # any future regression in CI.
+        run: |
+          set -eu
+          if git ls-files backend/siege_backend.egg-info | grep -q .; then
+            echo "::error::backend/siege_backend.egg-info is tracked — it should be gitignored."
+            git ls-files backend/siege_backend.egg-info
+            exit 1
+          fi
+          echo "no tracked egg-info — ok"

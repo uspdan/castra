@@ -42,5 +42,5 @@ class TestCspReport:
 
     async def test_csp_header_includes_report_uri(self, client):
         r = await client.get("/health")
-        csp = r.headers.get("Content-REDACTED-Policy", "")
+        csp = r.headers.get("Content-Security-Policy", "")
         assert "report-uri /csp-report" in csp

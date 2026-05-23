@@ -88,12 +88,12 @@ class TestMultiFlagIncrementalCapture:
         await _make_multi_flag(
             db_session,
             slug="v1-mf-incr",
-            parts=[("alpha", "CTF{REDACTED}", 100), ("beta", "CTF{REDACTED}", 200)],
+            parts=[("alpha", "value-alpha", 100), ("beta", "value-beta", 200)],
         )
         r = await client.post(
             "/api/v1/challenges/v1-mf-incr/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "value-alpha"},
         )
         assert r.status_code == 200, r.text
         body = r.json()
@@ -124,12 +124,12 @@ class TestMultiFlagIncrementalCapture:
         await _make_multi_flag(
             db_session,
             slug="v1-mf-full",
-            parts=[("alpha", "CTF{REDACTED}", 100), ("beta", "CTF{REDACTED}", 200)],
+            parts=[("alpha", "value-alpha", 100), ("beta", "value-beta", 200)],
         )
         first = await client.post(
             "/api/v1/challenges/v1-mf-full/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "value-alpha"},
         )
         assert first.status_code == 200
         first_points = first.json()["points_awarded"]
@@ -137,7 +137,7 @@ class TestMultiFlagIncrementalCapture:
         second = await client.post(
             "/api/v1/challenges/v1-mf-full/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "value-beta"},
         )
         assert second.status_code == 200
         second_points = second.json()["points_awarded"]
@@ -168,12 +168,12 @@ class TestMultiFlagIncrementalCapture:
         await _make_multi_flag(
             db_session,
             slug="v1-mf-prog",
-            parts=[("alpha", "CTF{REDACTED}", 100), ("beta", "CTF{REDACTED}", 200)],
+            parts=[("alpha", "value-alpha", 100), ("beta", "value-beta", 200)],
         )
         await client.post(
             "/api/v1/challenges/v1-mf-prog/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "value-alpha"},
         )
         prog = await client.get(
             "/api/v1/challenges/v1-mf-prog/progress",
@@ -191,18 +191,19 @@ class TestMultiFlagIncrementalCapture:
         await _make_multi_flag(
             db_session,
             slug="v1-mf-dup",
-            parts=[("alpha", "CTF{REDACTED}", 100), ("beta", "CTF{REDACTED}", 200)],
+            parts=[("alpha", "value-alpha", 100), ("beta", "value-beta", 200)],
         )
         first = await client.post(
             "/api/v1/challenges/v1-mf-dup/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "value-alpha"},
         )
         assert first.status_code == 200
+        # Resubmitting the same already-captured flag must 409.
         dup = await client.post(
             "/api/v1/challenges/v1-mf-dup/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "value-alpha"},
         )
         assert dup.status_code == 409
 
@@ -213,23 +214,23 @@ class TestMultiFlagIncrementalCapture:
         await _make_multi_flag(
             db_session,
             slug="v1-mf-after",
-            parts=[("alpha", "CTF{REDACTED}", 100), ("beta", "CTF{REDACTED}", 200)],
+            parts=[("alpha", "value-alpha", 100), ("beta", "value-beta", 200)],
         )
         await client.post(
             "/api/v1/challenges/v1-mf-after/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "value-alpha"},
         )
         await client.post(
             "/api/v1/challenges/v1-mf-after/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "value-beta"},
         )
         # Challenge is now fully captured. Any further submission is 409.
         r = await client.post(
             "/api/v1/challenges/v1-mf-after/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "value-alpha"},
         )
         assert r.status_code == 409
 
@@ -240,12 +241,12 @@ class TestMultiFlagIncrementalCapture:
         await _make_multi_flag(
             db_session,
             slug="v1-mf-wrong",
-            parts=[("alpha", "CTF{REDACTED}", 100), ("beta", "CTF{REDACTED}", 200)],
+            parts=[("alpha", "value-alpha", 100), ("beta", "value-beta", 200)],
         )
         r = await client.post(
             "/api/v1/challenges/v1-mf-wrong/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "definitely-not-the-flag"},
         )
         assert r.status_code == 200
         assert r.json()["correct"] is False
@@ -263,17 +264,17 @@ class TestMultiFlagIncrementalCapture:
         await _make_multi_flag(
             db_session,
             slug="v1-mf-audit",
-            parts=[("alpha", "CTF{REDACTED}", 100), ("beta", "CTF{REDACTED}", 200)],
+            parts=[("alpha", "value-alpha", 100), ("beta", "value-beta", 200)],
         )
         await client.post(
             "/api/v1/challenges/v1-mf-audit/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "value-alpha"},
         )
         await client.post(
             "/api/v1/challenges/v1-mf-audit/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "value-beta"},
         )
         rows = (
             await db_session.execute(
@@ -299,19 +300,19 @@ class TestMultiFlagIncrementalCapture:
         await _make_multi_flag(
             db_session,
             slug="v1-mf-fb",
-            parts=[("alpha", "CTF{REDACTED}", 100), ("beta", "CTF{REDACTED}", 200)],
+            parts=[("alpha", "value-alpha", 100), ("beta", "value-beta", 200)],
         )
         # User A captures alpha first → first-blood for alpha.
         ra = await client.post(
             "/api/v1/challenges/v1-mf-fb/submit",
             headers=auth_headers(a_user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "value-alpha"},
         )
         # User B captures beta first → first-blood for beta.
         rb = await client.post(
             "/api/v1/challenges/v1-mf-fb/submit",
             headers=auth_headers(b_user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "value-beta"},
         )
         assert ra.json()["is_first_blood"] is True
         assert rb.json()["is_first_blood"] is True
@@ -320,7 +321,7 @@ class TestMultiFlagIncrementalCapture:
         rb2 = await client.post(
             "/api/v1/challenges/v1-mf-fb/submit",
             headers=auth_headers(b_user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "value-alpha"},
         )
         assert rb2.json()["is_first_blood"] is False
 
@@ -336,12 +337,12 @@ class TestSingleFlagBackwardCompat:
         await _make_multi_flag(
             db_session,
             slug="v1-single",
-            parts=[("only", "CTF{REDACTED}", 100)],
+            parts=[("only", "value-only", 100)],
         )
         r = await client.post(
             "/api/v1/challenges/v1-single/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "value-only"},
         )
         assert r.status_code == 200
         assert r.json()["correct"] is True
@@ -355,7 +356,7 @@ class TestSingleFlagBackwardCompat:
         r2 = await client.post(
             "/api/v1/challenges/v1-single/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "value-only"},
         )
         assert r2.status_code == 409
 
@@ -363,11 +364,11 @@ class TestSingleFlagBackwardCompat:
         self, client, user_factory, auth_headers, challenge_factory, db_session
     ):
         user = await user_factory()
-        await challenge_factory(slug="v1-mf-legacy", flag="CTF{REDACTED}")
+        await challenge_factory(slug="v1-mf-legacy", flag="legacy-flag")
         r = await client.post(
             "/api/v1/challenges/v1-mf-legacy/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "legacy-flag"},
         )
         assert r.status_code == 200
         solve = (
@@ -380,6 +381,6 @@ class TestSingleFlagBackwardCompat:
         r2 = await client.post(
             "/api/v1/challenges/v1-mf-legacy/submit",
             headers=auth_headers(user),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "legacy-flag"},
         )
         assert r2.status_code == 409

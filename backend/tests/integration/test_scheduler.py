@@ -83,7 +83,7 @@ async def _seed_user_with_solves(db, *, username, points_each, count):
             team=TeamType.red,
             difficulty=1,
             points=points_each,
-            flag_hash=hash_exact_value(f"CTF{REDACTED}-{i}}}"),
+            flag_hash=hash_exact_value(f"sched-{username}-flag-{i}"),
             hints=[],
             skills=[],
             mitre_techniques=[],
