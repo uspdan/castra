@@ -570,6 +570,7 @@ class TestSetupScheduler:
             "db_backup",
             "workstation_reap",
             "cheat_burst_detector",
+            "audit_ledger_prune",
         }
         assert started["n"] == 1
 

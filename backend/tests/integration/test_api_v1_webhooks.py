@@ -266,13 +266,15 @@ class TestE2EDispatchOnSubmit:
                 "name": "e2e",
                 "target_url": "http://127.0.0.1:1/never-listens",
                 "events": ["*"],
+                # R18 — wildcard subscription requires DPA-ack.
+                "dpa_acknowledged": True,
             },
         )
-        await challenge_factory(slug="v1-wh-e2e", flag="CTF{REDACTED}")
+        await challenge_factory(slug="v1-wh-e2e", flag="e2e-correct-flag")
         r = await client.post(
             "/api/v1/challenges/v1-wh-e2e/submit",
             headers=auth_headers(operator),
-            json={"flag": "CTF{REDACTED}"},
+            json={"flag": "e2e-correct-flag"},
         )
         assert r.status_code == 200
         sub = (

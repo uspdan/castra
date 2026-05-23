@@ -229,7 +229,7 @@ def issue_mfa_pending_token(user_id: int) -> str:
     stack so signature verification is uniform.
     """
 
-    from jose import jwt as jose_jwt
+    import jwt as _jwt
 
     settings = get_settings()
     payload = {
@@ -243,7 +243,7 @@ def issue_mfa_pending_token(user_id: int) -> str:
             ).timestamp()
         ),
     }
-    return jose_jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+    return _jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
 
 @dataclass(frozen=True)
@@ -265,14 +265,15 @@ def decode_mfa_pending_token(token: str) -> int:
 def decode_mfa_pending_claims(token: str) -> MfaPendingClaims:
     """Validate the pending token and return both user_id and jti."""
 
-    from jose import jwt as jose_jwt, JWTError
+    import jwt as _jwt
+    from jwt.exceptions import PyJWTError
 
     settings = get_settings()
     try:
-        decoded = jose_jwt.decode(
+        decoded = _jwt.decode(
             token, settings.SECRET_KEY, algorithms=["HS256"]
         )
-    except JWTError as exc:
+    except PyJWTError as exc:
         raise InvalidMfaCode("invalid pending token") from exc
     if decoded.get("type") != "mfa_pending":
         raise InvalidMfaCode("wrong token type")

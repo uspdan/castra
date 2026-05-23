@@ -72,6 +72,40 @@ class Settings(BaseSettings):
     # the proxy hop) rather than trusting attacker-controlled headers.
     TRUST_PROXY_HEADERS: bool = False
 
+    # R16 audit finding — the audit ledger is append-only + hash-
+    # chained, but GDPR Art. 5(1)(e) storage-limitation still
+    # applies. The pruner job in ``services/scheduler.py`` deletes
+    # rows older than this. Operators with a stricter retention
+    # bound can dial it down; operators in regulated environments
+    # that need longer history can dial it up. Defaults to one
+    # year, which matches how long incident-response folks typically
+    # want to be able to look back.
+    AUDIT_LEDGER_RETENTION_DAYS: int = 365
+
+    # R17 audit finding — salt for HMAC'ing personal data into the
+    # ledger (currently: email on failed-auth + password-reset rows;
+    # IP if AUDIT_HASH_IPS=true). Kept separate from SECRET_KEY so
+    # the operator can rotate it without invalidating live JWTs;
+    # rotating it satisfies GDPR Art. 17 erasure for the affected
+    # rows by construction (the prior hashes become unresolvable).
+    # Defaults to SECRET_KEY when unset for backwards-compatible
+    # behaviour on existing deploys.
+    AUDIT_PII_SALT: str = ""
+
+    # R17 audit finding — when on, the audit ledger's ``ip_address``
+    # column carries an HMAC-SHA256 digest (keyed on AUDIT_PII_SALT)
+    # instead of the cleartext peer address. Loses cross-incident
+    # IR utility (you can't grep raw IPs in the ledger) in
+    # exchange for erasure-by-rotation. Off by default — incident-
+    # response use is the more common operational need.
+    AUDIT_HASH_IPS: bool = False
+
+    def audit_pii_salt(self) -> str:
+        """Return the salt to use for ledger PII hashing, falling
+        back to ``SECRET_KEY`` when unset."""
+
+        return self.AUDIT_PII_SALT or self.SECRET_KEY
+
     DOCKER_HOST: str = "tcp://orchestrator:2376"
     REDIS_URL: str = "redis://redis:6379/0"
     CONTAINER_TIMEOUT: int = 7200

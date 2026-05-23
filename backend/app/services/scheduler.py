@@ -296,6 +296,49 @@ async def prune_old_webhook_deliveries():
         logger.error("Webhook prune failed", error=str(e))
 
 
+async def prune_old_audit_ledger():
+    """R16 audit finding — enforce a retention bound on
+    ``audit_ledger`` rows so GDPR Art. 5(1)(e) storage-limitation
+    is satisfied by construction.
+
+    The ledger is append-only + hash-chained, so we don't update
+    rows — we delete them once past retention. Pruning rows
+    breaks the chain for the deleted range but preserves it for
+    everything younger; ``audit_verify`` accounts for that.
+
+    Retention is keyed on the row's ``timestamp`` column with a
+    365-day default (configurable via
+    ``settings.AUDIT_LEDGER_RETENTION_DAYS``).
+    """
+
+    from datetime import datetime, timedelta, timezone
+
+    from sqlalchemy import delete
+
+    from app.config import get_settings
+    from app.models import AuditLedger
+
+    settings = get_settings()
+    days = int(getattr(settings, "AUDIT_LEDGER_RETENTION_DAYS", 365))
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+    try:
+        async with async_session() as db:
+            result = await db.execute(
+                delete(AuditLedger).where(AuditLedger.timestamp < cutoff)
+            )
+            await db.commit()
+            deleted = result.rowcount or 0
+            if deleted:
+                logger.info(
+                    "audit ledger pruned",
+                    deleted=deleted,
+                    retention_days=days,
+                )
+    except Exception as e:
+        logger.error("Audit ledger prune failed", error=str(e))
+
+
 def setup_scheduler():
     scheduler.add_job(cleanup_expired_instances, "interval", minutes=5, id="cleanup_expired")
     scheduler.add_job(cache_leaderboard, "interval", seconds=60, id="cache_leaderboard")
@@ -326,6 +369,12 @@ def setup_scheduler():
     # submissions and surface admin notifications.
     scheduler.add_job(
         detect_submission_bursts, "interval", minutes=5, id="cheat_burst_detector"
+    )
+    # R16 — daily audit-ledger retention prune at 04:30 UTC, after
+    # the webhook-deliveries prune at 04:00.
+    scheduler.add_job(
+        prune_old_audit_ledger,
+        "cron", hour=4, minute=30, id="audit_ledger_prune",
     )
     scheduler.start()
     logger.info("Scheduler started")

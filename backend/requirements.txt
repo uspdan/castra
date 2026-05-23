@@ -8,7 +8,11 @@ asyncpg==0.29.0
 alembic==1.13.1
 pydantic==2.6.1
 pydantic-settings==2.1.0
-python-jose[cryptography]==3.4.0
+# R28 audit finding — migrated from python-jose to PyJWT. Closes
+# PYSEC-2025-185 (jose), CVE-2024-23342 (ecdsa transitive), and
+# CVE-2026-30922 (pyasn1 transitive) — all surfaced by pip-audit
+# and previously held in the workflow's --ignore-vuln list.
+PyJWT[crypto]==2.12.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 python-multipart==0.0.27

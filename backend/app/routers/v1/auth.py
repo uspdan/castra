@@ -109,8 +109,10 @@ def _safe_email_payload(email: str, *, actor_id: int | None) -> dict:
     if actor_id is not None:
         return {}
     settings = get_settings()
+    # R17 — use the dedicated PII salt so rotating it doesn't
+    # invalidate JWTs at the same time.
     digest = _hmac.new(
-        settings.SECRET_KEY.encode(),
+        settings.audit_pii_salt().encode(),
         email.lower().encode(),
         _hashlib.sha256,
     ).hexdigest()
