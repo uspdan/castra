@@ -14,7 +14,6 @@ inline form has been replaced with a call to :func:`flag_to_dispatch`.
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional
 
@@ -29,6 +28,8 @@ from bluerange_spec import (
     SigmaRuleFlag,
     YaraRuleFlag,
 )
+
+from app.validators.exact import hash_exact_value
 
 
 @dataclass(frozen=True)
@@ -57,7 +58,9 @@ def flag_to_dispatch(flag) -> FlagDispatchArgs:
             flag_type="exact",
             points=flag.points,
             label=flag.label,
-            value_hash=hashlib.sha256(flag.value.encode("utf-8")).hexdigest(),
+            value_hash=hash_exact_value(
+                flag.value, case_sensitive=flag.case_sensitive
+            ),
             config={"case_sensitive": flag.case_sensitive},
         )
     if isinstance(flag, RegexFlag):

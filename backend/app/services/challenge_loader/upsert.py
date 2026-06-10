@@ -12,7 +12,6 @@ validation half can be tested without a DB.
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -20,6 +19,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Challenge, ChallengeArtifact, ChallengeFlag, TeamType, utcnow
+from app.validators.exact import hash_exact_value
 from bluerange_spec import ChallengeManifest, ExactFlag
 
 from .flag_mapping import flag_to_dispatch
@@ -116,7 +116,9 @@ def _apply_manifest_to_challenge(challenge: Challenge, loaded: LoadedManifest) -
 def _legacy_flag_hash(manifest: ChallengeManifest) -> Optional[str]:
     for flag in manifest.flags:
         if isinstance(flag, ExactFlag):
-            return hashlib.sha256(flag.value.encode("utf-8")).hexdigest()
+            return hash_exact_value(
+                flag.value, case_sensitive=flag.case_sensitive
+            )
     return None
 
 
