@@ -26,6 +26,9 @@ frontend/.playwright/
 # Docker
 dind_data/
 
+# Agent run artefacts — audit/redteam/codex output is internal-only.
+.claude/runs/
+
 # IDE
 .vscode/
 .idea/

@@ -248,5 +248,4 @@ one track on the stick.
 ## Reference
 
 * [`infra/workstation/README.md`](../infra/workstation/README.md) — workstation image deep-dive + tuning
-* [`docs/runbooks/offline-workstation.md`](runbooks/offline-workstation.md) — offline bundle deep-dive
 * [`scripts/seige`](../scripts/seige) — the CLI itself (`seige --help`)

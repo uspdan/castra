@@ -100,8 +100,8 @@ Data Processing Agreement (R18 — admin UI warns at create time).
 * Webhook outbound dispatch refuses URLs resolving to private /
   loopback / link-local addresses (R4) to defeat SSRF pivots.
 
-Full security posture: see `docs/runbooks/` and the corresponding
-`/secure-audit` run under `.claude/runs/`.
+Full security posture and audit records are maintained internally and
+are available on request to the data controller.
 
 ---
 

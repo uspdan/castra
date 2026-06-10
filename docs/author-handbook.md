@@ -195,10 +195,7 @@ Before opening a PR (or submitting to your operator):
 
 ## Special-case guides
 
-- **LLM honeypot challenges** — see
-  `docs/adr/0001-ai-honeypot-category.md` and
-  `docs/runbooks/llm-honeypot-operator.md`. Reference
-  implementation:
+- **LLM honeypot challenges** — reference implementation:
   `examples/challenges/llm-customer-pii/`.
 
 - **Multi-flag challenges** — give each flag a stable

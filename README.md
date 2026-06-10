@@ -54,9 +54,9 @@ nightly DB backups, and per-instance egress isolation.
 - **Prometheus `/metrics`** endpoint emitting RED metrics per
   route template + the audit-verify heartbeat / finding
   counter.
-- **Drop-in alert rules** at `docs/alerts/*.yml` covering 5xx
-  rate, p99 SLO, in-flight saturation, `up` liveness, audit
-  tamper, audit-verify staleness.
+- **Prometheus alert rules** covering 5xx rate, p99 SLO,
+  in-flight saturation, `up` liveness, audit tamper,
+  audit-verify staleness.
 - **OpenTelemetry tracing** (opt-in via
   `OTEL_EXPORTER_OTLP_ENDPOINT`) for FastAPI / SQLAlchemy /
   httpx spans.
@@ -117,25 +117,20 @@ API at `/api/*` proxied by nginx.
 
 ## Production deploy
 
-See [`docs/operator-handbook.md`](docs/operator-handbook.md) for
-the full Day-1 / Day-2 guide. Post-deploy verification matrix in
-[`docs/runbooks/prod-smoke.md`](docs/runbooks/prod-smoke.md).
+Operational deploy and run procedures (operator handbook, runbooks,
+post-deploy verification) are maintained internally and are not part
+of this public repository. The Compose files (`docker-compose*.yml`)
+and `.env.example` cover the baseline configuration.
 
 ## Documentation map
 
 | Path | What |
 |---|---|
-| [`WORK_PLAN.md`](WORK_PLAN.md) | Sprint-by-sprint history (Phase 0–12 + Sprints 1–12). |
 | [`CHANGELOG.md`](CHANGELOG.md) | User-facing change log. |
-| [`docs/operator-handbook.md`](docs/operator-handbook.md) | Day-1 deploy + Day-2 ops guide. |
 | [`docs/author-handbook.md`](docs/author-handbook.md) | How to write challenges. |
 | [`docs/player-handbook.md`](docs/player-handbook.md) | How to play — UI flow, workstation, offline runner, `seige sync`. |
-| [`docs/runbooks/`](docs/runbooks/) | One file per known failure mode. |
-| [`docs/runbooks/offline-workstation.md`](docs/runbooks/offline-workstation.md) | Offline bundle build + air-gapped play. |
+| [`docs/privacy.md`](docs/privacy.md) | Privacy policy. |
 | [`infra/workstation/README.md`](infra/workstation/README.md) | Analyst workstation image — deploy + tuning. |
-| [`docs/alerts/`](docs/alerts/) | Prometheus rule files + load instructions. |
-| [`docs/adr/`](docs/adr/) | Architectural Decision Records. |
-| [`docs/security-model.md`](docs/security-model.md) | Container isolation, seccomp profiles, capability drops. |
 | [`docs/challenge-spec-v1.md`](docs/challenge-spec-v1.md) | Locked manifest spec. |
 | [`docs/ci-templates/`](docs/ci-templates/) | Parked CI workflows (re-activate when GitHub Actions is on). |
 
@@ -195,5 +190,4 @@ Phase 0–12 hardening program + 12 follow-on sprints + the
 | Alembic migrations | 13 |
 | Audit-ledger event types | 27 (3 workstation events added) |
 
-Per-sprint detail in [`WORK_PLAN.md`](WORK_PLAN.md);
-user-facing change log in [`CHANGELOG.md`](CHANGELOG.md).
+User-facing change log in [`CHANGELOG.md`](CHANGELOG.md).
