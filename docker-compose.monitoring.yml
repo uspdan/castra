@@ -1,0 +1,44 @@
+# Opt-in monitoring overlay — wires the alert rules shipped in
+# docs/alerts/ to a real Prometheus so they aren't documentation-only.
+#
+#   make monitoring-up
+#   # or:
+#   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml \
+#       up -d prometheus
+#
+# UI on http://127.0.0.1:9090 (host loopback only — front it with the
+# platform nginx or an SSH tunnel; it has no auth of its own).
+# Alertmanager routing is deployment-specific and stays external.
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: siege-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docs/alerts:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    networks:
+      # siege-frontend (not the internal backend bridge) — the api
+      # publishes /metrics on its service port there, and a
+      # non-internal network is required for the host port mapping.
+      - siege-frontend
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -q
+        - --spider
+        - http://127.0.0.1:9090/-/healthy
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  prometheus_data:

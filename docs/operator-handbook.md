@@ -34,6 +34,19 @@ in 30s. Production should drop in `fullchain.pem` + `privkey.pem`
 from Let's Encrypt / cert-manager at the same paths
 (`nginx/certs/`).
 
+### Pre-flight check
+
+```bash
+make preflight
+```
+
+Validates the `.env` (secrets present, no placeholders), the
+production-only requirements (`ALLOWED_ORIGINS`, `SMTP_*`,
+`MAIL_FROM`, `FRONTEND_URL`), and the TLS material under
+`nginx/certs/` *before* compose starts — a bad `.env` otherwise
+only surfaces as a crash-looping api container. `make prod` runs
+it automatically; run it standalone after any `.env` edit.
+
 ### Bring it up
 
 ```bash
@@ -56,6 +69,11 @@ The API exposes:
 
 Load `docs/alerts/*.yml` into Prometheus. Each rule's
 `runbook_url` annotation points at the recovery procedure.
+
+No Prometheus yet? `make monitoring-up` starts one pre-wired to
+the api scrape job and these rule files
+(`docker-compose.monitoring.yml`). UI binds to `127.0.0.1:9090`
+only — tunnel in or front it with your own auth.
 
 ### Logging
 

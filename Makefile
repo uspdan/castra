@@ -1,9 +1,15 @@
-.PHONY: dev prod down seed challenge-images test test-install test-challenges test-browser test-browser-install regen-schema render-egress-allowlist health backup restore build lint
+.PHONY: dev prod preflight down seed challenge-images test test-install test-challenges test-browser test-browser-install regen-schema render-egress-allowlist health backup restore build lint
 
 dev:
 	docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 
-prod:
+# Validates .env secrets, production SMTP/origin requirements, and
+# TLS material before compose ever starts — a bad .env otherwise
+# only surfaces as a crash-looping api container.
+preflight:
+	bash scripts/preflight.sh
+
+prod: preflight
 	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 down:
@@ -82,6 +88,14 @@ render-egress-allowlist:
 
 health:
 	bash scripts/health_check.sh
+
+# Opt-in Prometheus wired to the alert rules in docs/alerts/.
+# UI on 127.0.0.1:9090 (loopback only).
+monitoring-up:
+	docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d prometheus
+
+monitoring-down:
+	docker compose -f docker-compose.yml -f docker-compose.monitoring.yml rm -sf prometheus
 
 backup:
 	bash scripts/backup.sh
