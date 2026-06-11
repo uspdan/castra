@@ -137,6 +137,9 @@ services:
   docker-proxy:
     # tecnativa/docker-socket-proxy fronts the DinD daemon for the api.
     # ACL: CONTAINERS, NETWORKS, IMAGES on; everything else default-deny.
+    # VOLUMES is required: the workstation service creates the
+    # per-player /home/analyst volume via the proxy
+    # (services/workstation.py — client.volumes.create).
     # Exposes plaintext 2375 on the internal siege-backend network only
     # (no port mapping to the host).
     image: tecnativa/docker-socket-proxy:0.1.2
@@ -226,8 +229,18 @@ services:
       - net.ipv4.conf.all.src_valid_mark=1
 
 networks:
+  # Subnet pinned because nginx.conf proxies the workstation web
+  # shell to this network's gateway IP (172.24.0.1) — see the
+  # ``location ~ ^/workstation/...`` blocks. Without the pin, Docker
+  # assigns whatever 172.x.0.0/16 is free and the hardcoded IP
+  # silently breaks on hosts where 172.24.0.0/24 was already taken
+  # by an earlier network.
   siege-frontend:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.24.0.0/24
+          gateway: 172.24.0.1
   siege-backend:
     driver: bridge
     internal: true
