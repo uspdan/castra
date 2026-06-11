@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import User
@@ -69,35 +70,46 @@ async def process_submission(
 
     challenge = await _load_challenge(slug, db)
     flag_defs = list(challenge.flag_definitions or [])
-    if len(flag_defs) >= 2:
-        return await _process_multi_flag_submission(
+    # Concurrent duplicate submissions race past the read-side
+    # already-solved checks; ``uq_solve_user_challenge`` /
+    # ``uq_solved_flag_user_challenge_flag`` then reject the loser's
+    # insert. Translate that to the same 409 the read-side check
+    # produces. No explicit rollback here — the failed transaction is
+    # discarded when ``get_db`` closes the session, and rolling back
+    # mid-request corrupts the savepoint-joined test session (see the
+    # note in ``routers/instances.py``).
+    try:
+        if len(flag_defs) >= 2:
+            return await _process_multi_flag_submission(
+                user=user,
+                challenge=challenge,
+                flag_defs=flag_defs,
+                submitted_flag=submitted_flag,
+                db=db,
+                audit_context=audit_context,
+            )
+
+        await _ensure_unsolved(user.id, challenge.id, db)
+        await _ensure_prerequisites(user.id, challenge, db)
+
+        dispatch = await dispatch_submission(submitted_flag, challenge)
+        if dispatch.correct:
+            return await _record_pass(
+                user=user,
+                challenge=challenge,
+                db=db,
+                audit_context=audit_context,
+                matched_flag_id=dispatch.flag_id,
+                validator_name=dispatch.validator_name,
+            )
+        return await _record_fail(
             user=user,
             challenge=challenge,
-            flag_defs=flag_defs,
-            submitted_flag=submitted_flag,
             db=db,
             audit_context=audit_context,
         )
-
-    await _ensure_unsolved(user.id, challenge.id, db)
-    await _ensure_prerequisites(user.id, challenge, db)
-
-    dispatch = await dispatch_submission(submitted_flag, challenge)
-    if dispatch.correct:
-        return await _record_pass(
-            user=user,
-            challenge=challenge,
-            db=db,
-            audit_context=audit_context,
-            matched_flag_id=dispatch.flag_id,
-            validator_name=dispatch.validator_name,
-        )
-    return await _record_fail(
-        user=user,
-        challenge=challenge,
-        db=db,
-        audit_context=audit_context,
-    )
+    except IntegrityError as exc:
+        raise AlreadySolved() from exc
 
 
 __all__ = [

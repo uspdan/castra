@@ -22,11 +22,10 @@ import logging
 import time
 from datetime import datetime, timezone
 
-logger = logging.getLogger(__name__)
-
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -67,7 +66,6 @@ from app.services.mfa import (
     MfaNotEnrolled,
     confirm_enrolment,
     decode_mfa_pending_claims,
-    decode_mfa_pending_token,
     disable_mfa,
     issue_mfa_pending_token,
     start_enrolment,
@@ -88,6 +86,7 @@ from app.services.auth import (
     verify_password,
 )
 
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["v1-auth"])
 
@@ -179,7 +178,15 @@ async def register_v1(
         created_at=datetime.now(timezone.utc),
     )
     db.add(user)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        # Concurrent registration with the same email/username raced
+        # past the read-side check; the unique constraint is the
+        # arbiter. Same 409 as the read-side path.
+        raise HTTPException(
+            status_code=409, detail="Email or username already taken"
+        )
     await db.refresh(user)
 
     await audit_append(
@@ -237,8 +244,14 @@ async def register_v1(
         )
     except Exception:
         # Don't fail register if SMTP / token issue blew up; the
-        # user can still resend via /auth/resend-verification.
-        pass
+        # user can still resend via /auth/resend-verification. Logged
+        # so a misconfigured SMTP host is visible to operators
+        # instead of silently eating every verification email.
+        logger.warning(
+            "verification email failed for user_id=%s during register",
+            user.id,
+            exc_info=True,
+        )
 
     await db.commit()
 

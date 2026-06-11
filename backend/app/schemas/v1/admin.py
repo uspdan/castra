@@ -213,6 +213,16 @@ class AdminChallengeFlagResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Account unlock
+# ---------------------------------------------------------------------------
+class AdminUserUnlockResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: int = Field(ge=1)
+    was_locked: bool
+
+
+# ---------------------------------------------------------------------------
 # Seed
 # ---------------------------------------------------------------------------
 class AdminSeedResponse(BaseModel):

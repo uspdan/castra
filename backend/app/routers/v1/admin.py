@@ -8,6 +8,7 @@ deployment:
 - ``POST   /api/v1/admin/challenges/{slug}/release`` — release
 - ``DELETE /api/v1/admin/challenges/{slug}``    — soft-delete
 - ``PUT    /api/v1/admin/users/{user_id}``      — role/team/active
+- ``POST   /api/v1/admin/users/{user_id}/unlock`` — clear login lockout
 - ``POST   /api/v1/admin/seed``                 — seed from /challenges
 
 The legacy ``/admin/*`` and ``/challenges/`` admin routes stay live;
@@ -21,15 +22,17 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.database import get_db
 from app.models import (
     Challenge,
     ChallengeFlag,
-    Notification,
     Solve,
     TeamType,
     User,
@@ -44,6 +47,7 @@ from app.schemas.v1.admin import (
     AdminChallengeUpdateRequest,
     AdminSeedResponse,
     AdminUserResponse,
+    AdminUserUnlockResponse,
     AdminUserUpdateRequest,
 )
 from app.services.audit import ActorType, EventType, append as audit_append
@@ -55,6 +59,15 @@ from app.validators.exact import hash_exact_value
 
 
 router = APIRouter(prefix="/admin", tags=["v1-admin"])
+
+
+async def _get_redis():
+    settings = get_settings()
+    r = aioredis.from_url(settings.REDIS_URL)
+    try:
+        yield r
+    finally:
+        await r.close()
 
 
 def _to_challenge_response(c: Challenge) -> AdminChallengeResponse:
@@ -416,7 +429,14 @@ async def add_challenge_flag_v1(
         config=payload.config or {},
     )
     db.add(row)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        # Concurrent insert of the same flag_id raced past the
+        # read-side check; ``uq_challenge_flag_id`` is the arbiter.
+        raise HTTPException(
+            status_code=409, detail="flag_id already exists on this challenge"
+        )
     await db.refresh(row)
 
     # Once a multi-flag set exists, the legacy ``flag_hash`` is
@@ -472,6 +492,48 @@ async def update_user_v1(
     await db.commit()
     await db.refresh(user)
     return _to_user_response(user)
+
+
+# ---------------------------------------------------------------------------
+# Account unlock — clears the Redis failed-login counter so a locked
+# player doesn't have to sit out the 15-minute window during an event.
+# ---------------------------------------------------------------------------
+@router.post(
+    "/users/{user_id}/unlock",
+    response_model=AdminUserUnlockResponse,
+    responses={
+        403: {"description": "Admin role required"},
+        404: {"description": "User not found"},
+    },
+)
+async def unlock_user_v1(
+    user_id: int,
+    request: Request,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+    redis_client=Depends(_get_redis),
+) -> AdminUserUnlockResponse:
+    user = (
+        await db.execute(select(User).where(User.id == user_id))
+    ).scalars().first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    deleted = await redis_client.delete(f"login_failures:{user.email}")
+
+    await audit_append(
+        db,
+        event_type=EventType.ADMIN_USER_UNLOCK,
+        actor_type=ActorType.USER,
+        actor_id=admin.id,
+        resource_type="user",
+        resource_id=user.id,
+        payload={"target_user_id": user.id, "was_locked": bool(deleted)},
+        **context_from_request(request),
+    )
+    await db.commit()
+
+    return AdminUserUnlockResponse(user_id=user.id, was_locked=bool(deleted))
 
 
 # ---------------------------------------------------------------------------

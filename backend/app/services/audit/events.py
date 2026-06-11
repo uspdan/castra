@@ -62,6 +62,8 @@ class EventType:
     WORKSTATION_STOP: Final = "workstation.stop"
     WORKSTATION_ATTACHED: Final = "workstation.attached"
 
+    ADMIN_USER_UNLOCK: Final = "admin.user.unlock"
+
 
 _ALLOWED_EVENT_TYPES: Final = frozenset(
     {
@@ -93,6 +95,7 @@ _ALLOWED_EVENT_TYPES: Final = frozenset(
         EventType.WORKSTATION_LAUNCH,
         EventType.WORKSTATION_STOP,
         EventType.WORKSTATION_ATTACHED,
+        EventType.ADMIN_USER_UNLOCK,
     }
 )
 

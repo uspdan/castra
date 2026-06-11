@@ -26,6 +26,7 @@ from typing import List, Optional
 
 import pyotp
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -54,6 +55,12 @@ class InvalidMfaCode(ValueError):
 class MfaNotEnrolled(ValueError):
     """Raised when an MFA action is attempted but the user hasn't
     finished enrolment (mfa_secret unset OR mfa_enabled=False)."""
+
+
+class MfaEnrolmentFailed(RuntimeError):
+    """Raised when recovery-code persistence keeps colliding with
+    the global ``code_hash`` unique constraint after retries —
+    effectively unreachable, but fail-loud beats an opaque 500."""
 
 
 @dataclass(frozen=True)
@@ -128,16 +135,28 @@ async def confirm_enrolment(
 
     user.mfa_enabled = True
 
-    cleartext_codes = _generate_recovery_codes()
-    for cc in cleartext_codes:
-        db.add(
-            MfaRecoveryCode(
-                user_id=user.id,
-                code_hash=_hash_recovery_code(cc),
-            )
-        )
-    await db.flush()
-    return EnrolConfirmResult(recovery_codes=cleartext_codes)
+    # ``code_hash`` is globally unique. A collision with another
+    # user's stored code is astronomically unlikely but would
+    # surface as an unhandled IntegrityError; regenerate inside a
+    # savepoint so a failed flush doesn't poison the outer
+    # transaction.
+    for _ in range(3):
+        cleartext_codes = _generate_recovery_codes()
+        try:
+            async with db.begin_nested():
+                for cc in cleartext_codes:
+                    db.add(
+                        MfaRecoveryCode(
+                            user_id=user.id,
+                            code_hash=_hash_recovery_code(cc),
+                        )
+                    )
+            return EnrolConfirmResult(recovery_codes=cleartext_codes)
+        except IntegrityError:
+            continue
+    raise MfaEnrolmentFailed(
+        "could not persist recovery codes; retry enrolment"
+    )
 
 
 async def disable_mfa(db: AsyncSession, user: User, code: str) -> None:

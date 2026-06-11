@@ -11,6 +11,7 @@ network emits ``workstation.attached`` from its call site.
 
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -23,6 +24,8 @@ from app.services import workstation as ws
 from app.services.audit import ActorType, EventType, append as audit_append
 from app.services.audit.request_context import context_from_request
 from app.services.auth import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/workstation", tags=["workstation"])
 
@@ -124,10 +127,20 @@ async def workstation_launch(
 ) -> WorkstationLaunchResponse:
     try:
         d = ws.launch(user_id=current_user.id)
-    except Exception as exc:
+    except Exception:
         # Most likely "no such image: siege/workstation:latest" if the
-        # operator hasn't run `make workstation-build` yet.
-        raise HTTPException(status_code=503, detail=f"workstation unavailable: {exc}")
+        # operator hasn't run `make workstation-build` yet. The raw
+        # Docker error can carry registry URLs / paths — log it for
+        # the operator, keep the client message generic.
+        logger.error(
+            "workstation launch failed for user_id=%s",
+            current_user.id,
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="workstation unavailable — contact the operator",
+        )
 
     # Audit only on fresh launches — a re-call against a running
     # workstation is idempotent and returns ``one_shot_password=None``.
