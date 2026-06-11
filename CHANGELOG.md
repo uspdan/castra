@@ -8,7 +8,58 @@ per-sprint detail lives in `WORK_PLAN.md`.
 
 ## [Unreleased]
 
-Nothing pending.
+### Go-live review fixes — 2026-06-11
+
+#### Fixed
+- **Concurrent-duplicate 500s.** Flag submission (single- and
+  multi-flag), registration, MFA recovery-code enrolment, and admin
+  flag creation handled the duplicate race only on the read side;
+  a concurrent insert surfaced the database `IntegrityError` as a
+  500. All four now translate the constraint violation into the
+  same 409/conflict outcome the read-side check produces (MFA
+  retries with fresh codes inside a savepoint).
+- **CSP reports reached the SPA, not the API.** nginx had no
+  `/csp-report` location, so browser violation reports fell through
+  to the dashboard and were lost. Both server blocks now proxy the
+  exact path to the api.
+- **Edge auth/flag rate-limit zones never matched v1 traffic.** The
+  `zone=auth` / `zone=flags` locations only matched the removed
+  legacy paths; the SPA's `/api/api/v1/...` shape sailed through
+  the generic zone. New regex locations cover both the single- and
+  double-prefix v1 forms for credential endpoints and flag submit.
+- **Workstation web-shell gateway IP made deterministic.** nginx
+  proxies the web shell to `172.24.0.1`; the `siege-frontend`
+  subnet is now pinned via ipam so Docker can't assign a different
+  CIDR on a busy host.
+- **Verification-email failures were invisible.** Registration
+  swallowed every token/SMTP exception silently; now logged at
+  WARNING (delivery failures were already logged at ERROR inside
+  the email service).
+- **Workstation launch 503 leaked raw Docker error text** to the
+  client; now logged server-side with a generic client message.
+- **InstancePanel crashed when an instance appeared after a null
+  render** (conditional hook order); countdown effect now runs
+  before the early return.
+- **Token refresh is single-flight** in the SPA — parallel 401s no
+  longer race multiple `/auth/refresh` calls — and the WebSocket
+  hook re-reads the freshest token, refreshes on a 4001 close, and
+  no longer leaks reconnect timers after unmount.
+
+#### Added
+- `make preflight` (`scripts/preflight.sh`) — validates `.env`
+  secrets, production SMTP/origin requirements, and TLS material
+  before compose starts. `make prod` now depends on it.
+- `POST /api/v1/admin/users/{id}/unlock` — clears the Redis
+  failed-login lockout counter (new `admin.user.unlock` audit
+  event) so locked players don't sit out 15 minutes mid-event.
+- `make monitoring-up` — opt-in Prometheus overlay
+  (`docker-compose.monitoring.yml`) pre-wired to the api scrape
+  job and the rule files in `docs/alerts/`.
+- Frontend ESLint baseline (`eslint.config.js`, `npm run lint`) —
+  activates the previously no-op CI lint step; ruff baseline
+  config in `backend/pyproject.toml` so `make lint` passes clean.
+- Load-test profile at `backend/tests/load/locustfile.py` for the
+  pre-launch soak (login / browse / scoreboard / submit).
 
 ## [2.5.0] — 2026-05-17
 
