@@ -33,14 +33,17 @@ export default function InstancePanel({ instance, slug, onCleared }) {
   // propagates without parent re-renders. ``instance`` prop is the
   // fallback for callers that haven't migrated yet.
   const live = (slug && byChallenge[slug]) || instance
-  if (!live) return null
 
   // Tick every 1s for the countdown. Cheap; one panel only ever
-  // exists per page.
+  // exists per page. Must run before the ``!live`` early return —
+  // hooks can't be conditional (the panel would crash the moment an
+  // instance appears after a null render).
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(t)
   }, [])
+
+  if (!live) return null
 
   const id = live.instance_id || live.id
   const remainingMs = live.expires_at

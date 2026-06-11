@@ -9,10 +9,17 @@ export default function useWebSocket() {
   const [lastMessage, setLastMessage] = useState(null)
   const wsRef = useRef(null)
   const reconnectDelay = useRef(1000)
+  const reconnectTimer = useRef(null)
+  const unmounted = useRef(false)
   const accessToken = useAuthStore((s) => s.accessToken)
 
   const connect = useCallback(() => {
-    if (!accessToken) return
+    // Read the token from localStorage rather than the captured
+    // store value — the axios 401 interceptor refreshes the token
+    // in localStorage without going through the store, so the
+    // closure copy can be stale by the time we reconnect.
+    const token = localStorage.getItem('access_token')
+    if (!token || unmounted.current) return
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const url = `${protocol}//${window.location.host}/api/ws`
 
@@ -21,7 +28,7 @@ export default function useWebSocket() {
     // uvicorn / nginx access logs). The server reflects the
     // matching subprotocol back in its handshake response.
     setConnectionState('connecting')
-    const ws = new WebSocket(url, [`siege-auth.${accessToken}`])
+    const ws = new WebSocket(url, [`siege-auth.${token}`])
     wsRef.current = ws
 
     ws.onopen = () => {
@@ -42,31 +49,55 @@ export default function useWebSocket() {
           useNotificationStore.getState().addNotification(data)
           useNotificationStore.getState().fetchUnreadCount()
         }
-      } catch {}
+      } catch {
+        // Non-JSON frames are ignored by design.
+      }
     }
 
-    ws.onclose = () => {
+    ws.onclose = async (event) => {
       setConnectionState('disconnected')
       wsRef.current = null
+      if (unmounted.current) return
+
+      // 4001 = server rejected the token (expired/invalid). Get a
+      // fresh access token before reconnecting, otherwise the
+      // backoff loop just replays the dead token forever and live
+      // updates stay broken for the rest of the session.
+      if (event.code === 4001) {
+        try {
+          await useAuthStore.getState().refreshAccessToken()
+        } catch {
+          // Refresh token gone too — stop; the axios interceptor
+          // handles the redirect to /login on the next API call.
+          return
+        }
+      }
+
       const delay = Math.min(reconnectDelay.current, 30000)
       reconnectDelay.current *= 2
-      setTimeout(connect, delay)
+      reconnectTimer.current = setTimeout(connect, delay)
     }
 
     ws.onerror = () => {
       ws.close()
     }
-  }, [accessToken])
+  }, [])
 
   useEffect(() => {
-    connect()
+    unmounted.current = false
+    if (accessToken) connect()
     return () => {
+      unmounted.current = true
+      if (reconnectTimer.current) {
+        clearTimeout(reconnectTimer.current)
+        reconnectTimer.current = null
+      }
       if (wsRef.current) {
         wsRef.current.close()
         wsRef.current = null
       }
     }
-  }, [connect])
+  }, [connect, accessToken])
 
   return { connectionState, lastMessage }
 }
