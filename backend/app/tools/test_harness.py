@@ -32,7 +32,6 @@ from pathlib import Path
 from typing import Sequence
 
 from app.services.test_harness import (
-    CaseStatus,
     HarnessReport,
     run_paths,
 )

@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "e2e": "playwright test",
     "e2e:list": "playwright test --list",
-    "e2e:ui": "playwright test --ui"
+    "e2e:ui": "playwright test --ui",
+    "lint": "eslint ."
   },
   "dependencies": {
     "axios": "1.15.2",
@@ -22,10 +23,15 @@
     "zustand": "4.5.7"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
     "@playwright/test": "1.59.1",
     "@tailwindcss/vite": "4.2.4",
     "@vitejs/plugin-react": "4.7.0",
     "autoprefixer": "10.5.0",
+    "eslint": "10.4.1",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.2",
+    "globals": "17.6.0",
     "tailwindcss": "4.2.4",
     "vite": "5.4.21"
   }

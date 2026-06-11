@@ -7,7 +7,6 @@ import FlagSubmission from '../components/FlagSubmission'
 import InstancePanel from '../components/InstancePanel'
 import ChallengeProgress from '../components/ChallengeProgress'
 import { toast } from '../stores/toastStore'
-import client from '../api/client'
 
 export default function ChallengeDetail() {
   const { slug } = useParams()

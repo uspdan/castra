@@ -38,3 +38,23 @@ llm_signal = "app.validators.llm_signal:LlmSignalValidator"
 [tool.setuptools.packages.find]
 include = ["app*"]
 exclude = ["tests*", "migrations*"]
+
+# Lint baseline for `make lint` / `ruff check app/`. Default rule set
+# (E4/E7/E9/F) with the codebase's deliberate patterns codified:
+[tool.ruff.lint]
+ignore = [
+    # SQLAlchemy column expressions — `Model.flag == True` builds a
+    # SQL boolean comparison; the "pythonic" bare-column form reads
+    # ambiguously next to real booleans. Established repo idiom.
+    "E712",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# main.py wires settings/middleware in a deliberate boot order;
+# imports interleave with app construction by design.
+"app/main.py" = ["E402"]
+# health.py declares the /csp-report logger after the route table
+# for the same boot-order reason.
+"app/routers/health.py" = ["E402"]
+# Façade packages re-export private helpers as monkeypatch seams.
+"app/**/__init__.py" = ["F401"]
