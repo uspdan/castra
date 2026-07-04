@@ -126,8 +126,13 @@ and `.env.example` cover the baseline configuration.
 
 | Path | What |
 |---|---|
+| [`docs/README.md`](docs/README.md) | Documentation index — start here. |
 | [`CHANGELOG.md`](CHANGELOG.md) | User-facing change log. |
-| [`docs/author-handbook.md`](docs/author-handbook.md) | How to write challenges. |
+| [`docs/connect.md`](docs/connect.md) | Reach every layer — ports map + commands. |
+| [`docs/deploy.md`](docs/deploy.md) | Local dev, staging, and production deploy. |
+| [`docs/update.md`](docs/update.md) | Roll a new release forward + rollback. |
+| [`docs/author-new-challenge.md`](docs/author-new-challenge.md) | Golden path for authoring a challenge. |
+| [`docs/author-handbook.md`](docs/author-handbook.md) | Validator options + authoring best practices. |
 | [`docs/player-handbook.md`](docs/player-handbook.md) | How to play — UI flow, workstation, offline runner, `seige sync`. |
 | [`docs/privacy.md`](docs/privacy.md) | Privacy policy. |
 | [`infra/workstation/README.md`](infra/workstation/README.md) | Analyst workstation image — deploy + tuning. |
