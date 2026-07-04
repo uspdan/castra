@@ -25,16 +25,22 @@ def client_ip(request: Request) -> str:
     becomes the original client when the immediate hop is trusted,
     but we read XFF here defensively so the limiter is correct
     even under a misconfigured runner.
+
+    SECURITY: nginx appends the real socket peer as the *right-most*
+    ``X-Forwarded-For`` entry (``$proxy_add_x_forwarded_for``); every
+    token to its left is client-supplied and therefore forgeable.
+    Keying an anti-abuse limit on a spoofable value would let an
+    attacker mint an unlimited number of buckets by rotating a fake
+    left-most token, so we take the right-most non-empty token — the
+    address our own ingress observed. With more than one trusted proxy
+    this buckets per upstream edge (coarser) rather than per client,
+    which fails safe; the old left-most read failed open.
     """
     settings = get_settings()
     if getattr(settings, "TRUST_PROXY_HEADERS", False):
         xff = request.headers.get("x-forwarded-for")
         if xff:
-            # Right-most public hop is the closest trusted proxy
-            # added on ingress; left-most is the original client.
-            # We want the original client, so take the left-most
-            # non-empty token.
-            for token in xff.split(","):
+            for token in reversed(xff.split(",")):
                 t = token.strip()
                 if t:
                     return t

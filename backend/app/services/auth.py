@@ -103,6 +103,7 @@ def decode_token(token: str) -> dict:
 
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db),
 ) -> User:
@@ -125,6 +126,12 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found or inactive",
         )
+    # Expose the authenticated identity so downstream per-user rate
+    # limiters (``middleware/rate_limit.py`` reads ``request.state.user_id``)
+    # key on the user rather than silently falling back to client IP.
+    # Both authenticated routes that use ``flag_rate_limit`` declare
+    # ``get_current_user`` ahead of the limiter, so this is set first.
+    request.state.user_id = user.id
     return user
 
 
