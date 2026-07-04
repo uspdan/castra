@@ -26,6 +26,7 @@ from . import (
     attack_coverage,
     auth,
     challenges,
+    competitions,
     hints,
     leaderboard,
     me,
@@ -34,6 +35,7 @@ from . import (
     submit,
     webhooks,
     workstation,
+    writeups,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["v1"])
@@ -49,5 +51,7 @@ router.include_router(hints.router)
 router.include_router(progress.router)
 router.include_router(webhooks.router)
 router.include_router(workstation.router)
+router.include_router(writeups.router)
+router.include_router(competitions.router)
 
 __all__ = ["router"]

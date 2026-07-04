@@ -23,6 +23,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from fastapi import HTTPException, status
+
 from app.config import get_settings
 
 _TRUE_TOKENS = frozenset({"on", "true", "1", "enabled", "yes"})
@@ -119,3 +121,20 @@ def all_flags() -> dict[str, bool]:
 def registered_flags() -> dict[str, FlagSpec]:
     """Return the flag registry (name -> spec) for introspection/admin."""
     return dict(_REGISTRY)
+
+
+def require_flag(name: str):
+    """Build a FastAPI dependency that 404s when flag ``name`` is off.
+
+    A gated feature ships *dark*: while the flag is off its routes must
+    be indistinguishable from routes that don't exist, so we raise 404
+    (not 403) — the surface simply isn't there yet.
+    """
+
+    async def _dependency() -> None:
+        if not is_enabled(name):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Not Found"
+            )
+
+    return _dependency
