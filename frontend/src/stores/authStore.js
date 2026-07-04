@@ -59,7 +59,7 @@ const useAuthStore = create((set, get) => ({
     const refreshToken = get().refreshToken
     try {
       await client.post('/api/v1/auth/logout', { refresh_token: refreshToken })
-    } catch {}
+    } catch { /* best-effort: local session is cleared regardless below */ }
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('user')

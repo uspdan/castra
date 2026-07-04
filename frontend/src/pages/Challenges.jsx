@@ -245,7 +245,7 @@ export default function Challenges() {
                       // Phase 12 (slice 18): v1 hint endpoint. Consumer
                       // discards the response shape and refetches the
                       // challenge below to refresh the unlocked-hint state.
-                      try { await client.post(`/api/v1/challenges/${selectedChallenge.slug}/hint`); fetchChallenge(selectedChallenge.slug) } catch {}
+                      try { await client.post(`/api/v1/challenges/${selectedChallenge.slug}/hint`); fetchChallenge(selectedChallenge.slug) } catch { /* best-effort: refetch reflects true hint state */ }
                     }} className="flex items-center gap-1">
                       <Lock size={12} /> Unlock hint (-50% points)
                     </button>

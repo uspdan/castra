@@ -5,7 +5,6 @@ import structlog
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from prometheus_client import Counter, Gauge
 from sqlalchemy import delete, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session
 from app.models import Notification, Solve, Streak, User

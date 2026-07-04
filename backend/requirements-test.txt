@@ -32,3 +32,5 @@ google-re2==1.1.20240702
 # expensive validator paths and the test venv must catch regressions.
 pysigma==1.3.3
 yara-python==4.5.4
+# Lint gate — pinned so CI and local `make lint` agree exactly.
+ruff==0.15.16

@@ -19,11 +19,9 @@ import client from '../api/client'
  */
 export default function ChallengeProgress({ slug, refreshSeed = 0 }) {
   const [progress, setProgress] = useState(null)
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
     client
       .get(`/api/v1/challenges/${slug}/progress`)
       .then((res) => {
@@ -31,9 +29,6 @@ export default function ChallengeProgress({ slug, refreshSeed = 0 }) {
       })
       .catch(() => {
         if (!cancelled) setProgress(null)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
       })
     return () => {
       cancelled = true

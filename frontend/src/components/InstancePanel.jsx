@@ -29,18 +29,19 @@ export default function InstancePanel({ instance, slug, onCleared }) {
   const [busy, setBusy] = useState(null) // 'stop' | 'reset' | null
   const [now, setNow] = useState(Date.now())
 
+  // Tick every 1s for the countdown. Cheap; one panel only ever
+  // exists per page. Declared before any early return so hooks run in
+  // the same order on every render (react-hooks/rules-of-hooks).
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
+
   // Prefer the store-tracked instance for the slug so a reset
   // propagates without parent re-renders. ``instance`` prop is the
   // fallback for callers that haven't migrated yet.
   const live = (slug && byChallenge[slug]) || instance
   if (!live) return null
-
-  // Tick every 1s for the countdown. Cheap; one panel only ever
-  // exists per page.
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(t)
-  }, [])
 
   const id = live.instance_id || live.id
   const remainingMs = live.expires_at

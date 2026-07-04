@@ -7,7 +7,6 @@ generated signing secret **once**; subsequent reads omit it.
 
 from __future__ import annotations
 
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select

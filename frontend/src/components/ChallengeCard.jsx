@@ -1,5 +1,4 @@
 import { CheckCircle } from 'lucide-react'
-import clsx from 'clsx'
 
 export default function ChallengeCard({ challenge, onClick }) {
   const isRed = challenge.team === 'red'

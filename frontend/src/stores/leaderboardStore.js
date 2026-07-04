@@ -30,7 +30,7 @@ const useLeaderboardStore = create((set) => ({
     try {
       const res = await client.get('/api/v1/leaderboard/teams')
       set({ teamStats: res.data?.teams || [] })
-    } catch {}
+    } catch { /* best-effort: leaderboard panels degrade gracefully */ }
   },
 
   fetchWeekly: async () => {
@@ -38,7 +38,7 @@ const useLeaderboardStore = create((set) => ({
     try {
       const res = await client.get('/api/v1/leaderboard/weekly')
       set({ weeklyRankings: res.data?.entries || [] })
-    } catch {}
+    } catch { /* best-effort: leaderboard panels degrade gracefully */ }
   },
 }))
 

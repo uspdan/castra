@@ -9,7 +9,7 @@ const useNotificationStore = create((set) => ({
     try {
       const res = await client.get('/notifications')
       set({ notifications: res.data.items || res.data })
-    } catch {}
+    } catch { /* best-effort: notifications are non-critical UI */ }
   },
 
   markRead: async (id) => {
@@ -19,7 +19,7 @@ const useNotificationStore = create((set) => ({
         notifications: s.notifications.map((n) => n.id === id ? { ...n, is_read: true } : n),
         unreadCount: Math.max(0, s.unreadCount - 1),
       }))
-    } catch {}
+    } catch { /* best-effort: notifications are non-critical UI */ }
   },
 
   markAllRead: async () => {
@@ -29,14 +29,14 @@ const useNotificationStore = create((set) => ({
         notifications: s.notifications.map((n) => ({ ...n, is_read: true })),
         unreadCount: 0,
       }))
-    } catch {}
+    } catch { /* best-effort: notifications are non-critical UI */ }
   },
 
   fetchUnreadCount: async () => {
     try {
       const res = await client.get('/notifications/unread-count')
       set({ unreadCount: res.data.count || 0 })
-    } catch {}
+    } catch { /* best-effort: notifications are non-critical UI */ }
   },
 
   addNotification: (notification) => {

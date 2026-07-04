@@ -43,26 +43,24 @@ const useInstanceStore = create((set, get) => ({
   },
 
   stopInstance: async (id, slug = null) => {
-    try {
-      await client.delete(`/instances/${id}`)
-      set((s) => {
-        const next = { ...s.byChallenge }
-        if (slug) {
-          delete next[slug]
-        } else {
-          // Slug not provided: drop any entry whose id matches.
-          for (const [k, v] of Object.entries(next)) {
-            if (v && (v.id === id || v.instance_id === id)) delete next[k]
-          }
+    // Errors propagate to the caller (the panel surfaces them); no local
+    // rollback needed since we only mutate state on success.
+    await client.delete(`/instances/${id}`)
+    set((s) => {
+      const next = { ...s.byChallenge }
+      if (slug) {
+        delete next[slug]
+      } else {
+        // Slug not provided: drop any entry whose id matches.
+        for (const [k, v] of Object.entries(next)) {
+          if (v && (v.id === id || v.instance_id === id)) delete next[k]
         }
-        return {
-          instances: s.instances.filter((i) => i.id !== id && i.instance_id !== id),
-          byChallenge: next,
-        }
-      })
-    } catch (err) {
-      throw err
-    }
+      }
+      return {
+        instances: s.instances.filter((i) => i.id !== id && i.instance_id !== id),
+        byChallenge: next,
+      }
+    })
   },
 
   resetInstance: async (id, slug = null) => {

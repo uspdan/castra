@@ -42,7 +42,7 @@ export default function useWebSocket() {
           useNotificationStore.getState().addNotification(data)
           useNotificationStore.getState().fetchUnreadCount()
         }
-      } catch {}
+      } catch { /* best-effort: ignore malformed ws frames */ }
     }
 
     ws.onclose = () => {

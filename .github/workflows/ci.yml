@@ -67,6 +67,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r requirements-test.txt
 
+      - name: lint (ruff — zero warnings)
+        working-directory: backend
+        run: python -m ruff check app/
+
       - name: generate ephemeral CI test secret
         run: |
           # Match Settings.SECRET_KEY min_length=32 — generate per-job.
@@ -108,9 +112,9 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: lint
+      - name: lint (eslint)
         working-directory: frontend
-        run: npm run lint --if-present
+        run: npm run lint
 
       - name: build
         working-directory: frontend

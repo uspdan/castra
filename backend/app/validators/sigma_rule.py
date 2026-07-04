@@ -275,7 +275,7 @@ def _value_matches(sigma_value, candidate) -> bool:
 
 
 def _sigma_string_to_regex(value):
-    from sigma.types import SigmaString, SpecialChars
+    from sigma.types import SpecialChars
 
     parts: list[str] = []
     for piece in value:
