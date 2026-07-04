@@ -168,6 +168,12 @@ class Settings(BaseSettings):
     BACKUP_DIR: str = "/var/lib/siege-range/backups"
     BACKUP_RETENTION_DAYS: int = 30
 
+    # Feature flags (CLAUDE.md §19). Comma-separated ``name=on|off``
+    # pairs, e.g. ``FEATURE_API_V1_WRITEUPS=on,FEATURE_CHALLENGES_AI_HONEYPOT=off``.
+    # Anything not listed uses the registry default in
+    # ``app.services.feature_flags``. Unknown flags resolve to OFF.
+    FEATURE_FLAGS: str = ""
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     @field_validator("SECRET_KEY", "ADMIN_PASSWORD")
