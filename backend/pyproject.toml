@@ -34,6 +34,10 @@ attack_chain = "app.validators.attack_chain:AttackChainValidator"
 cloud_misconfig = "app.validators.cloud_misconfig:CloudMisconfigValidator"
 # Sprint 9 Phase C — AI/LLM honeypot (ADR 0001).
 llm_signal = "app.validators.llm_signal:LlmSignalValidator"
+# AI honeypot family — prompt injection, jailbreak, agent-abuse trace.
+prompt_injection_detected = "app.validators.honeypot:PromptInjectionValidator"
+jailbreak_attempt = "app.validators.honeypot:JailbreakValidator"
+agent_abuse_trace = "app.validators.honeypot:AgentAbuseTraceValidator"
 
 [tool.setuptools.packages.find]
 include = ["app*"]
