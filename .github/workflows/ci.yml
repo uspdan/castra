@@ -189,20 +189,69 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      # The npm bundled with Node 20 (10.8.x) audits via
-      # ``/-/npm/v1/security/audits/quick``, which the registry has
-      # retired — it now answers 400 regardless of the package tree, so
-      # the gate failed without ever reporting a vulnerability. npm 11+
-      # uses ``/-/npm/v1/security/advisories/bulk`` instead. Pinned
-      # exactly per CLAUDE.md §11.1 (deterministic CI tooling) rather
-      # than tracking a major range. 11.x is the newest line that still
-      # supports Node 20 (npm 12 requires Node >= 22.22).
-      - name: pin npm (Node 20's npm uses the retired audit endpoint)
-        run: npm install -g npm@11.18.0
+      # ``npm audit`` cannot currently be used as a gate at all:
+      #   * npm 10.x (bundled with Node 20) queries
+      #     ``/-/npm/v1/security/audits/quick``, which the registry has
+      #     retired — it answers 400 for every package tree.
+      #   * npm 11.x queries the replacement bulk endpoint, which
+      #     returns a gzip-compressed body with no ``Content-Encoding``
+      #     header, so the client fails to parse it. Reproduced on
+      #     11.0.0, 11.9.0 and 11.18.0, locally and on the runner.
+      # Either way the job failed without ever reporting a
+      # vulnerability, which is worse than a false positive: a gate
+      # that is red for infrastructure reasons teaches people to
+      # ignore it.
+      #
+      # osv-scanner reads package-lock.json directly and queries OSV —
+      # the same vulnerability service the pip-audit job already uses,
+      # so both ecosystems now gate on one data source. Pinned by
+      # version *and* checksum per CLAUDE.md §11.1.
+      - name: fetch osv-scanner
+        run: |
+          set -euo pipefail
+          curl -sSL -o /tmp/osv-scanner \
+            https://github.com/google/osv-scanner/releases/download/v2.4.0/osv-scanner_linux_amd64
+          echo "15314940c10d26af9c6649f150b8a47c1262e8fc7e17b1d1029b0e479e8ed8a0  /tmp/osv-scanner" \
+            | sha256sum -c -
+          chmod +x /tmp/osv-scanner
 
-      - name: npm audit (high+ severity)
+      - name: npm dependency audit (high+ severity)
         working-directory: frontend
-        run: npm audit --audit-level=high
+        run: |
+          set -euo pipefail
+          # osv-scanner exits non-zero for findings of any severity;
+          # the gate below decides what actually blocks. Suppressions
+          # live in frontend/osv-scanner.toml, each with a reason.
+          /tmp/osv-scanner scan source \
+            --lockfile=package-lock.json \
+            --format json > osv-report.json || true
+          python3 - osv-report.json <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1]))
+          blocking = []
+          for result in data.get("results", []):
+              for pkg in result.get("packages", []):
+                  name = pkg["package"]["name"]
+                  version = pkg["package"]["version"]
+                  for vuln in pkg.get("vulnerabilities", []):
+                      severity = (vuln.get("database_specific") or {}).get(
+                          "severity", "UNKNOWN"
+                      )
+                      if severity in ("HIGH", "CRITICAL"):
+                          summary = (vuln.get("summary") or "").strip()
+                          blocking.append(
+                              f"{severity}  {name}@{version}  {vuln['id']}  {summary}"
+                          )
+          if blocking:
+              print(
+                  f"::error::{len(blocking)} HIGH/CRITICAL advisories in the "
+                  "npm dependency tree"
+              )
+              for line in blocking:
+                  print(f"  {line}")
+              sys.exit(1)
+          print("no HIGH/CRITICAL advisories in the npm dependency tree")
+          PY
 
   secret-scan:
     name: secret-scan — trufflehog
