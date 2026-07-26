@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import client from '../api/client'
+import { v1 } from '../api/client'
 
 const useAuthStore = create((set, get) => ({
   user: JSON.parse(localStorage.getItem('user') || 'null'),
@@ -20,7 +20,7 @@ const useAuthStore = create((set, get) => ({
     //   * MFA pending: { mfa_required: true, mfa_pending_token }
     // The Login page distinguishes via the returned object's
     // `mfa_required` flag and pivots to the TOTP-input step.
-    const res = await client.post('/api/v1/auth/login', { email, password })
+    const res = await v1.post('/auth/login', { email, password })
     if (res.data?.mfa_required) {
       return { mfaRequired: true, mfaPendingToken: res.data.mfa_pending_token }
     }
@@ -33,7 +33,7 @@ const useAuthStore = create((set, get) => ({
   },
 
   verifyMfaLogin: async (mfaPendingToken, code) => {
-    const res = await client.post('/api/v1/auth/mfa/verify', {
+    const res = await v1.post('/auth/mfa/verify', {
       mfa_pending_token: mfaPendingToken,
       code,
     })
@@ -46,7 +46,7 @@ const useAuthStore = create((set, get) => ({
   },
 
   register: async (data) => {
-    const res = await client.post('/api/v1/auth/register', data)
+    const res = await v1.post('/auth/register', data)
     const { user, access_token, refresh_token } = res.data
     localStorage.setItem('access_token', access_token)
     localStorage.setItem('refresh_token', refresh_token)
@@ -58,7 +58,7 @@ const useAuthStore = create((set, get) => ({
   logout: async () => {
     const refreshToken = get().refreshToken
     try {
-      await client.post('/api/v1/auth/logout', { refresh_token: refreshToken })
+      await v1.post('/auth/logout', { refresh_token: refreshToken })
     } catch {}
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
@@ -69,7 +69,7 @@ const useAuthStore = create((set, get) => ({
   refreshAccessToken: async () => {
     const refreshToken = get().refreshToken
     if (!refreshToken) return
-    const res = await client.post('/api/v1/auth/refresh', { refresh_token: refreshToken })
+    const res = await v1.post('/auth/refresh', { refresh_token: refreshToken })
     const newToken = res.data.access_token
     localStorage.setItem('access_token', newToken)
     set({ accessToken: newToken })
@@ -80,11 +80,11 @@ const useAuthStore = create((set, get) => ({
     // whether the email matches a real account. The component
     // doesn't need to know more — show "if an account exists,
     // we sent a link" either way.
-    await client.post('/api/v1/auth/forgot-password', { email })
+    await v1.post('/auth/forgot-password', { email })
   },
 
   resetPassword: async (token, newPassword) => {
-    await client.post('/api/v1/auth/reset-password', {
+    await v1.post('/auth/reset-password', {
       token,
       new_password: newPassword,
     })
@@ -105,7 +105,7 @@ const useAuthStore = create((set, get) => ({
     // consumers ignore unknown fields. v1 carries `id` since
     // slice 21 so the leaderboard highlight feature still
     // resolves the viewer's own row.
-    const res = await client.get('/api/v1/me')
+    const res = await v1.get('/me')
     localStorage.setItem('user', JSON.stringify(res.data))
     set({ user: res.data })
   },

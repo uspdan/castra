@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Target, Flag, TrendingUp, Flame, ArrowRight } from 'lucide-react'
-import client from '../api/client'
+import client, { v1 } from '../api/client'
 import WeeklyActivity from '../components/WeeklyActivity'
 import LeaderboardRow from '../components/LeaderboardRow'
 import MitreCoverage from '../components/MitreCoverage'
@@ -19,7 +19,7 @@ export default function Dashboard() {
       client.get('/stats/activity').catch(() => ({ data: [] })),
       // Phase 12 (slice 21): v1 scoreboard uses `limit` (not
       // `per_page`) and returns {entries, team_filter, generated_at}.
-      client.get('/api/v1/scoreboard', { params: { limit: 5 } }).catch(() => ({ data: { entries: [] } })),
+      v1.get('/scoreboard', { params: { limit: 5 } }).catch(() => ({ data: { entries: [] } })),
       client.get('/stats/mitre').catch(() => ({ data: [] })),
     ]).then(([s, a, l, m]) => {
       setStats(s.data)

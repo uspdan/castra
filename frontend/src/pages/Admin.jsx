@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import useAuthStore from '../stores/authStore'
 import { toast } from '../stores/toastStore'
-import client from '../api/client'
+import client, { v1 } from '../api/client'
 import ChallengeEditor from '../components/ChallengeEditor'
 
 const tabs = [
@@ -104,7 +104,7 @@ function UsersTab() {
 
   const updateUser = async (id, body) => {
     try {
-      await client.put(`/api/v1/admin/users/${id}`, body)
+      await v1.put(`/admin/users/${id}`, body)
       load()
       toast({ type: 'success', message: 'User updated.' })
     } catch (err) {
@@ -172,7 +172,7 @@ function ChallengesTab() {
   const load = async () => {
     setLoading(true)
     try {
-      const res = await client.get('/api/v1/challenges', { params: { per_page: 100 } })
+      const res = await v1.get('/challenges', { params: { per_page: 100 } })
       setItems(res.data.items || [])
     } finally { setLoading(false) }
   }
@@ -181,7 +181,7 @@ function ChallengesTab() {
 
   const release = async (slug) => {
     try {
-      await client.post(`/api/v1/admin/challenges/${slug}/release`)
+      await v1.post(`/admin/challenges/${slug}/release`)
       toast({ type: 'success', message: 'Released.' })
       load()
     } catch (err) {
@@ -192,7 +192,7 @@ function ChallengesTab() {
   const remove = async (slug) => {
     if (!window.confirm(`Soft-delete ${slug}?`)) return
     try {
-      await client.delete(`/api/v1/admin/challenges/${slug}`)
+      await v1.delete(`/admin/challenges/${slug}`)
       toast({ type: 'success', message: 'Soft-deleted.' })
       load()
     } catch (err) {
@@ -205,7 +205,7 @@ function ChallengesTab() {
     // / docker_config by design; pull the admin-side detail which
     // includes them.
     try {
-      const res = await client.get(`/api/v1/admin/challenges/${slug}`)
+      const res = await v1.get(`/admin/challenges/${slug}`)
       setEditor({ mode: 'edit', initial: res.data })
     } catch (err) {
       toast({ type: 'error', message: err.response?.data?.detail || 'Could not load' })
@@ -241,7 +241,7 @@ function ChallengesTab() {
     let failed = 0
     for (const c of drafts) {
       try {
-        await client.post(`/api/v1/admin/challenges/${c.slug}/release`)
+        await v1.post(`/admin/challenges/${c.slug}/release`)
         ok += 1
       } catch {
         failed += 1
@@ -436,7 +436,7 @@ function WebhooksTab() {
   const load = async () => {
     setLoading(true)
     try {
-      const res = await client.get('/api/v1/webhooks')
+      const res = await v1.get('/webhooks')
       setItems(res.data.items || [])
     } finally { setLoading(false) }
   }
@@ -446,7 +446,7 @@ function WebhooksTab() {
   const remove = async (id) => {
     if (!window.confirm('Delete this webhook subscription?')) return
     try {
-      await client.delete(`/api/v1/webhooks/${id}`)
+      await v1.delete(`/webhooks/${id}`)
       toast({ type: 'success', message: 'Deleted.' })
       if (selectedId === id) setSelectedId(null)
       load()
@@ -538,7 +538,7 @@ function CreateWebhookForm({ onCreated, onCancel }) {
     e.preventDefault()
     setBusy(true)
     try {
-      const res = await client.post('/api/v1/webhooks', {
+      const res = await v1.post('/webhooks', {
         name: name.trim(),
         target_url: targetUrl.trim(),
         events: events.split(',').map((s) => s.trim()).filter(Boolean),
@@ -586,7 +586,7 @@ function DeliveriesPanel({ subscriptionId }) {
   const load = async () => {
     setLoading(true)
     try {
-      const res = await client.get(`/api/v1/webhooks/${subscriptionId}/deliveries`, { params: { per_page: 20 } })
+      const res = await v1.get(`/webhooks/${subscriptionId}/deliveries`, { params: { per_page: 20 } })
       setItems(res.data.items || [])
     } finally { setLoading(false) }
   }
@@ -595,7 +595,7 @@ function DeliveriesPanel({ subscriptionId }) {
 
   const replay = async (deliveryId) => {
     try {
-      await client.post(`/api/v1/webhooks/${subscriptionId}/deliveries/${deliveryId}/replay`)
+      await v1.post(`/webhooks/${subscriptionId}/deliveries/${deliveryId}/replay`)
       toast({ type: 'success', message: 'Replayed.' })
       load()
     } catch (err) {
@@ -754,7 +754,7 @@ function SystemTab() {
   const seed = async () => {
     setSeeding(true)
     try {
-      const res = await client.post('/api/v1/admin/seed')
+      const res = await v1.post('/admin/seed')
       toast({ type: 'success', message: `Seeded ${res.data.created} new (skipped ${res.data.skipped}).` })
     } catch (err) {
       toast({ type: 'error', message: err.response?.data?.detail || 'Seed failed' })

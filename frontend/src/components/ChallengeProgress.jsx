@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CheckCircle2, Circle, Crown } from 'lucide-react'
-import client from '../api/client'
+import { v1 } from '../api/client'
 
 /**
  * Sprint 2 — multi-flag progress strip.
@@ -24,8 +24,8 @@ export default function ChallengeProgress({ slug, refreshSeed = 0 }) {
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    client
-      .get(`/api/v1/challenges/${slug}/progress`)
+    v1
+      .get(`/challenges/${slug}/progress`)
       .then((res) => {
         if (!cancelled) setProgress(res.data)
       })
