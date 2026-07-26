@@ -141,15 +141,20 @@ jobs:
         #
         # Documented suppressions — re-audit each release:
         #
-        # * PYSEC-2026-161 (starlette) — fix in 1.0.1; the
-        #   fastapi 0.123 line we're on pins starlette<0.50.
-        #   Will close when fastapi ships a release on
-        #   starlette 1.x.
-        # * CVE-2025-71176 (pytest 9.0.3) — dev-only, major bump
-        #   with plugin breakages. Tracked.
-        # * CVE-2026-0994 (protobuf 5.29.6) — opentelemetry-proto
-        #   1.27 pins protobuf<5. Will close on OTel 1.30+ bump.
-        # * CVE-2025-69872 (diskcache) — no upstream fix.
+        # * CVE-2025-71176 (pytest) — dev-only, major bump with
+        #   plugin breakages. Tracked. OSV now reports this as
+        #   PYSEC-2026-1845; pip-audit resolves the alias.
+        # * CVE-2025-69872 (diskcache) — no upstream fix. Reaches us
+        #   transitively via pySigma, for a rule cache backed by
+        #   backends this project does not use.
+        #
+        # Closed by the dependency refresh, suppressions removed:
+        # * PYSEC-2026-161 (starlette) — was held open by
+        #   "fastapi 0.123 pins starlette<0.50". fastapi 0.140 lifted
+        #   the cap and we now run starlette 1.3.1.
+        # * CVE-2026-0994 (protobuf) — was held open by
+        #   "opentelemetry-proto 1.27 pins protobuf<5". OTel is now
+        #   1.44 and protobuf resolves well past the fix.
         #
         # R28 (PyJWT migration) closed:
         # * PYSEC-2025-185 (python-jose) — dep removed.
@@ -164,9 +169,7 @@ jobs:
             --requirement requirements-test.txt \
             --strict \
             --vulnerability-service osv \
-            --ignore-vuln PYSEC-2026-161 \
             --ignore-vuln CVE-2025-71176 \
-            --ignore-vuln CVE-2026-0994 \
             --ignore-vuln CVE-2025-69872
 
   frontend-deps-audit:
@@ -189,9 +192,69 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: npm audit (high+ severity)
+      # ``npm audit`` cannot currently be used as a gate at all:
+      #   * npm 10.x (bundled with Node 20) queries
+      #     ``/-/npm/v1/security/audits/quick``, which the registry has
+      #     retired — it answers 400 for every package tree.
+      #   * npm 11.x queries the replacement bulk endpoint, which
+      #     returns a gzip-compressed body with no ``Content-Encoding``
+      #     header, so the client fails to parse it. Reproduced on
+      #     11.0.0, 11.9.0 and 11.18.0, locally and on the runner.
+      # Either way the job failed without ever reporting a
+      # vulnerability, which is worse than a false positive: a gate
+      # that is red for infrastructure reasons teaches people to
+      # ignore it.
+      #
+      # osv-scanner reads package-lock.json directly and queries OSV —
+      # the same vulnerability service the pip-audit job already uses,
+      # so both ecosystems now gate on one data source. Pinned by
+      # version *and* checksum per CLAUDE.md §11.1.
+      - name: fetch osv-scanner
+        run: |
+          set -euo pipefail
+          curl -sSL -o /tmp/osv-scanner \
+            https://github.com/google/osv-scanner/releases/download/v2.4.0/osv-scanner_linux_amd64
+          echo "15314940c10d26af9c6649f150b8a47c1262e8fc7e17b1d1029b0e479e8ed8a0  /tmp/osv-scanner" \
+            | sha256sum -c -
+          chmod +x /tmp/osv-scanner
+
+      - name: npm dependency audit (high+ severity)
         working-directory: frontend
-        run: npm audit --audit-level=high
+        run: |
+          set -euo pipefail
+          # osv-scanner exits non-zero for findings of any severity;
+          # the gate below decides what actually blocks. Suppressions
+          # live in frontend/osv-scanner.toml, each with a reason.
+          /tmp/osv-scanner scan source \
+            --lockfile=package-lock.json \
+            --format json > osv-report.json || true
+          python3 - osv-report.json <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1]))
+          blocking = []
+          for result in data.get("results", []):
+              for pkg in result.get("packages", []):
+                  name = pkg["package"]["name"]
+                  version = pkg["package"]["version"]
+                  for vuln in pkg.get("vulnerabilities", []):
+                      severity = (vuln.get("database_specific") or {}).get(
+                          "severity", "UNKNOWN"
+                      )
+                      if severity in ("HIGH", "CRITICAL"):
+                          summary = (vuln.get("summary") or "").strip()
+                          blocking.append(
+                              f"{severity}  {name}@{version}  {vuln['id']}  {summary}"
+                          )
+          if blocking:
+              print(
+                  f"::error::{len(blocking)} HIGH/CRITICAL advisories in the "
+                  "npm dependency tree"
+              )
+              for line in blocking:
+                  print(f"  {line}")
+              sys.exit(1)
+          print("no HIGH/CRITICAL advisories in the npm dependency tree")
+          PY
 
   secret-scan:
     name: secret-scan — trufflehog
