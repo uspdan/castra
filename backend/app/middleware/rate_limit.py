@@ -73,13 +73,15 @@ async def _check_rate_limit(key: str, limit: int, window_seconds: int, request: 
 async def flag_rate_limit(request: Request) -> None:
     user_id = getattr(request.state, "user_id", client_ip(request))
     key = f"siege:ratelimit:flag:{user_id}"
-    await _check_rate_limit(key, 10, 60, request)
+    limit = get_settings().RATE_LIMIT_FLAG_PER_MIN
+    await _check_rate_limit(key, limit, 60, request)
 
 
 async def auth_rate_limit(request: Request) -> None:
     ip = client_ip(request)
     key = f"siege:ratelimit:auth:{ip}"
-    await _check_rate_limit(key, 5, 60, request)
+    limit = get_settings().RATE_LIMIT_AUTH_PER_MIN
+    await _check_rate_limit(key, limit, 60, request)
 
 
 async def auth_burst_rate_limit(request: Request) -> None:
@@ -88,10 +90,12 @@ async def auth_burst_rate_limit(request: Request) -> None:
     """
     ip = client_ip(request)
     key = f"siege:ratelimit:auth-burst:{ip}"
-    await _check_rate_limit(key, 5, 300, request)
+    limit = get_settings().RATE_LIMIT_AUTH_BURST_PER_5MIN
+    await _check_rate_limit(key, limit, 300, request)
 
 
 async def general_rate_limit(request: Request) -> None:
     user_id = getattr(request.state, "user_id", client_ip(request))
     key = f"siege:ratelimit:general:{user_id}"
-    await _check_rate_limit(key, 100, 60, request)
+    limit = get_settings().RATE_LIMIT_GENERAL_PER_MIN
+    await _check_rate_limit(key, limit, 60, request)
