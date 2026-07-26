@@ -12,7 +12,7 @@
     "e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "axios": "1.15.2",
+    "axios": "1.18.1",
     "clsx": "2.1.1",
     "lucide-react": "0.344.0",
     "react": "18.3.1",
@@ -28,5 +28,9 @@
     "autoprefixer": "10.5.0",
     "tailwindcss": "4.2.4",
     "vite": "5.4.21"
+  },
+  "overrides": {
+    "form-data": "4.0.6",
+    "postcss": "8.5.23"
   }
 }
