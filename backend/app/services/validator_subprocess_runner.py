@@ -14,6 +14,16 @@ parent passes the resource limits in the envelope so the same code
 path runs on hosts where ``resource`` is unavailable (Windows CI) — the
 parent is responsible for declining to spawn there.
 
+Immediately after the rlimits, and still before the validator module is
+imported, the child installs a seccomp-BPF filter that denies
+``socket(AF_INET | AF_INET6 | AF_PACKET)`` — see
+:mod:`app.security.syscall_filter` for why seccomp rather than a network
+namespace. This closes audit finding R19: the rlimit-only sandbox
+bounded CPU and memory but let plugin code reach the network, which is
+both an exfiltration channel and an SSRF pivot into the backend
+network. Import happens after the filter so module-level code in a
+hostile plugin is already contained.
+
 The protocol is intentionally line-based JSON, not pickle: pickle would
 be a code-execution channel back into the parent if a child were ever
 compromised, while JSON is type-restricted to primitives + nested
@@ -42,7 +52,7 @@ import os
 import sys
 import traceback
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 
 # We deliberately import ``resource`` lazily — on Windows the module
 # does not exist. The parent declines to spawn on platforms without
@@ -57,6 +67,36 @@ except ImportError:  # pragma: no cover — POSIX-only
 
 
 _RLIMITS_KEY = "rlimits"
+_ISOLATION_KEY = "require_network_isolation"
+
+
+def _isolate_network(required: bool) -> Optional[dict[str, Any]]:
+    """Install the socket-blocking seccomp filter.
+
+    Returns ``None`` on success, or an error envelope for the parent
+    when isolation was required and could not be installed. Fail-closed
+    is the point: a validator that runs without the filter runs with
+    full outbound network access, so "couldn't sandbox it" must mean
+    "didn't run it" unless the operator opted out explicitly.
+    """
+
+    from app.security.syscall_filter import SyscallFilterError, install
+
+    try:
+        install()
+    except SyscallFilterError as exc:
+        if required:
+            return {
+                "ok": False,
+                "error": "sandbox",
+                "message": (
+                    f"refusing to run validator without network isolation: {exc}"
+                ),
+            }
+        # Opted out via VALIDATOR_REQUIRE_NETWORK_ISOLATION=false. The
+        # parent logs the degraded posture; the run proceeds.
+        return None
+    return None
 
 
 def _apply_rlimits(rlimits: Mapping[str, int]) -> None:
@@ -163,6 +203,16 @@ def main() -> int:
             "ADMIN_PASSWORD",
         }:
             os.environ.pop(key, None)
+
+    # Network isolation goes on last, after the env scrub, so the
+    # filter is already in force when the validator module is imported
+    # inside ``_run_validator``.
+    isolation_error = _isolate_network(
+        bool(envelope.get(_ISOLATION_KEY, True))
+    )
+    if isolation_error is not None:
+        sys.stdout.write(json.dumps(isolation_error))
+        return 3
 
     response = asyncio.run(_run_validator(envelope))
     sys.stdout.write(json.dumps(response))

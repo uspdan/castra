@@ -133,6 +133,15 @@ class Settings(BaseSettings):
     RATE_LIMIT_FLAG_PER_MIN: int = Field(default=10, ge=1)
     RATE_LIMIT_GENERAL_PER_MIN: int = Field(default=100, ge=1)
 
+    # R19 audit finding — subprocess validators run under a seccomp
+    # filter that denies AF_INET/AF_INET6/AF_PACKET sockets. When True
+    # (default) a validator whose sandbox cannot be established is
+    # refused rather than run unsandboxed. Set False only on a host
+    # whose kernel or architecture cannot install the filter, and only
+    # with the exfiltration/SSRF risk accepted in writing — see
+    # docs/adr/004-validator-network-isolation.md.
+    VALIDATOR_REQUIRE_NETWORK_ISOLATION: bool = True
+
     def audit_pii_salt(self) -> str:
         """Return the salt to use for ledger PII hashing, falling
         back to ``SECRET_KEY`` when unset."""
