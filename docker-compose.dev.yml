@@ -40,6 +40,15 @@ services:
       # Dev only — accept un-pinned challenge images. Production
       # leaves this true so Phase 9's digest enforcement still bites.
       - REQUIRE_IMAGE_DIGEST=false
+      # Dev/E2E only — the whole Playwright suite drives auth from a
+      # single runner IP, which the audited 5/min budget sinks. The
+      # limiter still runs (and still 429s past these numbers); only
+      # the budget moves. app/config.py caps these back to the audited
+      # ceilings for any APP_ENV other than development/test.
+      - RATE_LIMIT_AUTH_PER_MIN=500
+      - RATE_LIMIT_AUTH_BURST_PER_5MIN=500
+      - RATE_LIMIT_FLAG_PER_MIN=500
+      - RATE_LIMIT_GENERAL_PER_MIN=2000
 
   dashboard:
     build:
