@@ -189,6 +189,17 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      # The npm bundled with Node 20 (10.8.x) audits via
+      # ``/-/npm/v1/security/audits/quick``, which the registry has
+      # retired — it now answers 400 regardless of the package tree, so
+      # the gate failed without ever reporting a vulnerability. npm 11+
+      # uses ``/-/npm/v1/security/advisories/bulk`` instead. Pinned
+      # exactly per CLAUDE.md §11.1 (deterministic CI tooling) rather
+      # than tracking a major range. 11.x is the newest line that still
+      # supports Node 20 (npm 12 requires Node >= 22.22).
+      - name: pin npm (Node 20's npm uses the retired audit endpoint)
+        run: npm install -g npm@11.18.0
+
       - name: npm audit (high+ severity)
         working-directory: frontend
         run: npm audit --audit-level=high
