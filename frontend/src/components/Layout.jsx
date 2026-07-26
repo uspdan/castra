@@ -83,6 +83,8 @@ export default function Layout() {
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="flex items-center gap-2 px-2 py-1 rounded transition-colors"
                 style={{ color: 'var(--text-secondary)' }}
+                data-testid="user-menu-trigger"
+                aria-label="Open user menu"
               >
                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{
                   background: 'var(--bg-elevated)',
@@ -125,6 +127,7 @@ export default function Layout() {
                     onClick={handleLogout}
                     className="flex items-center gap-2 px-4 py-2 text-sm w-full text-left hover:bg-white/5"
                     style={{ color: 'var(--accent-red)' }}
+                    data-testid="user-menu-logout"
                   >
                     <LogOut size={14} /> Logout
                   </button>

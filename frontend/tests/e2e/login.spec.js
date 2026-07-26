@@ -47,12 +47,11 @@ test.describe('Login flow', () => {
   test('logout clears session', async ({ authedUser }) => {
     const { page } = authedUser
     await page.goto('/')
-    // The user-menu trigger is the avatar+chevron in Layout.jsx.
-    await page.locator('[role="button"]:has-text("Sign out"), button:has-text("Sign out")').first().click().catch(async () => {
-      // Fall back to opening the dropdown first.
-      await page.locator('button:has(svg[class*="chevron"])').first().click()
-      await page.locator('button:has-text("Sign out")').click()
-    })
+    // Open the user-menu dropdown, then click Logout. Both elements
+    // are addressed by data-testid (see Layout.jsx) so the spec
+    // doesn't drift with copy or icon-class changes.
+    await page.locator('[data-testid="user-menu-trigger"]').click()
+    await page.locator('[data-testid="user-menu-logout"]').click()
     await expect(page).toHaveURL(/\/login$/)
     const tokens = await page.evaluate(() => ({
       access: window.localStorage.getItem('access_token'),
