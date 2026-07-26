@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.database import get_db
 from app.models import User
 from app.schemas.v1.scoreboard import ScoreboardEntry, ScoreboardResponse
@@ -24,7 +25,12 @@ async def scoreboard_v1(
     _viewer: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ScoreboardResponse:
-    rows = await get_cached_scoreboard(db, team_filter=team, limit=limit)
+    rows = await get_cached_scoreboard(
+        db,
+        team_filter=team,
+        limit=limit,
+        ttl_seconds=get_settings().SCOREBOARD_CACHE_TTL_SECONDS,
+    )
     return ScoreboardResponse(
         entries=[
             ScoreboardEntry(

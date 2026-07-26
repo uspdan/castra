@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Flag } from 'lucide-react'
-import client from '../api/client'
+import { v1 } from '../api/client'
 
 export default function FlagSubmission({ challengeSlug, onSuccess }) {
   const [flag, setFlag] = useState('')
@@ -18,7 +18,7 @@ export default function FlagSubmission({ challengeSlug, onSuccess }) {
       // validator fields are ignored here). 4xx mapping is stricter
       // (409 vs 400 for already-solved); the catch reads
       // err.response.data.detail regardless of status code.
-      const res = await client.post(`/api/v1/challenges/${challengeSlug}/submit`, { flag: flag.trim() })
+      const res = await v1.post(`/challenges/${challengeSlug}/submit`, { flag: flag.trim() })
       if (res.data.correct) {
         setResult({ type: 'success', message: `FLAG CAPTURED — ${res.data.points_awarded}pts!` })
         onSuccess?.(res.data)

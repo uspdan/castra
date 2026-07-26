@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import client from '../api/client'
+import { v1 } from '../api/client'
 
 const useLeaderboardStore = create((set) => ({
   rankings: [],
@@ -17,7 +17,7 @@ const useLeaderboardStore = create((set) => ({
     set({ loading: true })
     try {
       const params = team ? { team } : {}
-      const res = await client.get('/api/v1/scoreboard', { params })
+      const res = await v1.get('/scoreboard', { params })
       set({ rankings: res.data?.entries || [], loading: false })
     } catch {
       set({ loading: false })
@@ -28,7 +28,7 @@ const useLeaderboardStore = create((set) => ({
     // v1 wraps the team rows in {teams, generated_at}. Unwrap to keep
     // existing consumers iterating a flat array.
     try {
-      const res = await client.get('/api/v1/leaderboard/teams')
+      const res = await v1.get('/leaderboard/teams')
       set({ teamStats: res.data?.teams || [] })
     } catch {}
   },
@@ -36,7 +36,7 @@ const useLeaderboardStore = create((set) => ({
   fetchWeekly: async () => {
     // v1 wraps in {entries, team_filter, week_start, generated_at}.
     try {
-      const res = await client.get('/api/v1/leaderboard/weekly')
+      const res = await v1.get('/leaderboard/weekly')
       set({ weeklyRankings: res.data?.entries || [] })
     } catch {}
   },

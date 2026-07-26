@@ -21,6 +21,7 @@ from sqlalchemy import and_, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Challenge, HintUnlock, Solve, User, Writeup
+from app.services.hints import normalise_hint
 
 
 @dataclass(frozen=True)
@@ -178,12 +179,19 @@ async def _hint_state(
         .scalars()
         .all()
     )
-    return [
-        {"index": i, "text": hint, "locked": False}
-        if i in unlocked
-        else {"index": i, "text": "{locked}", "locked": True}
-        for i, hint in enumerate(challenge.hints or [])
-    ]
+    # ``text`` must be a string on the wire. ``challenge.hints`` stores
+    # manifest-v1 hints as ``{"text", "cost"}`` dicts, and emitting that
+    # dict verbatim put a nested object where the contract says string —
+    # the UI rendered nothing for every unlocked hint on any challenge
+    # authored through the admin editor.
+    state: list[dict[str, Any]] = []
+    for i, hint in enumerate(challenge.hints or []):
+        if i not in unlocked:
+            state.append({"index": i, "text": "{locked}", "locked": True})
+            continue
+        text, cost = normalise_hint(hint)
+        state.append({"index": i, "text": text, "locked": False, "cost": cost})
+    return state
 
 
 async def _top_solvers(challenge_id: int, db: AsyncSession) -> list[dict[str, Any]]:

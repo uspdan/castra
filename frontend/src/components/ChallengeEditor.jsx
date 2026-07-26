@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { toast } from '../stores/toastStore'
-import client from '../api/client'
+import { v1 } from '../api/client'
 
 /**
  * Sprint 9 Phase A — modal-form for creating + editing challenges.
@@ -84,12 +84,12 @@ export default function ChallengeEditor({ mode, initial, onClose, onSaved }) {
         if (form.slug.trim() && form.slug.trim() !== initial.slug) {
           body.slug = form.slug.trim()
         }
-        res = await client.put(`/api/v1/admin/challenges/${initial.slug}`, body)
+        res = await v1.put(`/admin/challenges/${initial.slug}`, body)
       } else {
         body.slug = form.slug.trim()
         if (!form.flag.trim()) throw new Error('flag is required for new challenges')
         body.flag = form.flag.trim()
-        res = await client.post('/api/v1/admin/challenges', body)
+        res = await v1.post('/admin/challenges', body)
       }
       toast({ type: 'success', message: isEdit ? 'Challenge updated.' : 'Challenge created.' })
       onSaved?.(res.data)

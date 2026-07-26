@@ -7,7 +7,7 @@ import FlagSubmission from '../components/FlagSubmission'
 import InstancePanel from '../components/InstancePanel'
 import ChallengeProgress from '../components/ChallengeProgress'
 import { toast } from '../stores/toastStore'
-import client from '../api/client'
+import { v1 } from '../api/client'
 
 export default function Challenges() {
   const { challenges, selectedChallenge, filters, loading, fetchChallenges, fetchChallenge, setFilter, clearFilters, clearSelected } = useChallengeStore()
@@ -245,7 +245,7 @@ export default function Challenges() {
                       // Phase 12 (slice 18): v1 hint endpoint. Consumer
                       // discards the response shape and refetches the
                       // challenge below to refresh the unlocked-hint state.
-                      try { await client.post(`/api/v1/challenges/${selectedChallenge.slug}/hint`); fetchChallenge(selectedChallenge.slug) } catch {}
+                      try { await v1.post(`/challenges/${selectedChallenge.slug}/hint`); fetchChallenge(selectedChallenge.slug) } catch {}
                     }} className="flex items-center gap-1">
                       <Lock size={12} /> Unlock hint (-50% points)
                     </button>

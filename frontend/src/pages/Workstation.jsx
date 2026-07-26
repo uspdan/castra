@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Terminal, Copy, Power, ExternalLink, Loader2 } from 'lucide-react'
-import client from '../api/client'
+import { v1 } from '../api/client'
 import { toast } from '../stores/toastStore'
 
 // `/workstation` — per-player analyst container lifecycle.
@@ -17,7 +17,7 @@ export default function Workstation() {
 
   const refresh = async () => {
     try {
-      const res = await client.get('/api/v1/workstation/status')
+      const res = await v1.get('/workstation/status')
       setStatus(res.data)
     } catch (err) {
       toast({ type: 'error', message: err.response?.data?.detail || 'status check failed' })
@@ -32,7 +32,7 @@ export default function Workstation() {
     if (busy) return
     setBusy(true); setOneShotPw(null)
     try {
-      const res = await client.post('/api/v1/workstation/launch')
+      const res = await v1.post('/workstation/launch')
       setStatus({
         running: res.data.running,
         container: res.data.container,
@@ -55,7 +55,7 @@ export default function Workstation() {
     if (!window.confirm('Stop your workstation? Your /home is preserved but the SSH session ends.')) return
     setBusy(true); setOneShotPw(null)
     try {
-      const res = await client.post('/api/v1/workstation/stop')
+      const res = await v1.post('/workstation/stop')
       setStatus(res.data)
       toast({ type: 'success', message: 'workstation stopped' })
     } catch (err) {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Shield, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react'
-import client from '../api/client'
+import { v1 } from '../api/client'
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams()
@@ -15,7 +15,7 @@ export default function VerifyEmail() {
     let cancelled = false
     ;(async () => {
       try {
-        await client.post('/api/v1/auth/verify-email', { token })
+        await v1.post('/auth/verify-email', { token })
         if (!cancelled) setState('ok')
       } catch (err) {
         if (cancelled) return
