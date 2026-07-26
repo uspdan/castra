@@ -1,5 +1,5 @@
 // @ts-check
-import { test, expect } from './fixtures.js'
+import { test, expect, testFlag } from './fixtures.js'
 
 /**
  * Phase 12 (slice 20) — flag-submission specs.
@@ -10,7 +10,7 @@ import { test, expect } from './fixtures.js'
  * (already-solved → 409 with detail string).
  */
 
-async function seedChallenge(api, request, slug) {
+async function seedChallenge(api, request, slug, flag) {
   const token = await api.adminToken()
   await api.createChallenge(token, {
     slug,
@@ -20,7 +20,7 @@ async function seedChallenge(api, request, slug) {
     difficulty: 1,
     points: 100,
     team: 'red',
-    flag: 'CTF{REDACTED}',
+    flag,
     docker_image: 'alpine:3.19',
     docker_port: 8080,
   })
@@ -33,7 +33,8 @@ test.describe('Flag submission (v1 endpoint)', () => {
     authedUser, api, request,
   }) => {
     const slug = `e2e-submit-ok-${Date.now().toString(36)}`
-    await seedChallenge(api, request, slug)
+    const flag = testFlag('e2e', slug, 'ok')
+    await seedChallenge(api, request, slug, flag)
 
     const { page } = authedUser
     await page.goto(`/challenges?slug=${slug}`)
@@ -41,7 +42,7 @@ test.describe('Flag submission (v1 endpoint)', () => {
     // Click into it via the title.
     await page.locator(`text="E2E Challenge ${slug}"`).first().click()
 
-    await page.locator('[data-testid="flag-input"]').fill('CTF{REDACTED}')
+    await page.locator('[data-testid="flag-input"]').fill(flag)
     await page.locator('[data-testid="flag-submit"]').click()
 
     await expect(page.locator('[data-testid="flag-result-success"]')).toBeVisible()
@@ -54,13 +55,14 @@ test.describe('Flag submission (v1 endpoint)', () => {
     authedUser, api, request,
   }) => {
     const slug = `e2e-submit-wrong-${Date.now().toString(36)}`
-    await seedChallenge(api, request, slug)
+    const flag = testFlag('e2e', slug, 'correct')
+    await seedChallenge(api, request, slug, flag)
 
     const { page } = authedUser
     await page.goto(`/challenges?slug=${slug}`)
     await page.locator(`text="E2E Challenge ${slug}"`).first().click()
 
-    await page.locator('[data-testid="flag-input"]').fill('CTF{REDACTED}')
+    await page.locator('[data-testid="flag-input"]').fill(testFlag('e2e', slug, 'WRONG'))
     await page.locator('[data-testid="flag-submit"]').click()
 
     await expect(page.locator('[data-testid="flag-result-error"]')).toBeVisible()
@@ -70,21 +72,22 @@ test.describe('Flag submission (v1 endpoint)', () => {
     authedUser, api, request,
   }) => {
     const slug = `e2e-submit-dup-${Date.now().toString(36)}`
-    await seedChallenge(api, request, slug)
+    const flag = testFlag('e2e', slug, 'dup')
+    await seedChallenge(api, request, slug, flag)
 
     const { page } = authedUser
     await page.goto(`/challenges?slug=${slug}`)
     await page.locator(`text="E2E Challenge ${slug}"`).first().click()
 
     // First submission succeeds.
-    await page.locator('[data-testid="flag-input"]').fill('CTF{REDACTED}')
+    await page.locator('[data-testid="flag-input"]').fill(flag)
     await page.locator('[data-testid="flag-submit"]').click()
     await expect(page.locator('[data-testid="flag-result-success"]')).toBeVisible()
 
     // Second submission with the same flag — v1 maps to 409 with
     // detail "challenge already solved". The frontend surfaces
     // err.response.data.detail; it shows up as an error result.
-    await page.locator('[data-testid="flag-input"]').fill('CTF{REDACTED}')
+    await page.locator('[data-testid="flag-input"]').fill(flag)
     await page.locator('[data-testid="flag-submit"]').click()
     await expect(page.locator('[data-testid="flag-result-error"]')).toBeVisible()
     await expect(

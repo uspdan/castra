@@ -45,9 +45,19 @@ export default function Leaderboard() {
           <div className="p-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>No rankings yet</div>
         ) : (
           rankings.map((m, i) => (
-            <div key={m.user_id || i} style={{
-              background: m.user_id === user?.id ? 'rgba(0,200,255,0.05)' : 'transparent',
-            }}>
+            <div
+              key={m.user_id || i}
+              data-testid="leaderboard-row"
+              // Mirrors the highlight condition so the E2E suite can
+              // assert the viewer's row directly. If a future read-
+              // endpoint swap stops surfacing user_id (or /me stops
+              // surfacing id), no row carries data-viewer="true" and
+              // the spec fails instead of silently losing the highlight.
+              data-viewer={m.user_id === user?.id ? 'true' : 'false'}
+              style={{
+                background: m.user_id === user?.id ? 'rgba(0,200,255,0.05)' : 'transparent',
+              }}
+            >
               <LeaderboardRow member={m} index={i} />
             </div>
           ))
