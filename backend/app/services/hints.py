@@ -25,6 +25,22 @@ class NoHintsAvailable(HintError):
     """The challenge has no hints configured."""
 
 
+def normalise_hint(raw: Any) -> tuple[str, int]:
+    """Normalise a stored hint into ``(text, cost)``.
+
+    ``Challenge.hints`` carries two shapes: Phase 7's manifest v1 stores
+    ``{"text": ..., "cost": ...}`` dicts, while the legacy seed format
+    stores bare strings. Every caller that puts a hint on the wire must
+    go through here — returning the dict verbatim leaks a nested object
+    into a field the API contract types as a string, which the frontend
+    then cannot render.
+    """
+
+    if isinstance(raw, dict):
+        return str(raw.get("text") or ""), int(raw.get("cost") or 0)
+    return str(raw), 0
+
+
 class AllHintsUnlocked(HintError):
     """The user has already unlocked every hint for this challenge."""
 
