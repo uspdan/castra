@@ -142,6 +142,15 @@ class Settings(BaseSettings):
     # docs/adr/004-validator-network-isolation.md.
     VALIDATOR_REQUIRE_NETWORK_ISOLATION: bool = True
 
+    # Seconds the rendered v1 scoreboard is served from Redis. 0
+    # disables the cache (read-your-writes), which the dev/E2E stack
+    # uses so a user who registers mid-test appears on the board
+    # immediately. ``services/scoreboard_cache`` has documented this
+    # knob since Sprint 10 but nothing ever read it — the router used
+    # the module default unconditionally. Leave at 60 in production:
+    # the underlying query is a per-user fan-out.
+    SCOREBOARD_CACHE_TTL_SECONDS: int = Field(default=60, ge=0)
+
     def audit_pii_salt(self) -> str:
         """Return the salt to use for ledger PII hashing, falling
         back to ``SECRET_KEY`` when unset."""
