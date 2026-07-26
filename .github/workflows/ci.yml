@@ -141,15 +141,20 @@ jobs:
         #
         # Documented suppressions — re-audit each release:
         #
-        # * PYSEC-2026-161 (starlette) — fix in 1.0.1; the
-        #   fastapi 0.123 line we're on pins starlette<0.50.
-        #   Will close when fastapi ships a release on
-        #   starlette 1.x.
-        # * CVE-2025-71176 (pytest 9.0.3) — dev-only, major bump
-        #   with plugin breakages. Tracked.
-        # * CVE-2026-0994 (protobuf 5.29.6) — opentelemetry-proto
-        #   1.27 pins protobuf<5. Will close on OTel 1.30+ bump.
-        # * CVE-2025-69872 (diskcache) — no upstream fix.
+        # * CVE-2025-71176 (pytest) — dev-only, major bump with
+        #   plugin breakages. Tracked. OSV now reports this as
+        #   PYSEC-2026-1845; pip-audit resolves the alias.
+        # * CVE-2025-69872 (diskcache) — no upstream fix. Reaches us
+        #   transitively via pySigma, for a rule cache backed by
+        #   backends this project does not use.
+        #
+        # Closed by the dependency refresh, suppressions removed:
+        # * PYSEC-2026-161 (starlette) — was held open by
+        #   "fastapi 0.123 pins starlette<0.50". fastapi 0.140 lifted
+        #   the cap and we now run starlette 1.3.1.
+        # * CVE-2026-0994 (protobuf) — was held open by
+        #   "opentelemetry-proto 1.27 pins protobuf<5". OTel is now
+        #   1.44 and protobuf resolves well past the fix.
         #
         # R28 (PyJWT migration) closed:
         # * PYSEC-2025-185 (python-jose) — dep removed.
@@ -164,9 +169,7 @@ jobs:
             --requirement requirements-test.txt \
             --strict \
             --vulnerability-service osv \
-            --ignore-vuln PYSEC-2026-161 \
             --ignore-vuln CVE-2025-71176 \
-            --ignore-vuln CVE-2026-0994 \
             --ignore-vuln CVE-2025-69872
 
   frontend-deps-audit:
