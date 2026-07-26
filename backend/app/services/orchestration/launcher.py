@@ -24,6 +24,7 @@ Behaviour:
 
 from __future__ import annotations
 
+import asyncio
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping
@@ -52,6 +53,14 @@ def _port_range() -> tuple[int, int]:
 
 class MissingImageDigest(ValueError):
     """Manifest declares no ``container.digest`` — refused at launch."""
+
+
+class ImageUnavailable(RuntimeError):
+    """The challenge image could not be pulled and is not resident.
+
+    Distinct from a digest mismatch: nothing is wrong with the pin, the
+    daemon simply has no copy of the image and could not fetch one.
+    """
 
 
 class PostPullDigestMismatch(ValueError):
@@ -118,11 +127,60 @@ def _verify_post_pull_digest(
         )
 
 
+def _repo_without_tag(image: str) -> str:
+    """Strip a trailing ``:tag``, leaving a registry host:port intact.
+
+    ``registry:5000/siege/x:1.2`` → ``registry:5000/siege/x``. The tail
+    after the last colon is only a tag if it contains no ``/``.
+    """
+
+    head, sep, tail = image.rpartition(":")
+    if sep and "/" not in tail:
+        return head
+    return image
+
+
 def _image_ref(challenge: Challenge, digest: str) -> str:
+    """Build the canonical ``repo@digest`` reference.
+
+    The tag is dropped deliberately. A digest reference identifies the
+    image exactly, and ``RepoDigests`` on the resolved image is always
+    of the form ``repo@sha256:…`` — never ``repo:tag@sha256:…``. Leaving
+    the tag on meant ``_verify_post_pull_digest`` compared
+    ``alpine:3.19@sha256:x`` against ``["alpine@sha256:x"]`` and raised
+    ``PostPullDigestMismatch`` on every launch of a tagged image.
+    """
+
     base = challenge.docker_image
     if "@" in base:
         return base
-    return f"{base}@{digest}"
+    return f"{_repo_without_tag(base)}@{digest}"
+
+
+def _pull_image(client, image_ref: str) -> None:
+    """Ensure ``image_ref`` is in the daemon's image store.
+
+    ``containers.create`` never pulls — only ``containers.run`` does,
+    via its own ``ImageNotFound`` retry. When the launcher moved to
+    create+connect+start (to set the network alias before the container
+    gets an endpoint) that implicit pull was lost, so any image not
+    already resident failed the launch with a raw ``ImageNotFound``.
+
+    Falls back to a local lookup when the pull fails so air-gapped
+    deployments that side-load images still launch — see
+    ``docs/runbooks/offline-workstation.md``.
+    """
+
+    try:
+        client.images.pull(image_ref)
+    except Exception as exc:  # noqa: BLE001 — retried as a local lookup
+        try:
+            client.images.get(image_ref)
+        except Exception:
+            raise ImageUnavailable(
+                f"image {image_ref!r} could not be pulled and is not "
+                f"present locally: {exc}"
+            ) from exc
 
 
 async def _check_user_caps(db: AsyncSession, user_id: int, challenge: Challenge) -> None:
@@ -280,6 +338,10 @@ async def launch_instance(
         # blip we had with the post-start alias dance.
         target_network = run_kwargs.pop("network", None)
         try:
+            # Offloaded: a cold pull can take tens of seconds and every
+            # other docker call in this function already runs inline on
+            # the event loop. Keeping the pull off it bounds the damage.
+            await asyncio.to_thread(_pull_image, client, image_ref)
             container = client.containers.create(**run_kwargs)
             if target_network:
                 try:

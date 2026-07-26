@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Save, Key, ShieldAlert, Download, Trash2, ShieldCheck, Mail, CheckCircle2 } from 'lucide-react'
 import useAuthStore from '../stores/authStore'
 import { toast } from '../stores/toastStore'
-import client from '../api/client'
+import { v1 } from '../api/client'
 
 /**
  * Settings page — Sprint 7.
@@ -55,7 +55,7 @@ function ProfileSection({ user, setUser }) {
         setSaving(false)
         return
       }
-      const res = await client.patch('/api/v1/auth/profile', body)
+      const res = await v1.patch('/auth/profile', body)
       setUser?.(res.data)
       toast({ type: 'success', message: 'Profile updated.' })
     } catch (err) {
@@ -124,7 +124,7 @@ function PasswordSection() {
     }
     setSaving(true)
     try {
-      await client.post('/api/v1/auth/change-password', {
+      await v1.post('/auth/change-password', {
         current_password: currentPw,
         new_password: newPw,
       })
@@ -215,7 +215,7 @@ function MfaSection({ user, setUser }) {
       if (mfaEnabled && enrollCurrentCode) {
         body.current_code = enrollCurrentCode
       }
-      const res = await client.post('/api/v1/auth/mfa/enroll', body)
+      const res = await v1.post('/auth/mfa/enroll', body)
       setEnrollData(res.data)
       setEnrolling(true)
     } catch (err) {
@@ -228,7 +228,7 @@ function MfaSection({ user, setUser }) {
   const handleConfirm = async () => {
     setBusy(true)
     try {
-      const res = await client.post('/api/v1/auth/mfa/confirm', {
+      const res = await v1.post('/auth/mfa/confirm', {
         password: enrollPw,
         code,
       })
@@ -238,7 +238,7 @@ function MfaSection({ user, setUser }) {
       setEnrollPw('')
       setEnrollCurrentCode('')
       // Refresh user state to pick up mfa_enabled=true.
-      const me = await client.get('/api/v1/auth/me')
+      const me = await v1.get('/auth/me')
       setUser?.(me.data)
       toast({ type: 'success', message: 'MFA enabled. Save your recovery codes.' })
     } catch (err) {
@@ -251,11 +251,11 @@ function MfaSection({ user, setUser }) {
   const handleDisable = async () => {
     setBusy(true)
     try {
-      await client.post('/api/v1/auth/mfa/disable', {
+      await v1.post('/auth/mfa/disable', {
         password: disablePw,
         code: disableCode,
       })
-      const me = await client.get('/api/v1/auth/me')
+      const me = await v1.get('/auth/me')
       setUser?.(me.data)
       setDisablePw('')
       setDisableCode('')
@@ -418,7 +418,7 @@ function DangerZoneSection() {
     if (exporting) return
     setExporting(true)
     try {
-      const res = await client.get('/api/v1/me/data')
+      const res = await v1.get('/me/data')
       const blob = new Blob([JSON.stringify(res.data, null, 2)], {
         type: 'application/json',
       })
@@ -447,9 +447,9 @@ function DangerZoneSection() {
     if (!window.confirm('This will anonymise your account. Continue?')) return
     setDeleting(true)
     try {
-      await client.request({
+      await v1.request({
         method: 'DELETE',
-        url: '/api/v1/me',
+        url: '/me',
         data: { password: deletePw },
       })
       toast({ type: 'success', message: 'Account deleted.' })
@@ -549,7 +549,7 @@ function EmailSection({ user }) {
     if (busy) return
     setBusy(true)
     try {
-      await client.post('/api/v1/auth/resend-verification')
+      await v1.post('/auth/resend-verification')
       toast({
         type: 'success',
         message: "Verification email sent. Check your inbox.",

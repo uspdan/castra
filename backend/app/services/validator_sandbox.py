@@ -137,6 +137,12 @@ async def run_validator_subprocess(
         "config": dict(config),
         "context": _context_to_primitive(context),
         "rlimits": _build_rlimits(timeout_s),
+        # R19 — the child installs a seccomp filter denying inet
+        # sockets before it imports the validator module. Default-on;
+        # the operator can only disable it by explicit config, and the
+        # child then reports the degraded posture rather than silently
+        # running with the network open.
+        "require_network_isolation": _require_network_isolation(),
     }
     payload = json.dumps(envelope).encode("utf-8")
 
@@ -211,6 +217,13 @@ async def run_validator_subprocess(
     message = str(response.get("message", "unknown subprocess error"))
     if error_kind == "config":
         raise ValidatorConfigError(message)
+    if error_kind == "sandbox":
+        # The child refused to run because it could not isolate itself.
+        # Surface it as-is rather than as a validator fault — this is
+        # an operator/platform condition, not a bad rule.
+        raise ValidatorError(
+            f"validator {validator.name!r} not run: {message}"
+        )
     raise ValidatorError(
         f"validator {validator.name!r} failed: {message} "
         f"(kind={error_kind})"
@@ -238,6 +251,22 @@ def _build_rlimits(timeout_s: float) -> dict[str, int]:
         "RLIMIT_FSIZE": _DEFAULT_RLIMIT_FSIZE,
         "RLIMIT_NOFILE": _DEFAULT_RLIMIT_NOFILE,
     }
+
+
+def _require_network_isolation() -> bool:
+    """Whether the child must refuse to run without its seccomp filter.
+
+    Read lazily rather than from a module-level ``get_settings()`` so
+    tests can flip it without re-importing the module (CLAUDE.md §1.4).
+    Defaults to fail-closed if config is unavailable for any reason.
+    """
+
+    try:
+        from app.config import get_settings
+
+        return bool(get_settings().VALIDATOR_REQUIRE_NETWORK_ISOLATION)
+    except Exception:  # noqa: BLE001 — config problems must not open the sandbox
+        return True
 
 
 def _subprocess_env() -> dict[str, str]:

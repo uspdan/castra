@@ -42,6 +42,21 @@ _PLACEHOLDER_VALUES = frozenset(
 AppEnv = Literal["development", "test", "staging", "production"]
 
 
+# Environments permitted to raise their rate-limit budgets above the
+# audited defaults. Everything else is capped by ``_RATE_LIMIT_CEILINGS``.
+_RATE_LIMIT_UNCAPPED_ENVS = frozenset({"development", "test"})
+
+# Upper bound each budget may take outside development/test. Set well
+# above the shipped defaults so an operator can absorb a legitimate
+# traffic profile, but far below "the limiter no longer bites".
+_RATE_LIMIT_CEILINGS = {
+    "RATE_LIMIT_AUTH_PER_MIN": 20,
+    "RATE_LIMIT_AUTH_BURST_PER_5MIN": 20,
+    "RATE_LIMIT_FLAG_PER_MIN": 60,
+    "RATE_LIMIT_GENERAL_PER_MIN": 600,
+}
+
+
 class Settings(BaseSettings):
     APP_ENV: AppEnv = "development"
 
@@ -99,6 +114,42 @@ class Settings(BaseSettings):
     # exchange for erasure-by-rotation. Off by default — incident-
     # response use is the more common operational need.
     AUDIT_HASH_IPS: bool = False
+
+    # Rate-limit budgets (R5 / R7 audit findings). Tunable so a dev or
+    # CI stack can drive a full E2E suite from a single runner IP
+    # without tripping the auth limiter, while every other environment
+    # keeps the audited defaults.
+    #
+    # WHY a budget and not a bypass: an earlier iteration of this knob
+    # was an ``X-RateLimit-Bypass`` header keyed on a shared secret.
+    # A header that switches the limiter off is a brute-force key the
+    # moment the token leaks or the environment guard is misread — and
+    # it read as "off in production" while leaving staging wide open.
+    # Moving the knob to the budget means the control always runs; only
+    # the number changes, and ``_cap_rate_limits_outside_dev`` below
+    # stops any non-dev deploy tuning it into nothing.
+    RATE_LIMIT_AUTH_PER_MIN: int = Field(default=5, ge=1)
+    RATE_LIMIT_AUTH_BURST_PER_5MIN: int = Field(default=5, ge=1)
+    RATE_LIMIT_FLAG_PER_MIN: int = Field(default=10, ge=1)
+    RATE_LIMIT_GENERAL_PER_MIN: int = Field(default=100, ge=1)
+
+    # R19 audit finding — subprocess validators run under a seccomp
+    # filter that denies AF_INET/AF_INET6/AF_PACKET sockets. When True
+    # (default) a validator whose sandbox cannot be established is
+    # refused rather than run unsandboxed. Set False only on a host
+    # whose kernel or architecture cannot install the filter, and only
+    # with the exfiltration/SSRF risk accepted in writing — see
+    # docs/adr/004-validator-network-isolation.md.
+    VALIDATOR_REQUIRE_NETWORK_ISOLATION: bool = True
+
+    # Seconds the rendered v1 scoreboard is served from Redis. 0
+    # disables the cache (read-your-writes), which the dev/E2E stack
+    # uses so a user who registers mid-test appears on the board
+    # immediately. ``services/scoreboard_cache`` has documented this
+    # knob since Sprint 10 but nothing ever read it — the router used
+    # the module default unconditionally. Leave at 60 in production:
+    # the underlying query is a per-user fan-out.
+    SCOREBOARD_CACHE_TTL_SECONDS: int = Field(default=60, ge=0)
 
     def audit_pii_salt(self) -> str:
         """Return the salt to use for ledger PII hashing, falling
@@ -186,6 +237,25 @@ class Settings(BaseSettings):
             raise ValueError(
                 "ALLOWED_ORIGINS must be set explicitly when APP_ENV=production"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _cap_rate_limits_outside_dev(self) -> "Settings":
+        # Allowlist, not denylist: only the two environments that are
+        # definitionally not internet-facing may raise their budgets.
+        # ``staging`` is deliberately capped alongside ``production`` —
+        # a preprod box with real credentials on it is exactly where an
+        # "it's only staging" exemption gets exploited.
+        if self.APP_ENV in _RATE_LIMIT_UNCAPPED_ENVS:
+            return self
+        for field_name, ceiling in _RATE_LIMIT_CEILINGS.items():
+            value = getattr(self, field_name)
+            if value > ceiling:
+                raise ValueError(
+                    f"{field_name}={value} exceeds the ceiling of {ceiling} "
+                    f"permitted when APP_ENV={self.APP_ENV}. Rate limits may "
+                    "only be relaxed in development or test."
+                )
         return self
 
     @model_validator(mode="after")

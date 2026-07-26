@@ -93,10 +93,32 @@ class _StubNetworksAPI:
         return net
 
 
+class _StubImagesAPI:
+    """The launcher pulls before ``containers.create`` (which, unlike
+    ``containers.run``, never pulls on its own). Record the ref and
+    hand back a stub image."""
+
+    def __init__(self):
+        self.pulled: list[str] = []
+
+    def pull(self, image_ref: str):
+        self.pulled.append(image_ref)
+        return _StubImage(image_ref)
+
+    def get(self, image_ref: str):  # pragma: no cover — pull succeeds here
+        return _StubImage(image_ref)
+
+
+class _StubImage:
+    def __init__(self, image_ref: str):
+        self.attrs = {"RepoDigests": [image_ref]}
+
+
 class _StubDockerClient:
     def __init__(self):
         self.containers = _StubContainersAPI()
         self.networks = _StubNetworksAPI()
+        self.images = _StubImagesAPI()
 
 
 @pytest.fixture

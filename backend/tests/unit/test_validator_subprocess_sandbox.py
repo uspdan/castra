@@ -168,9 +168,12 @@ class _ForkBomb(Validator):
 
 
 class _SocketOpenIPv4(Validator):
-    """Try to open an outbound IPv4 connection. The current
-    rlimit-only sandbox does NOT block this — documents the gap
-    (tracked as a future seccomp / netns sprint)."""
+    """Try to open an outbound IPv4 socket.
+
+    Since R19 closed, the seccomp filter installed by the runner denies
+    ``socket(AF_INET)`` outright, so this raises ``PermissionError``
+    inside the child and surfaces as ``ValidatorError`` in the parent.
+    """
 
     name = "_socket_open_v4"
     requires_subprocess = True
@@ -180,14 +183,55 @@ class _SocketOpenIPv4(Validator):
         import socket
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            # Don't actually connect — just construct the socket. If
-            # the sandbox blocks AF_INET creation, ``socket()`` raises
-            # PermissionError; if it doesn't, we close cleanly.
-            s.close()
-            return ValidationResult(correct=True)
-        finally:
-            s.close()
+        s.close()
+        return ValidationResult(correct=True)
+
+
+class _SocketOpenIPv6(Validator):
+    """Same, over IPv6 — the filter must not be v4-only."""
+
+    name = "_socket_open_v6"
+    requires_subprocess = True
+    default_timeout_s = 5.0
+
+    async def validate(self, submission, config, context):
+        import socket
+
+        s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        s.close()
+        return ValidationResult(correct=True)
+
+
+class _DnsResolve(Validator):
+    """Name resolution is the cheapest exfiltration channel there is —
+    a hostname lookup leaks data to whoever runs the zone."""
+
+    name = "_dns_resolve"
+    requires_subprocess = True
+    default_timeout_s = 5.0
+
+    async def validate(self, submission, config, context):
+        import socket
+
+        socket.getaddrinfo("example.com", 80)
+        return ValidationResult(correct=True)
+
+
+class _UnixSocketPair(Validator):
+    """AF_UNIX must stay permitted — CPython's asyncio self-pipe uses
+    it, so blocking it would break the runner rather than the plugin."""
+
+    name = "_unix_socketpair"
+    requires_subprocess = True
+    default_timeout_s = 5.0
+
+    async def validate(self, submission, config, context):
+        import socket
+
+        a, b = socket.socketpair()
+        a.close()
+        b.close()
+        return ValidationResult(correct=True)
 
 
 class _ArtifactProbe(Validator):
@@ -290,24 +334,39 @@ class TestRunValidatorSubprocess:
                 v, "x", {}, context, timeout_s=10.0
             )
 
-    @pytest.mark.xfail(
-        reason=(
-            "Current sandbox is rlimit-only; AF_INET socket creation "
-            "is permitted. Closing this gap requires seccomp or a "
-            "network namespace, tracked in the audit register."
-        ),
-        strict=False,
-    )
     async def test_blocks_outbound_socket(self, context):
+        # R19: the seccomp filter denies AF_INET at the syscall level,
+        # so the child never gets a socket to connect with.
         v = _SocketOpenIPv4()
-        # No exception expected today (the rlimit sandbox doesn't
-        # block this). The xfail keeps the matrix honest: when the
-        # seccomp profile lands and starts blocking AF_INET, this
-        # test will start raising and we'll flip it to strict=True.
         with pytest.raises(ValidatorError):
             await run_validator_subprocess(
                 v, "x", {}, context, timeout_s=5.0
             )
+
+    async def test_blocks_outbound_socket_ipv6(self, context):
+        v = _SocketOpenIPv6()
+        with pytest.raises(ValidatorError):
+            await run_validator_subprocess(
+                v, "x", {}, context, timeout_s=5.0
+            )
+
+    async def test_blocks_dns_resolution(self, context):
+        v = _DnsResolve()
+        with pytest.raises(ValidatorError):
+            await run_validator_subprocess(
+                v, "x", {}, context, timeout_s=5.0
+            )
+
+    async def test_permits_unix_socketpair(self, context):
+        # Negative control: the filter must be narrow enough that the
+        # runner's own machinery keeps working. If this starts failing,
+        # the deny-list has grown too broad and every subprocess
+        # validator is about to break.
+        v = _UnixSocketPair()
+        result = await run_validator_subprocess(
+            v, "x", {}, context, timeout_s=5.0
+        )
+        assert result.correct is True
 
     async def test_malformed_envelope_raises_validator_error(self, context):
         # Direct hit on the runner — feed it broken JSON via subprocess
