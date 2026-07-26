@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from app.services.orchestration import launcher
-from app.services.orchestration.launcher import MissingImageDigest
+from app.services.orchestration.launcher import ImageUnavailable, MissingImageDigest
 
 
 class _FakeRedis:
@@ -148,14 +148,47 @@ class _FakeNetworksAPI:
         raise KeyError(name)
 
 
+class _FakeImagesAPI:
+    """Records pulls so tests can assert the launcher fetches the image.
+
+    ``containers.create`` does not pull the way ``containers.run`` does,
+    so the launcher must pull explicitly; ``pull_failure`` /
+    ``local_images`` let tests drive the air-gapped fallback.
+    """
+
+    def __init__(self, *, pull_failure: Exception | None = None,
+                 local_images: list[str] | None = None):
+        self.pulled: list[str] = []
+        self.got: list[str] = []
+        self._pull_failure = pull_failure
+        self._local = set(local_images or [])
+
+    def pull(self, image_ref: str):
+        if self._pull_failure is not None:
+            raise self._pull_failure
+        self.pulled.append(image_ref)
+        return _FakeImage([image_ref])
+
+    def get(self, image_ref: str):
+        self.got.append(image_ref)
+        if image_ref not in self._local:
+            raise KeyError(image_ref)
+        return _FakeImage([image_ref])
+
+
 class _FakeDockerClient:
-    def __init__(self, *, repo_digests_override=None):
+    def __init__(self, *, repo_digests_override=None,
+                 pull_failure: Exception | None = None,
+                 local_images: list[str] | None = None):
         self.captured_run_kwargs: dict = {}
         self.containers = _FakeContainersAPI(
             self.captured_run_kwargs,
             repo_digests_override=repo_digests_override,
         )
         self.networks = _FakeNetworksAPI()
+        self.images = _FakeImagesAPI(
+            pull_failure=pull_failure, local_images=local_images
+        )
 
 
 @pytest.fixture
@@ -167,14 +200,19 @@ def fake_client(monkeypatch: pytest.MonkeyPatch) -> _FakeDockerClient:
     return client
 
 
-def _make_challenge(*, profile: str = "default-strict", digest: str | None = None):
+def _make_challenge(
+    *,
+    profile: str = "default-strict",
+    digest: str | None = None,
+    docker_image: str = "siege/test",
+):
     config = {"profile": profile}
     if digest is not None:
         config["digest"] = digest
     return SimpleNamespace(
         id=42,
         slug="test-challenge",
-        docker_image="siege/test",
+        docker_image=docker_image,
         docker_port=8080,
         docker_config=config,
     )
@@ -454,3 +492,119 @@ async def test_sidecar_profile_tears_down_sidecar_on_run_failure(
         await launcher.launch_instance(1, challenge, _make_db(), _FakeRedis())
 
     assert teardown_calls == ["sidecar-rollback"]
+
+
+# ---------------------------------------------------------------------------
+# Image acquisition. Two regressions found by the E2E lifecycle suite:
+#
+# 1. The move from ``containers.run`` to ``containers.create`` (needed to
+#    set the slug network alias before the container gets an endpoint)
+#    silently dropped ``run``'s implicit pull-on-ImageNotFound, so any
+#    image not already resident failed the launch with a raw 500.
+# 2. ``_image_ref`` appended the digest to the *tagged* name, producing
+#    ``alpine:3.19@sha256:…``. ``RepoDigests`` is always ``repo@sha256:…``,
+#    so post-pull verification could never match for a tagged image.
+# ---------------------------------------------------------------------------
+class TestImageReference:
+    def test_tag_is_stripped_before_digest_is_appended(self):
+        digest = "sha256:" + "c" * 64
+        challenge = _make_challenge(digest=digest, docker_image="alpine:3.19")
+        assert launcher._image_ref(challenge, digest) == f"alpine@{digest}"
+
+    def test_untagged_image_is_unchanged(self):
+        digest = "sha256:" + "c" * 64
+        challenge = _make_challenge(digest=digest, docker_image="siege/test")
+        assert launcher._image_ref(challenge, digest) == f"siege/test@{digest}"
+
+    def test_registry_port_is_not_mistaken_for_a_tag(self):
+        digest = "sha256:" + "c" * 64
+        challenge = _make_challenge(
+            digest=digest, docker_image="registry.local:5000/siege/test"
+        )
+        assert launcher._image_ref(challenge, digest) == (
+            f"registry.local:5000/siege/test@{digest}"
+        )
+
+    def test_registry_port_with_tag_strips_only_the_tag(self):
+        digest = "sha256:" + "c" * 64
+        challenge = _make_challenge(
+            digest=digest, docker_image="registry.local:5000/siege/test:1.2"
+        )
+        assert launcher._image_ref(challenge, digest) == (
+            f"registry.local:5000/siege/test@{digest}"
+        )
+
+    def test_explicit_digest_in_image_is_passed_through(self):
+        digest = "sha256:" + "c" * 64
+        challenge = _make_challenge(
+            digest=digest, docker_image=f"siege/test@{digest}"
+        )
+        assert launcher._image_ref(challenge, digest) == f"siege/test@{digest}"
+
+
+@pytest.mark.asyncio
+async def test_launch_pulls_the_pinned_reference(fake_client) -> None:
+    digest = "sha256:" + "d" * 64
+    challenge = _make_challenge(digest=digest, docker_image="alpine:3.19")
+
+    await launcher.launch_instance(1, challenge, _make_db(), _FakeRedis())
+
+    assert fake_client.images.pulled == [f"alpine@{digest}"]
+    # ...and the container is created from the same reference, so the
+    # pull and the create can never disagree.
+    assert fake_client.captured_run_kwargs["image"] == f"alpine@{digest}"
+
+
+@pytest.mark.asyncio
+async def test_tagged_image_passes_post_pull_digest_verification(
+    fake_client,
+) -> None:
+    # Regression for bug 2: before the fix this raised
+    # PostPullDigestMismatch because RepoDigests never carries the tag.
+    digest = "sha256:" + "e" * 64
+    challenge = _make_challenge(digest=digest, docker_image="alpine:3.19")
+
+    out = await launcher.launch_instance(1, challenge, _make_db(), _FakeRedis())
+
+    assert out["digest"] == digest
+
+
+@pytest.mark.asyncio
+async def test_pull_failure_falls_back_to_a_resident_image(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Air-gapped deploys side-load images; a failed pull must not block
+    # a launch when the image is already present.
+    digest = "sha256:" + "f" * 64
+    ref = f"alpine@{digest}"
+    client = _FakeDockerClient(
+        pull_failure=RuntimeError("no route to registry"),
+        local_images=[ref],
+    )
+    monkeypatch.setattr(
+        "app.services.orchestration.docker_client.get", lambda: client
+    )
+    challenge = _make_challenge(digest=digest, docker_image="alpine:3.19")
+
+    out = await launcher.launch_instance(1, challenge, _make_db(), _FakeRedis())
+
+    assert out["digest"] == digest
+    assert client.images.got == [ref]
+
+
+@pytest.mark.asyncio
+async def test_pull_failure_with_no_local_copy_raises_image_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    digest = "sha256:" + "0" * 64
+    client = _FakeDockerClient(
+        pull_failure=RuntimeError("no route to registry"),
+        local_images=[],
+    )
+    monkeypatch.setattr(
+        "app.services.orchestration.docker_client.get", lambda: client
+    )
+    challenge = _make_challenge(digest=digest, docker_image="alpine:3.19")
+
+    with pytest.raises(ImageUnavailable):
+        await launcher.launch_instance(1, challenge, _make_db(), _FakeRedis())
