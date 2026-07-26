@@ -49,6 +49,10 @@ services:
       - RATE_LIMIT_AUTH_BURST_PER_5MIN=500
       - RATE_LIMIT_FLAG_PER_MIN=500
       - RATE_LIMIT_GENERAL_PER_MIN=2000
+      # Dev/E2E only — 0 disables the scoreboard cache so a user who
+      # registers mid-test appears on the board immediately. Production
+      # keeps the 60s window; the query is a per-user fan-out.
+      - SCOREBOARD_CACHE_TTL_SECONDS=0
 
   dashboard:
     build:
