@@ -1,0 +1,98 @@
+# Prometheus alerting rules — nightly database backup.
+#
+# The backup job (``app/services/scheduler.py::nightly_db_backup``)
+# deliberately never raises: a failed dump must not take the scheduler
+# down with it. The cost is that APScheduler logs
+# ``Job "nightly_db_backup" executed successfully`` even when the dump
+# failed, so job-level monitoring reports green on a broken backup.
+#
+# That is not hypothetical. ``pg_dump`` was absent from the runtime
+# image and every nightly run failed with "'pg_dump' not found on
+# PATH" while the scheduler reported success — for as long as anyone
+# had been looking. The image now installs postgresql-client-16 and
+# asserts its presence at build time, but the detection gap is the
+# thing these rules close.
+#
+# Alert on the *heartbeat*, not on the error. A stale timestamp covers
+# every way of ending up without a usable backup — job errored, job
+# skipped, scheduler wedged, container never started — whereas alerting
+# on the failure counter only catches runs that got far enough to fail.
+
+groups:
+  - name: siege-range.backup
+    interval: 1m
+    rules:
+      # ─────────────────────────────────────────────────────────
+      # No successful backup in over 26 hours. The job runs daily
+      # at 02:30 UTC, so 26h allows one missed window plus clock
+      # drift before paging. Two consecutive misses is data loss
+      # exposure worth waking someone for.
+      # ─────────────────────────────────────────────────────────
+      - alert: SiegeBackupStale
+        expr: |
+          time() - siege_backup_last_success_timestamp_seconds > 93600
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No successful database backup in over 26 hours"
+          description: >-
+            siege_backup_last_success_timestamp_seconds has not advanced.
+            The scheduler may still be reporting the job as successful —
+            it swallows dump failures by design. Check for
+            ``backup.failed`` in the api logs.
+          runbook: docs/runbooks/db-restore.md
+
+      # ─────────────────────────────────────────────────────────
+      # Never-succeeded case. Deliberately `== 0` and not
+      # `absent()`: prometheus_client registers the gauge at
+      # import, so a sample always exists once the api is up and
+      # absent() would never fire. Zero is the sentinel —
+      # ``seed_backup_heartbeat`` leaves it at 0 only when no dump
+      # exists on the volume at all.
+      # ─────────────────────────────────────────────────────────
+      - alert: SiegeBackupNeverSucceeded
+        expr: siege_backup_last_success_timestamp_seconds == 0
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database backup has never completed successfully"
+          description: >-
+            The heartbeat gauge is still at its initial zero, meaning no
+            dump exists in BACKUP_DIR. Either backups have never worked
+            on this deployment, or the backup volume is not mounted.
+          runbook: docs/runbooks/db-restore.md
+
+      # ─────────────────────────────────────────────────────────
+      # Failures are still worth a warning even while the
+      # heartbeat is fresh — a dump that fails intermittently is
+      # heading for the critical above.
+      # ─────────────────────────────────────────────────────────
+      - alert: SiegeBackupFailing
+        expr: increase(siege_backup_failures_total[24h]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database backup failed in the last 24h"
+          description: >-
+            {{ $value }} failed backup run(s). The most recent dump may
+            still be usable; check siege_backup_last_success_timestamp_seconds.
+          runbook: docs/runbooks/db-restore.md
+
+      # ─────────────────────────────────────────────────────────
+      # A dump that suddenly collapses in size usually means a
+      # partial write or a dump against the wrong database.
+      # ─────────────────────────────────────────────────────────
+      - alert: SiegeBackupSuspiciouslySmall
+        expr: siege_backup_last_size_bytes < 1024
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Most recent database backup is under 1 KiB"
+          description: >-
+            The dump completed but is implausibly small. Verify it
+            restores before relying on it.
+          runbook: docs/runbooks/db-restore.md
