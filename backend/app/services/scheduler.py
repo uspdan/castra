@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import structlog
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -22,6 +23,25 @@ AUDIT_LAST_VERIFY = Gauge(
 AUDIT_TAMPER_FINDINGS = Counter(
     "siege_audit_tamper_findings_total",
     "Total tamper findings observed across all verify runs.",
+)
+
+# Backup heartbeat. The nightly job deliberately never raises, so
+# APScheduler logs "executed successfully" even when the dump failed —
+# which is how a missing pg_dump went unnoticed for days. The gauge is
+# the signal to alert on: a stale timestamp means no usable backup
+# exists, whether the job errored, was skipped, or never ran at all.
+# Read by ``docs/alerts/backup.rules.yml``.
+BACKUP_LAST_SUCCESS = Gauge(
+    "siege_backup_last_success_timestamp_seconds",
+    "Unix timestamp of the most recent successful database backup.",
+)
+BACKUP_FAILURES = Counter(
+    "siege_backup_failures_total",
+    "Total failed database backup runs.",
+)
+BACKUP_BYTES = Gauge(
+    "siege_backup_last_size_bytes",
+    "Size in bytes of the most recent successful database backup.",
 )
 
 scheduler = AsyncIOScheduler()
@@ -253,8 +273,23 @@ async def nightly_db_backup():
     )
 
     if result.ok:
+        # ``error="disabled"`` means BACKUP_DIR was empty and the
+        # operator opted out; don't advance the heartbeat for a run
+        # that produced no dump, or the alert would go quiet for the
+        # one configuration where there is definitively no backup.
+        if result.error != "disabled":
+            BACKUP_LAST_SUCCESS.set(datetime.now(timezone.utc).timestamp())
+            BACKUP_BYTES.set(result.bytes_written)
+            logger.info(
+                "backup.ok",
+                path=str(result.path),
+                bytes_written=result.bytes_written,
+                duration_s=result.duration_s,
+                pruned_count=result.pruned_count,
+            )
         return
 
+    BACKUP_FAILURES.inc()
     logger.error(
         "backup.failed",
         error=result.error,
@@ -339,7 +374,49 @@ async def prune_old_audit_ledger():
         logger.error("Audit ledger prune failed", error=str(e))
 
 
+def seed_backup_heartbeat() -> None:
+    """Initialise ``BACKUP_LAST_SUCCESS`` from the newest dump on disk.
+
+    The gauge lives in the process, so without this it resets to 0 on
+    every restart and ``SiegeBackupStale`` fires after each deploy until
+    the next 02:30 run — an alert that cries wolf daily is an alert
+    people mute, which is the failure this whole change is about.
+
+    The dumps outlive the process (they are on a named volume), so the
+    filesystem is the durable record: take the newest file's mtime as
+    the last known-good backup time. Leaving the gauge at 0 when the
+    directory is empty is deliberate — that is a real "no backup has
+    ever succeeded here" signal, not a missing sample.
+    """
+
+    from app.config import get_settings
+
+    try:
+        settings = get_settings()
+        backup_dir = (settings.BACKUP_DIR or "").strip()
+        if not backup_dir:
+            return
+        newest = max(
+            (p for p in Path(backup_dir).glob("siege-*.sql.gz")),
+            key=lambda p: p.stat().st_mtime,
+            default=None,
+        )
+        if newest is None:
+            return
+        stat = newest.stat()
+        BACKUP_LAST_SUCCESS.set(stat.st_mtime)
+        BACKUP_BYTES.set(stat.st_size)
+        logger.info(
+            "backup.heartbeat_seeded",
+            path=str(newest),
+            mtime=stat.st_mtime,
+        )
+    except Exception as exc:  # noqa: BLE001 — never block startup
+        logger.warning("backup.heartbeat_seed_failed", error=str(exc))
+
+
 def setup_scheduler():
+    seed_backup_heartbeat()
     scheduler.add_job(cleanup_expired_instances, "interval", minutes=5, id="cleanup_expired")
     scheduler.add_job(cache_leaderboard, "interval", seconds=60, id="cache_leaderboard")
     scheduler.add_job(cleanup_notifications, "cron", hour=3, minute=0, id="notification_cleanup")

@@ -68,6 +68,11 @@ services:
       # same inode tinyproxy reads. The egress-proxy mounts this volume
       # read-only at /etc/tinyproxy/egress-allowlist.conf.d/.
       - egress_filter:/srv/egress
+      # Nightly pg_dump output (BACKUP_DIR). Without this the dumps land
+      # on the container's writable layer and are destroyed by the next
+      # ``docker compose up`` — i.e. every deploy silently discards the
+      # entire backup history, which is exactly when you most want it.
+      - backup_data:/var/lib/siege-range/backups
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 15s
@@ -253,3 +258,8 @@ volumes:
   # tinyproxy allowlist hot-reloads without rebuilding the proxy
   # image. See ``app.services.orchestration.egress.refresh_proxy_allowlist``.
   egress_filter:
+  # Nightly database dumps. Deliberately a named volume rather than a
+  # bind mount so it survives ``docker compose down`` as well as
+  # container recreation. Operators shipping backups off-box should
+  # point their agent at this volume — see docs/runbooks/db-restore.md.
+  backup_data:
