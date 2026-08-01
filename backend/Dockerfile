@@ -22,6 +22,36 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# ``pg_dump`` for the nightly backup job (app/services/backup.py).
+#
+# It has to come from the PostgreSQL project's own repo rather than
+# Debian's: bookworm ships postgresql-client 15, and pg_dump refuses to
+# dump from a server newer than itself —
+#
+#   pg_dump: error: aborting because of server version mismatch
+#   pg_dump: detail: server version: 16.13; pg_dump version: 15.18
+#
+# — so the distro package installs cleanly and then fails every night
+# at dump time, which is the failure mode this whole change exists to
+# remove. The client major must track the ``postgres:16-alpine`` server
+# pinned in docker-compose.yml; bump both together.
+#
+# The trailing ``pg_dump --version`` is deliberate: it fails the image
+# build if the client ever goes missing again, so the binary the
+# scheduler depends on can never silently disappear from the runtime.
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends gnupg; \
+    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+      | gpg --dearmor -o /usr/share/keyrings/pgdg.gpg; \
+    echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" \
+      > /etc/apt/sources.list.d/pgdg.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends postgresql-client-16; \
+    apt-get purge -y --auto-remove gnupg; \
+    rm -rf /var/lib/apt/lists/*; \
+    pg_dump --version
+
 WORKDIR /app
 
 # Build context is the repo root (see docker-compose.yml). We stage the
