@@ -33,7 +33,7 @@ groups:
           time() - siege_backup_last_success_timestamp_seconds > 93600
         for: 10m
         labels:
-          severity: critical
+          severity: page
         annotations:
           summary: "No successful database backup in over 26 hours"
           description: >-
@@ -41,7 +41,7 @@ groups:
             The scheduler may still be reporting the job as successful —
             it swallows dump failures by design. Check for
             ``backup.failed`` in the api logs.
-          runbook: docs/runbooks/db-restore.md
+          runbook_url: "../runbooks/db-restore.md"
 
       # ─────────────────────────────────────────────────────────
       # Never-succeeded case. Deliberately `== 0` and not
@@ -55,14 +55,14 @@ groups:
         expr: siege_backup_last_success_timestamp_seconds == 0
         for: 30m
         labels:
-          severity: critical
+          severity: page
         annotations:
           summary: "Database backup has never completed successfully"
           description: >-
             The heartbeat gauge is still at its initial zero, meaning no
             dump exists in BACKUP_DIR. Either backups have never worked
             on this deployment, or the backup volume is not mounted.
-          runbook: docs/runbooks/db-restore.md
+          runbook_url: "../runbooks/db-restore.md"
 
       # ─────────────────────────────────────────────────────────
       # Failures are still worth a warning even while the
@@ -73,13 +73,13 @@ groups:
         expr: increase(siege_backup_failures_total[24h]) > 0
         for: 5m
         labels:
-          severity: warning
+          severity: warn
         annotations:
           summary: "Database backup failed in the last 24h"
           description: >-
             {{ $value }} failed backup run(s). The most recent dump may
             still be usable; check siege_backup_last_success_timestamp_seconds.
-          runbook: docs/runbooks/db-restore.md
+          runbook_url: "../runbooks/db-restore.md"
 
       # ─────────────────────────────────────────────────────────
       # A dump that suddenly collapses in size usually means a
@@ -89,10 +89,10 @@ groups:
         expr: siege_backup_last_size_bytes < 1024
         for: 10m
         labels:
-          severity: warning
+          severity: warn
         annotations:
           summary: "Most recent database backup is under 1 KiB"
           description: >-
             The dump completed but is implausibly small. Verify it
             restores before relying on it.
-          runbook: docs/runbooks/db-restore.md
+          runbook_url: "../runbooks/db-restore.md"
