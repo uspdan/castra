@@ -63,6 +63,9 @@ services:
     networks:
       - siege-frontend
       - siege-backend
+      # Scrape-only path for Prometheus. Kept separate from
+      # siege-backend so the scraper cannot reach the docker-proxy.
+      - siege-observability
     volumes:
       # Shared rw mount with egress-proxy so render_to_file lands on the
       # same inode tinyproxy reads. The egress-proxy mounts this volume
@@ -181,6 +184,76 @@ services:
     profiles: ["build-only"]
     command: ["true"]
 
+  # ── Observability ──────────────────────────────────────────────
+  # CLAUDE.md §14.2/§14.4 require metrics and committed alert rules.
+  # Both existed; nothing consumed them. docs/alerts/*.yml sat in the
+  # repo evaluated by no one, which is how a backup job that failed
+  # every night for days went unnoticed. These two services are what
+  # turn those files from documentation into detection.
+  prometheus:
+    image: prom/prometheus:v3.7.3@sha256:49214755b6153f90a597adcbff0252cc61069f8ab69ce8411285cd4a560e8038
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      # 15d covers a fortnight of incident review without turning this
+      # into a capacity problem on a single-box deploy.
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # The rule files are the ones under docs/alerts/ — mounted, not
+      # copied, so what CI validates and what Prometheus evaluates are
+      # the same bytes.
+      - ./docs/alerts:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    networks:
+      # NOT siege-backend: that network carries the plaintext
+      # docker-proxy socket, and anything on it can dial the
+      # orchestrator (see test_siege_backend_membership_locked / R26).
+      # A scraper does not need container-control reach. This is an
+      # internal network shared only with the api, so /metrics is
+      # reachable by Prometheus without being exposed publicly.
+      - siege-observability
+    depends_on:
+      - api
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1@sha256:27c475db5fb156cab31d5c18a4251ac7ed567746a2483ff264516437a39b15ba
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    volumes:
+      - ./infra/observability/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      # Delivery destination, read at send time. Replace the contents
+      # with a real webhook URL to finish the loop — see the header of
+      # alertmanager.yml.
+      - ./infra/observability/webhook-url:/etc/alertmanager/webhook-url:ro
+      - alertmanager_data:/alertmanager
+    networks:
+      - siege-observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+
   egress-proxy:
     # Phase 9: HTTP/CONNECT proxy with FQDN allowlist. The launcher
     # attaches this container to per-instance internal bridges for the
@@ -239,6 +312,12 @@ networks:
   siege-challenges:
     driver: bridge
     internal: true
+  # Metrics scrape path only: api + prometheus + alertmanager. Exists
+  # so observability does not have to join siege-backend, where the
+  # docker-proxy lives.
+  siege-observability:
+    driver: bridge
+    internal: true
   # External-facing bridge for the egress-proxy. Not internal: we *want*
   # tinyproxy to be able to reach the upstream allowlist. Per-instance
   # bridges are still internal=true; the egress-proxy container itself
@@ -263,3 +342,8 @@ volumes:
   # container recreation. Operators shipping backups off-box should
   # point their agent at this volume — see docs/runbooks/db-restore.md.
   backup_data:
+  # Metrics TSDB and Alertmanager's notification/silence state. Both
+  # named so a ``docker compose down`` doesn't wipe alert history and
+  # re-fire everything that was already silenced.
+  prometheus_data:
+  alertmanager_data:

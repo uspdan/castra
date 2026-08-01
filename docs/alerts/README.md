@@ -11,38 +11,56 @@ the seige-range API.
 |---|---|
 | [`api.rules.yml`](api.rules.yml) | HTTP error rate, p99 latency, in-flight saturation, `up` liveness gauge. |
 | [`audit.rules.yml`](audit.rules.yml) | Audit-ledger verify heartbeat + tamper finding counter. |
+| [`backup.rules.yml`](backup.rules.yml) | Nightly `pg_dump` heartbeat, failure counter, dump size. |
 
-## Loading into Prometheus
+## These are wired up
 
-```yaml
-# /etc/prometheus/prometheus.yml
-rule_files:
-  - /etc/prometheus/rules/api.rules.yml
-  - /etc/prometheus/rules/audit.rules.yml
-```
+They weren't, for a long time. The rules sat here evaluated by
+nobody, which is how a nightly backup that failed on every single
+run went unnoticed for days — the job logged an error, APScheduler
+logged "executed successfully", and no one was watching either.
 
-Then `kill -HUP $(pidof prometheus)` (or restart) to pick up
-changes. `promtool check rules /etc/prometheus/rules/*.yml` is
-the local lint pass.
+`docker-compose.yml` now runs Prometheus and Alertmanager:
 
-## Scrape config
+- **Prometheus** (`:9090`) scrapes `api:8000/metrics` every 15s and
+  evaluates this directory, bind-mounted read-only at
+  `/etc/prometheus/rules`. It is mounted, not copied, so what CI
+  validates and what Prometheus evaluates are the same bytes.
+- **Alertmanager** (`:9093`) routes on the `severity` label.
 
-The API exposes `/metrics` on the standard service port (8000
-inside docker-compose). A typical scrape entry:
+Both sit on the `internal: true` `siege-backend` network, so
+`/metrics` is reachable by the scraper without being exposed
+publicly.
 
-```yaml
-scrape_configs:
-  - job_name: siege-range-api
-    metrics_path: /metrics
-    static_configs:
-      - targets: ['api:8000']
-        labels:
-          service: siege-range
-          env: production  # or staging
-```
+Config lives in [`infra/observability/`](../../infra/observability/).
+Note that neither Prometheus nor Alertmanager expands environment
+variables in its config file — anything environment-specific has to
+be a command-line flag in compose, not a `${VAR}` placeholder, which
+would be read literally.
 
-The `up{job="siege-range-api"}` series referenced by
-`SiegeApiDown` exists by virtue of the scrape job's name.
+### Finishing the loop
+
+Alerts are evaluated, grouped, inhibited and visible in the
+Alertmanager UI out of the box, but **delivery is not configured** —
+there is no sensible default destination for someone else's pager.
+Put a real Slack/Teams/PagerDuty webhook in
+`infra/observability/webhook-url` and restart Alertmanager. The URL
+is read from that file at send time, so it can be rotated without a
+rebuild and never enters git history.
+
+## Conventions the CI job enforces
+
+- `severity` must be `page` or `warn`. Those are the only values
+  `alertmanager.yml` routes on; anything else falls through to the
+  default receiver instead of paging. The backup rules were first
+  written with `critical`/`warning` and would have done exactly that.
+- Every rule needs a `runbook_url` resolving to a real file under
+  `docs/runbooks/`. A dangling link is worse than none — it looks
+  handled.
+- Every `*.rules.yml` here must appear in `rule_files` in
+  `prometheus.yml`, or it is a text file.
+
+`backend/tests/unit/test_alert_rules.py` checks all three.
 
 ## Authoring new rules
 
@@ -58,16 +76,25 @@ The `up{job="siege-range-api"}` series referenced by
    conditions; use `warn` for everything else and let the
    Alertmanager routing tree handle escalation.
 
-## Testing rules locally
+## Testing rules
 
-`promtool` ships a unit-test runner:
+Test files now ship in [`tests/`](tests/) and run in CI
+(`alert-rules — promtool validate + unit tests`):
 
 ```bash
-promtool test rules tests/unit/*_test.yml
+docker run --rm -v "$PWD/docs/alerts:/alerts:ro" \
+  --entrypoint promtool prom/prometheus:v3.7.3 \
+  test rules /alerts/tests/*_test.yml
 ```
 
-Test files for these rules aren't shipped yet — future sprint.
-For now, sanity-check by booting Prometheus with the rules
-loaded against the local `make dev` stack and posting a
-synthetic 5xx burst to see `SiegeApiHighErrorRate` fire after
-its 5-minute hold.
+`backup_test.yml` uses `alert_rule_test`, asserting the full alert
+including annotations. The other two use `promql_expr_test`, which
+checks the expression trips at the right threshold without pinning
+several paragraphs of operator prose that would break on every
+wording tweak. `exp_alerts` compares the *entire* annotation map —
+there is no partial match — so that distinction is deliberate, not
+laziness.
+
+Each file covers both directions: the condition firing, **and** a
+healthy series staying quiet. A rule that pages every night on a
+working system gets muted, which is the same outcome as no rule.

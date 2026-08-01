@@ -1,0 +1,98 @@
+# promtool unit tests for docs/alerts/backup.rules.yml
+#
+# Run: promtool test rules docs/alerts/tests/*_test.yml
+#
+# These exist because the backup rules were written in response to a
+# failure that ran silently for days. A rule file that parses is not a
+# rule file that fires — promtool evaluates the expressions against
+# synthetic series and asserts the alert actually triggers, which is
+# the only way to know before an incident.
+
+rule_files:
+  - ../backup.rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  # ── The exact condition that went undetected ──────────────────────
+  # pg_dump missing -> no dump ever written -> heartbeat pinned at its
+  # zero sentinel. Must page.
+  - interval: 1m
+    input_series:
+      - series: 'siege_backup_last_success_timestamp_seconds'
+        values: '0+0x120'
+    alert_rule_test:
+      - eval_time: 31m
+        alertname: SiegeBackupNeverSucceeded
+        exp_alerts:
+          - exp_labels:
+              severity: page
+            exp_annotations:
+              summary: "Database backup has never completed successfully"
+              description: "The heartbeat gauge is still at its initial zero, meaning no dump exists in BACKUP_DIR. Either backups have never worked on this deployment, or the backup volume is not mounted."
+              runbook_url: "../runbooks/db-restore.md"
+
+      # Before the 30m hold it must NOT be firing — an alert that trips
+      # instantly on a cold start is one people learn to ignore.
+      - eval_time: 20m
+        alertname: SiegeBackupNeverSucceeded
+        exp_alerts: []
+
+  # ── Backups used to work and then stopped ─────────────────────────
+  # Heartbeat frozen at t=1000 while the clock runs past 26h.
+  - interval: 1m
+    input_series:
+      - series: 'siege_backup_last_success_timestamp_seconds'
+        values: '1000+0x1700'
+    alert_rule_test:
+      - eval_time: 27h
+        alertname: SiegeBackupStale
+        exp_alerts:
+          - exp_labels:
+              severity: page
+            exp_annotations:
+              summary: "No successful database backup in over 26 hours"
+              description: "siege_backup_last_success_timestamp_seconds has not advanced. The scheduler may still be reporting the job as successful — it swallows dump failures by design. Check for ``backup.failed`` in the api logs."
+              runbook_url: "../runbooks/db-restore.md"
+
+      # One missed window is tolerated; two is not. At 20h the job has
+      # skipped a night but is still inside the grace period.
+      - eval_time: 20h
+        alertname: SiegeBackupStale
+        exp_alerts: []
+
+  # ── Healthy: heartbeat keeps pace with the clock ──────────────────
+  # Nothing should fire. This is the regression guard against a rule
+  # that pages every night on a working system.
+  - interval: 1m
+    input_series:
+      - series: 'siege_backup_last_success_timestamp_seconds'
+        values: '3600+60x120'
+      - series: 'siege_backup_last_size_bytes'
+        values: '189802+0x120'
+    alert_rule_test:
+      - eval_time: 60m
+        alertname: SiegeBackupStale
+        exp_alerts: []
+      - eval_time: 60m
+        alertname: SiegeBackupNeverSucceeded
+        exp_alerts: []
+      - eval_time: 60m
+        alertname: SiegeBackupSuspiciouslySmall
+        exp_alerts: []
+
+  # ── A dump that completed but is implausibly small ────────────────
+  - interval: 1m
+    input_series:
+      - series: 'siege_backup_last_size_bytes'
+        values: '512+0x60'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: SiegeBackupSuspiciouslySmall
+        exp_alerts:
+          - exp_labels:
+              severity: warn
+            exp_annotations:
+              summary: "Most recent database backup is under 1 KiB"
+              description: "The dump completed but is implausibly small. Verify it restores before relying on it."
+              runbook_url: "../runbooks/db-restore.md"

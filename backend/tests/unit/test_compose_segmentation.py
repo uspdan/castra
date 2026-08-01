@@ -128,3 +128,49 @@ class TestSegmentation:
             "orchestrator must not be on siege-backend — that would "
             "let the api bypass the docker-proxy ACL"
         )
+
+
+class TestObservabilitySegmentation:
+    """Prometheus scrapes the API without gaining orchestrator reach.
+
+    The obvious wiring is to drop Prometheus onto ``siege-backend``,
+    where the API already lives. That network also carries the
+    plaintext docker-proxy socket, so a compromised scraper would be one
+    hop from container control. ``siege-observability`` exists to keep
+    the scrape path and the orchestrator path disjoint.
+    """
+
+    def test_observability_network_is_internal(self, compose):
+        net = (compose.get("networks") or {}).get("siege-observability")
+        assert net is not None, "siege-observability network must exist"
+        assert net.get("internal") is True, (
+            "siege-observability must stay internal — /metrics is "
+            "unauthenticated and should not be reachable from outside"
+        )
+
+    def test_observability_membership_locked(self, compose):
+        expected = {"api", "prometheus", "alertmanager"}
+        actual = {
+            name
+            for name, svc in compose["services"].items()
+            if "siege-observability" in (svc.get("networks") or [])
+        }
+        assert actual == expected, (
+            f"siege-observability membership drift: expected {expected}, "
+            f"got {actual}"
+        )
+
+    def test_scrapers_are_not_on_siege_backend(self, compose):
+        for name in ("prometheus", "alertmanager"):
+            nets = compose["services"][name].get("networks") or []
+            assert "siege-backend" not in nets, (
+                f"{name} must not join siege-backend — it would be able "
+                "to dial the docker-proxy (R26)"
+            )
+
+    def test_scrapers_cannot_reach_the_challenge_network(self, compose):
+        for name in ("prometheus", "alertmanager"):
+            nets = compose["services"][name].get("networks") or []
+            assert "siege-challenges" not in nets, (
+                f"{name} has no business on the challenge network"
+            )
