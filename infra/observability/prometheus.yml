@@ -1,0 +1,44 @@
+# Prometheus config for seige-range.
+#
+# Scrapes the API's /metrics endpoint and evaluates the rule files
+# committed under docs/alerts/, bind-mounted read-only at
+# /etc/prometheus/rules. Editing a rule file and restarting is the
+# whole update path — rules stay reviewable in git rather than living
+# in a UI.
+#
+# NB: Prometheus does not expand environment variables in this file.
+# Anything that varies per environment has to be a command-line flag in
+# docker-compose.yml, not a ${VAR} placeholder here — those would be
+# read literally and produce a config that loads but misbehaves.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    service: siege-range
+
+rule_files:
+  - /etc/prometheus/rules/api.rules.yml
+  - /etc/prometheus/rules/audit.rules.yml
+  - /etc/prometheus/rules/backup.rules.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+scrape_configs:
+  # The job name is load-bearing: ``SiegeApiDown`` in api.rules.yml
+  # alerts on ``up{job="siege-range-api"}``, a series that exists only
+  # because of this name. Renaming the job silently disables that alert.
+  - job_name: siege-range-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['api:8000']
+
+  # Prometheus scrapes itself so ``up`` has a control series — if the
+  # API target is down you want to distinguish "API is down" from
+  # "Prometheus is blind".
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']

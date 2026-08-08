@@ -256,6 +256,47 @@ jobs:
           print("no HIGH/CRITICAL advisories in the npm dependency tree")
           PY
 
+  alert-rules:
+    name: alert-rules — promtool validate + unit tests
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      # Pinned by version and digest, matching the prometheus service in
+      # docker-compose.yml — CI must validate the rules with the same
+      # binary that will evaluate them.
+      - name: promtool — syntax check
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD/docs/alerts:/alerts:ro" \
+            --entrypoint promtool \
+            prom/prometheus:v3.7.3@sha256:49214755b6153f90a597adcbff0252cc61069f8ab69ce8411285cd4a560e8038 \
+            check rules /alerts/api.rules.yml /alerts/audit.rules.yml /alerts/backup.rules.yml
+
+      # A rule file that parses is not a rule file that fires. These
+      # evaluate each expression against synthetic series and assert the
+      # alert trips at the right threshold — the backup rules exist
+      # because a job failed silently for days, so "it loaded" is not a
+      # standard worth trusting.
+      - name: promtool — rule unit tests
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD/docs/alerts:/alerts:ro" \
+            --entrypoint promtool \
+            prom/prometheus:v3.7.3@sha256:49214755b6153f90a597adcbff0252cc61069f8ab69ce8411285cd4a560e8038 \
+            test rules /alerts/tests/backup_test.yml /alerts/tests/api_test.yml /alerts/tests/audit_test.yml
+
+      - name: amtool — routing config check
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD/infra/observability:/cfg:ro" \
+            --entrypoint amtool \
+            prom/alertmanager:v0.28.1@sha256:27c475db5fb156cab31d5c18a4251ac7ed567746a2483ff264516437a39b15ba \
+            check-config /cfg/alertmanager.yml
+
   secret-scan:
     name: secret-scan — trufflehog
     runs-on: ubuntu-22.04

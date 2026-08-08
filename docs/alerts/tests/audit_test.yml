@@ -1,0 +1,27 @@
+# promtool unit tests for docs/alerts/audit.rules.yml
+#
+# Condition-level assertions — see the header of api_test.yml for why
+# these use promql_expr_test rather than alert_rule_test.
+
+rule_files:
+  - ../audit.rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  # Verify job wedged: heartbeat frozen while the clock passes 90m.
+  - interval: 1m
+    input_series:
+      - series: 'siege_audit_last_verify_timestamp_seconds'
+        values: '600+0x200'
+    promql_expr_test:
+      - expr: 'time() - siege_audit_last_verify_timestamp_seconds > 5400'
+        eval_time: 110m
+        exp_samples:
+          - labels: '{}'
+            value: 6000
+      # Hourly cadence — a single late run inside the grace window is
+      # not an alert.
+      - expr: 'time() - siege_audit_last_verify_timestamp_seconds > 5400'
+        eval_time: 70m
+        exp_samples: []
