@@ -2,24 +2,19 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
-import textwrap
 from pathlib import Path
 
 import pytest
 
 from app.services.test_harness import (
     CaseStatus,
-    HarnessOutcome,
-    HarnessReport,
     run_case,
     run_challenge,
     run_paths,
 )
 from app.services.challenge_loader.flag_mapping import flag_to_dispatch
 from bluerange_spec import (
-    ChallengeManifest,
     ExactFlag,
     TestCase,
 )
@@ -153,7 +148,6 @@ class TestRunCase:
 # ---------------------------------------------------------------------------
 class TestRunChallenge:
     async def test_happy_path(self, tmp_path):
-        digest = hashlib.sha256(b"hello").hexdigest()
         manifest = {
             **_BASE_MANIFEST_DICT,
             "flags": [

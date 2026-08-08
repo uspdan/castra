@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession

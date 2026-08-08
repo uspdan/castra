@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Bell, Check } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import useNotificationStore from '../stores/notificationStore'
 
 export default function NotificationDropdown() {

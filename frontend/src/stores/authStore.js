@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { v1 } from '../api/client'
+import { reportIgnored } from '../lib/report'
 
 const useAuthStore = create((set, get) => ({
   user: JSON.parse(localStorage.getItem('user') || 'null'),
@@ -59,7 +60,7 @@ const useAuthStore = create((set, get) => ({
     const refreshToken = get().refreshToken
     try {
       await v1.post('/auth/logout', { refresh_token: refreshToken })
-    } catch {}
+    } catch (err) { reportIgnored('auth.logout', err) }
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('user')

@@ -11,7 +11,6 @@ from __future__ import annotations
 import asyncio
 import json
 
-import pytest
 from unittest.mock import AsyncMock
 
 from app.services.ws_manager import WebSocketManager

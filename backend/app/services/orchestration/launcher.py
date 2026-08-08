@@ -27,9 +27,8 @@ from __future__ import annotations
 import asyncio
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Any, Mapping
+from typing import Any
 
-import docker
 import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession

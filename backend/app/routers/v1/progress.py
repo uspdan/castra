@@ -10,10 +10,9 @@ served via a synthetic ``"legacy"`` entry so clients render a single
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import and_, exists, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db

@@ -88,7 +88,7 @@ class YaraRuleValidator(Validator):
             )
 
         try:
-            import yara  # type: ignore[import-not-found]
+            import yara
         except ImportError as exc:  # pragma: no cover — dep guaranteed in prod
             raise ValidatorConfigError(
                 f"yara_rule: yara-python not installed: {exc}"

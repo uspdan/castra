@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-import pytest
 
 from app.services.orchestration import sidecar
 
@@ -35,13 +33,13 @@ class TestRenderSidecarFilter:
         )
         # Only one rule, regardless of casing/whitespace.
         rule_lines = [
-            l for l in out.splitlines() if l.startswith("^")
+            line for line in out.splitlines() if line.startswith("^")
         ]
         assert len(rule_lines) == 1
 
     def test_drops_empty_entries(self):
         out = sidecar.render_sidecar_filter(["", "  ", "good.example.com"])
-        rules = [l for l in out.splitlines() if l.startswith("^")]
+        rules = [line for line in out.splitlines() if line.startswith("^")]
         assert len(rules) == 1
         assert rules[0] == "^good\\.example\\.com$"
 

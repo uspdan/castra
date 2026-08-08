@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import Challenge, Notification, Solve, User
+from app.models import Challenge, Solve, User
 from app.schemas import ChallengeCreate, ChallengeUpdate
 from app.services.audit import ActorType, EventType, append as audit_append
 from app.services.audit.request_context import context_from_request
