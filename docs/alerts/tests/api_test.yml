@@ -1,0 +1,77 @@
+# promtool unit tests for docs/alerts/api.rules.yml
+#
+# These assert the *condition* via ``promql_expr_test`` rather than
+# ``alert_rule_test``. promtool's exp_alerts compares the full
+# annotation map, which would pin several paragraphs of operator prose
+# and break on every wording tweak. What matters for these rules is
+# that the expression trips at the right threshold and carries the
+# right routing labels; annotation content is asserted structurally in
+# backend/tests/unit/test_alert_rules.py instead.
+
+rule_files:
+  - ../api.rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  # ── Liveness ──────────────────────────────────────────────────────
+  # The series only exists because the scrape job in
+  # infra/observability/prometheus.yml is named ``siege-range-api``.
+  # Rename the job there and this alert silently stops working, so this
+  # test doubles as a guard on that coupling.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="siege-range-api"}'
+        values: '1+0x5 0+0x20'
+    promql_expr_test:
+      - expr: 'up{job="siege-range-api"} == 0'
+        eval_time: 10m
+        exp_samples:
+          - labels: 'up{job="siege-range-api"}'
+            value: 0
+      # Healthy scrape: expression yields nothing, so nothing can fire.
+      - expr: 'up{job="siege-range-api"} == 0'
+        eval_time: 3m
+        exp_samples: []
+
+  # ── Error rate: 10% 5xx against a 1% threshold ────────────────────
+  - interval: 1m
+    input_series:
+      - series: 'http_requests_total{status="500", route="/api/v1/submit"}'
+        values: '0+1x30'
+      - series: 'http_requests_total{status="200", route="/api/v1/submit"}'
+        values: '0+9x30'
+    promql_expr_test:
+      - expr: |
+          sum by (route) (rate(http_requests_total{status=~"5.."}[5m]))
+          / sum by (route) (rate(http_requests_total[5m]))
+          > 0.01
+        eval_time: 20m
+        exp_samples:
+          - labels: '{route="/api/v1/submit"}'
+            value: 0.1
+
+  # ── Clean traffic must not trip the threshold ─────────────────────
+  - interval: 1m
+    input_series:
+      - series: 'http_requests_total{status="200", route="/api/v1/submit"}'
+        values: '0+10x30'
+    promql_expr_test:
+      - expr: |
+          sum by (route) (rate(http_requests_total{status=~"5.."}[5m]))
+          / sum by (route) (rate(http_requests_total[5m]))
+          > 0.01
+        eval_time: 20m
+        exp_samples: []
+
+  # ── Concurrency saturation ────────────────────────────────────────
+  - interval: 1m
+    input_series:
+      - series: 'http_requests_in_progress'
+        values: '250+0x20'
+    promql_expr_test:
+      - expr: 'sum(http_requests_in_progress) > 200'
+        eval_time: 10m
+        exp_samples:
+          - labels: '{}'
+            value: 250

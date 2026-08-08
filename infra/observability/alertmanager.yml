@@ -1,0 +1,64 @@
+# Alertmanager routing for seige-range.
+#
+# Routing keys on the ``severity`` label that every rule in
+# docs/alerts/ sets. The two values in use are ``page`` (wake someone)
+# and ``warn`` (look at it in working hours) — see docs/alerts/README.md.
+#
+# A rule carrying any other severity falls through to the default
+# receiver rather than being dropped: a typo in a severity label should
+# produce noise, not silence.
+#
+# ── Delivery ───────────────────────────────────────────────────────
+# ``url_file`` reads the destination from a file at send time, so the
+# webhook URL is not baked into a committed config and can be rotated
+# without a rebuild. docker-compose mounts ``alert-webhook-url`` into
+# the container; see docs/runbooks/README.md.
+#
+# Out of the box that file contains Alertmanager's own no-op endpoint,
+# which means alerts are evaluated, grouped, inhibited and visible in
+# the UI at :9093 but are not delivered anywhere. Point it at a real
+# Slack/Teams/PagerDuty webhook to finish the loop — that is the one
+# step that cannot ship pre-wired, because there is no sensible default
+# destination for someone else's pager.
+
+route:
+  receiver: default
+  group_by: ['alertname', 'service']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers:
+        - severity = "page"
+      receiver: page
+      # Page-severity repeats aggressively: a database with no backups
+      # does not get less urgent after four hours.
+      repeat_interval: 1h
+    - matchers:
+        - severity = "warn"
+      receiver: warn
+
+receivers:
+  - name: default
+    webhook_configs:
+      - url_file: /etc/alertmanager/webhook-url
+        send_resolved: true
+
+  - name: page
+    webhook_configs:
+      - url_file: /etc/alertmanager/webhook-url
+        send_resolved: true
+
+  - name: warn
+    webhook_configs:
+      - url_file: /etc/alertmanager/webhook-url
+        send_resolved: true
+
+inhibit_rules:
+  # If the API is down, its latency and error-rate alerts are symptoms
+  # of the same outage — suppress them so the page says one thing.
+  - source_matchers:
+      - alertname = "SiegeApiDown"
+    target_matchers:
+      - severity =~ "page|warn"
+    equal: ['service']
