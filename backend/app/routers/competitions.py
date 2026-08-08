@@ -1,11 +1,11 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import User, Challenge, Solve, Competition
+from app.models import User, Solve, Competition
 from app.schemas import CompetitionCreate
 from app.services.auth import get_current_user, require_admin
 

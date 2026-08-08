@@ -1,4 +1,4 @@
-.PHONY: dev prod down seed challenge-images test test-install test-challenges test-browser test-browser-install regen-schema render-egress-allowlist health backup restore build lint
+.PHONY: dev prod down seed challenge-images test test-install test-challenges test-browser test-browser-install regen-schema render-egress-allowlist health backup restore build lint typecheck static
 
 dev:
 	docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
@@ -93,8 +93,18 @@ restore:
 build:
 	docker compose build --no-cache
 
+# Static analysis. Runs against the host test venv (make test-install),
+# not the api container: ruff and mypy are test-time tools and are not
+# installed in the runtime image, which is why the old
+# `docker compose exec api python -m ruff` form failed with
+# "No module named ruff" for as long as it existed.
 lint:
-	docker compose exec api python -m ruff check app/
+	cd backend && .venv-test/bin/ruff check app/ tests/
+
+typecheck:
+	cd backend && .venv-test/bin/mypy
+
+static: lint typecheck
 
 # --------------------------------------------------------------------
 # Analyst workstation — the in-range jumpbox players SSH/web into

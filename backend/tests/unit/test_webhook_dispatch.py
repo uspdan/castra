@@ -11,9 +11,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from datetime import datetime, timezone
 
 import httpx
 import pytest
@@ -205,7 +203,7 @@ class TestDeliverEvent:
 
     async def test_event_filter_skips_unmatched(self, db_session, user_factory):
         admin = await user_factory()
-        sub = await _seed_subscription(
+        await _seed_subscription(
             db_session, owner_id=admin.id, events=["instance.launch"],
         )
         stubs: list[_StubClient] = []

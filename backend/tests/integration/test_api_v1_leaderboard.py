@@ -9,7 +9,6 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from sqlalchemy import select
 
 
 pytestmark = pytest.mark.integration
@@ -138,7 +137,7 @@ class TestWeeklyLeaderboardV1:
         challenge_factory,
         db_session,
     ):
-        bystander = await user_factory(username="zzzzbystander")
+        await user_factory(username="zzzzbystander")
         active = await user_factory(username="aaaactive")
         chal = await challenge_factory(slug="lb-weekly", points=80)
         await _solve(db_session, active, chal, 80)

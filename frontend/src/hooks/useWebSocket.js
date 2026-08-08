@@ -3,6 +3,7 @@ import useAuthStore from '../stores/authStore'
 import useLeaderboardStore from '../stores/leaderboardStore'
 import useChallengeStore from '../stores/challengeStore'
 import useNotificationStore from '../stores/notificationStore'
+import { reportIgnored } from '../lib/report'
 
 export default function useWebSocket() {
   const [connectionState, setConnectionState] = useState('disconnected')
@@ -42,7 +43,7 @@ export default function useWebSocket() {
           useNotificationStore.getState().addNotification(data)
           useNotificationStore.getState().fetchUnreadCount()
         }
-      } catch {}
+      } catch (err) { reportIgnored('ws.message', err) }
     }
 
     ws.onclose = () => {

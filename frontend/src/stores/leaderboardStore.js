@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { v1 } from '../api/client'
+import { reportIgnored } from '../lib/report'
 
 const useLeaderboardStore = create((set) => ({
   rankings: [],
@@ -30,7 +31,7 @@ const useLeaderboardStore = create((set) => ({
     try {
       const res = await v1.get('/leaderboard/teams')
       set({ teamStats: res.data?.teams || [] })
-    } catch {}
+    } catch (err) { reportIgnored('leaderboard.teams', err) }
   },
 
   fetchWeekly: async () => {
@@ -38,7 +39,7 @@ const useLeaderboardStore = create((set) => ({
     try {
       const res = await v1.get('/leaderboard/weekly')
       set({ weeklyRankings: res.data?.entries || [] })
-    } catch {}
+    } catch (err) { reportIgnored('leaderboard.weekly', err) }
   },
 }))
 
