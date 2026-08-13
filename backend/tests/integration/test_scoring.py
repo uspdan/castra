@@ -193,14 +193,13 @@ class TestCalculatePoints:
     async def test_dynamic_decay_applied_when_mode_set(
         self, db_session, user_factory, challenge_factory, monkeypatch
     ):
-        from app.config import _build_settings, get_settings
+        from app.config import _build_settings
         from app.services import scoring
 
         # Force SCORING_MODE=dynamic for this test only. Bypass lru_cache by
         # patching the cached module-level reference inside scoring.py: it
         # calls get_settings() each time, so we just override the env and
         # clear the cache.
-        import os
 
         monkeypatch.setenv("SCORING_MODE", "dynamic")
         _build_settings.cache_clear()

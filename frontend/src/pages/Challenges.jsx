@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
-import { Search, X, Play, Lock, Unlock } from 'lucide-react'
+import { Search, X, Play, Lock } from 'lucide-react'
 import useChallengeStore from '../stores/challengeStore'
 import useInstanceStore from '../stores/instanceStore'
 import ChallengeCard from '../components/ChallengeCard'
@@ -8,6 +8,7 @@ import InstancePanel from '../components/InstancePanel'
 import ChallengeProgress from '../components/ChallengeProgress'
 import { toast } from '../stores/toastStore'
 import { v1 } from '../api/client'
+import { reportIgnored } from '../lib/report'
 
 export default function Challenges() {
   const { challenges, selectedChallenge, filters, loading, fetchChallenges, fetchChallenge, setFilter, clearFilters, clearSelected } = useChallengeStore()
@@ -245,7 +246,7 @@ export default function Challenges() {
                       // Phase 12 (slice 18): v1 hint endpoint. Consumer
                       // discards the response shape and refetches the
                       // challenge below to refresh the unlocked-hint state.
-                      try { await v1.post(`/challenges/${selectedChallenge.slug}/hint`); fetchChallenge(selectedChallenge.slug) } catch {}
+                      try { await v1.post(`/challenges/${selectedChallenge.slug}/hint`); fetchChallenge(selectedChallenge.slug) } catch (err) { reportIgnored('hint.unlock', err) }
                     }} className="flex items-center gap-1">
                       <Lock size={12} /> Unlock hint (-50% points)
                     </button>

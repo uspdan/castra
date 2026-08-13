@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
-from sqlalchemy import select
 
 from app.models import (
     Challenge,
@@ -46,7 +45,6 @@ class TestFqdnToRegex:
 
 class TestRenderAllowlistText:
     def test_empty_instances_renders_header_only(self):
-        from app.services.orchestration.egress import _ActiveInstance
 
         result = render_allowlist_text([])
         assert "active_instances: 0" in result.rendered

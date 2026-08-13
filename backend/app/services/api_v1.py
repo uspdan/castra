@@ -13,13 +13,12 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Dict, List, Optional
 
-from sqlalchemy import and_, exists, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Challenge, Solve, Streak, TeamType, User
+from app.models import Challenge, Solve, Streak, User
 
 
 # ---------------------------------------------------------------------------

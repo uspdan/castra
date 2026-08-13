@@ -108,13 +108,55 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      # Was ``npm run lint --if-present``, which did nothing: there was
+      # no lint script and no config, so the job reported "vite build +
+      # lint" while linting exactly zero files. No --if-present now —
+      # if the script disappears again, this fails loudly.
       - name: lint
         working-directory: frontend
-        run: npm run lint --if-present
+        run: npm run lint
 
       - name: build
         working-directory: frontend
         run: npm run build
+
+  backend-static:
+    name: backend — ruff + mypy
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: set up python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: backend/requirements*.txt
+
+      - name: install deps
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-test.txt
+
+      # CLAUDE.md §6.1 mandates a zero-warning linter and strict type
+      # checking. Neither has ever run in CI: ``make lint`` invoked a
+      # ruff that was installed nowhere, and no type checker existed.
+      - name: ruff
+        working-directory: backend
+        run: ruff check app/ tests/
+
+      # Config in pyproject.toml checks all of app/ with the currently
+      # unclean modules listed as explicit exceptions, so new code is
+      # type-checked from the day it lands. mypy found a real bug on
+      # first run: stdlib logger calls passing structlog-style kwargs,
+      # which raise TypeError at emit time.
+      - name: mypy
+        working-directory: backend
+        run: mypy
 
   python-deps-audit:
     name: deps-audit — pip-audit

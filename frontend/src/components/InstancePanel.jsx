@@ -27,20 +27,30 @@ import { toast } from '../stores/toastStore'
 export default function InstancePanel({ instance, slug, onCleared }) {
   const { stopInstance, resetInstance, byChallenge } = useInstanceStore()
   const [busy, setBusy] = useState(null) // 'stop' | 'reset' | null
-  const [now, setNow] = useState(Date.now())
+  // Lazy initialiser: Date.now() is impure, and calling it directly in
+  // the useState argument runs it on every render only to discard the
+  // result.
+  const [now, setNow] = useState(() => Date.now())
+
+  // Tick every 1s for the countdown. Cheap; one panel only ever
+  // exists per page.
+  //
+  // This must stay ABOVE the early return below. It used to sit after
+  // it, which made the hook conditional: a render with no instance
+  // called two hooks, a later render with one called three, and React
+  // throws "Rendered more hooks than during the previous render" the
+  // moment that transition happens. Latent only because callers
+  // currently mount this component after an instance exists.
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
 
   // Prefer the store-tracked instance for the slug so a reset
   // propagates without parent re-renders. ``instance`` prop is the
   // fallback for callers that haven't migrated yet.
   const live = (slug && byChallenge[slug]) || instance
   if (!live) return null
-
-  // Tick every 1s for the countdown. Cheap; one panel only ever
-  // exists per page.
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(t)
-  }, [])
 
   const id = live.instance_id || live.id
   const remainingMs = live.expires_at

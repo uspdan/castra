@@ -105,7 +105,7 @@ def discover_entry_points(
 
     eps = metadata.entry_points()
     found = list(eps.select(group=group)) if hasattr(eps, "select") else list(
-        eps.get(group, [])  # type: ignore[union-attr]
+        eps.get(group, [])  # type: ignore[attr-defined]  # 3.11-only API
     )
     select_set = set(select) if select is not None else None
     for ep in found:
