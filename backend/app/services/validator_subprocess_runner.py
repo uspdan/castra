@@ -61,7 +61,7 @@ from typing import Any, Mapping, Optional
 # blow up on contributors running ``python -m`` directly on Windows
 # during local debugging.
 try:
-    import resource  # type: ignore[import-not-found]
+    import resource
 except ImportError:  # pragma: no cover — POSIX-only
     resource = None  # type: ignore[assignment]
 

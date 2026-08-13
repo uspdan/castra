@@ -34,7 +34,6 @@ from typing import List, Optional, Sequence
 
 from bluerange_spec import (
     ChallengeManifest,
-    ManifestNotFound,
     TestCase,
     ValidationContext,
     ValidatorError,

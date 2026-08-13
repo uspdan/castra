@@ -30,7 +30,7 @@ from bluerange_spec import (
 _logger = logging.getLogger(__name__)
 
 try:  # pragma: no cover — exercised in CI; local fallback varies by platform
-    import re2 as _re2  # type: ignore[import-not-found]
+    import re2 as _re2
 
     _ENGINE = "re2"
 except ImportError:  # pragma: no cover
@@ -70,9 +70,9 @@ def _compile_re2(pattern: str, *, case_sensitive: bool):
     """
 
     assert _re2 is not None
-    options = _re2.Options()  # type: ignore[union-attr]
+    options = _re2.Options()
     options.case_sensitive = case_sensitive
-    return _re2.compile(pattern, options=options)  # type: ignore[union-attr,call-arg]
+    return _re2.compile(pattern, options=options)
 
 
 def _compile(pattern: str, *, case_sensitive: bool):

@@ -67,7 +67,6 @@ from app.services.mfa import (
     MfaNotEnrolled,
     confirm_enrolment,
     decode_mfa_pending_claims,
-    decode_mfa_pending_token,
     disable_mfa,
     issue_mfa_pending_token,
     start_enrolment,

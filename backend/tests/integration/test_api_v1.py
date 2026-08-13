@@ -16,9 +16,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import pytest
-from sqlalchemy import select
 
-from app.models import Solve, TeamType, UserRole
+from app.models import Solve, TeamType
 
 
 pytestmark = pytest.mark.integration

@@ -43,9 +43,8 @@ const useInstanceStore = create((set, get) => ({
   },
 
   stopInstance: async (id, slug = null) => {
-    try {
-      await client.delete(`/instances/${id}`)
-      set((s) => {
+    await client.delete(`/instances/${id}`)
+    set((s) => {
         const next = { ...s.byChallenge }
         if (slug) {
           delete next[slug]
@@ -59,10 +58,7 @@ const useInstanceStore = create((set, get) => ({
           instances: s.instances.filter((i) => i.id !== id && i.instance_id !== id),
           byChallenge: next,
         }
-      })
-    } catch (err) {
-      throw err
-    }
+    })
   },
 
   resetInstance: async (id, slug = null) => {

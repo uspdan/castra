@@ -29,7 +29,6 @@ from app.database import get_db
 from app.models import (
     Challenge,
     ChallengeFlag,
-    Notification,
     Solve,
     TeamType,
     User,

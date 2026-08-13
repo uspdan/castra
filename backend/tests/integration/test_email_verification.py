@@ -144,7 +144,6 @@ class TestResendVerification:
         self, client, user_factory, auth_headers, db_session
     ):
         from app.services.email import CAPTURED_EMAILS, reset_captured_emails
-        from app.models import User
 
         user = await user_factory(email="alreadyver@test.local")
         # Mark verified directly.

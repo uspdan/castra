@@ -22,7 +22,7 @@ from bluerange_spec import (
 
 from .discovery import discover
 from .errors import ArtifactMismatch, LoaderError, UnknownProfile
-from .single import LoadedManifest, load_directory
+from .single import load_directory
 from .upsert import UpsertOutcome, upsert_manifest
 
 

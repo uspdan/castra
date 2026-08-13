@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import List, Sequence
 
 from app.database import async_session
-from app.services.challenge_loader import LoadReport, LoadStatus, run
+from app.services.challenge_loader import LoadReport, run
 
 
 def _build_parser() -> argparse.ArgumentParser:

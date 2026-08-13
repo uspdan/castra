@@ -115,9 +115,16 @@ async def lifespan(app: FastAPI):
         async with _async_session() as _db:
             swept = await sweep_orphaned_instances(_db)
             if swept:
-                logger.info("Startup orphan sweep", count=swept)
+                # %-style, not structlog kwargs: ``logger`` here is a
+                # stdlib logging.Logger (see the getLogger call at the
+                # top of this module), and stdlib rejects arbitrary
+                # keywords with ``TypeError: _log() got an unexpected
+                # keyword argument``. Most of this codebase uses
+                # structlog, where ``count=`` would be correct — that
+                # mismatch is what broke this.
+                logger.info("Startup orphan sweep: count=%s", swept)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("startup_orphan_sweep_failed", error=str(exc))
+        logger.warning("startup_orphan_sweep_failed: error=%s", exc)
 
     # Start scheduler
     from app.services.scheduler import setup_scheduler
