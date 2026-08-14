@@ -45,12 +45,12 @@ test-challenges:
 		.venv-test/bin/python -m app.tools.test_harness ../examples/challenges
 
 # Phase 12 (slice 16): regenerate the frozen JSON Schema after a
-# bluerange-spec model change. Mirrors the snippet in
+# castra-spec model change. Mirrors the snippet in
 # docs/challenge-spec-v1.md so authors don't have to copy/paste.
 regen-schema:
-	cd backend && PYTHONPATH=$$(pwd) .venv-test/bin/python -c "import json; from bluerange_spec import ChallengeManifest; s = ChallengeManifest.model_json_schema(); s['\$$schema'] = 'https://json-schema.org/draft/2020-12/schema'; s['\$$id'] = 'https://seige-range.local/schemas/bluerange-spec/v1/manifest.schema.json'; s['title'] = 'BluerangeChallengeManifest'; s['description'] = 'v1 challenge manifest for the seige-range platform.'; print(json.dumps(s, indent=2, sort_keys=True))" \
-		> ../packages/bluerange-spec/src/bluerange_spec/schemas/manifest.schema.json
-	@echo "regenerated packages/bluerange-spec/.../manifest.schema.json"
+	cd backend && PYTHONPATH=$$(pwd) .venv-test/bin/python -c "import json; from castra_spec import ChallengeManifest; s = ChallengeManifest.model_json_schema(); s['\$$schema'] = 'https://json-schema.org/draft/2020-12/schema'; s['\$$id'] = 'https://seige-range.local/schemas/castra-spec/v1/manifest.schema.json'; s['title'] = 'CastraChallengeManifest'; s['description'] = 'v1 challenge manifest for the seige-range platform.'; print(json.dumps(s, indent=2, sort_keys=True))" \
+		> ../packages/castra-spec/src/castra_spec/schemas/manifest.schema.json
+	@echo "regenerated packages/castra-spec/.../manifest.schema.json"
 
 # Phase 12 (slice 20): Playwright E2E suite. Drives the full stack
 # via a real browser. Requires:

@@ -2,7 +2,7 @@
 
 How to write a challenge that ships on siege-range. Pairs with
 the v1 manifest schema in
-`packages/bluerange-spec/src/bluerange_spec/schemas/manifest.schema.json`
+`packages/castra-spec/src/castra_spec/schemas/manifest.schema.json`
 and the worked examples in `examples/challenges/`.
 
 ## What a challenge is
@@ -27,7 +27,7 @@ and grades flag submissions through the validator named by
 ## The 30-second example
 
 ```yaml
-# yaml-language-server: $schema=../../packages/bluerange-spec/src/bluerange_spec/schemas/manifest.schema.json
+# yaml-language-server: $schema=../../packages/castra-spec/src/castra_spec/schemas/manifest.schema.json
 spec_version: "1"
 slug: my-first-challenge
 title: "My First Challenge"
@@ -123,7 +123,7 @@ dispatches on `type`:
 
 Each type has its own required config keys — see the schema or
 `examples/challenges/` for the canonical shapes. **A custom
-validator** can be plugged in via the `bluerange.validators`
+validator** can be plugged in via the `castra.validators`
 entry-point group; see
 `backend/app/validators/llm_signal.py` for the smallest possible
 example.
@@ -218,7 +218,7 @@ Before opening a PR (or submitting to your operator):
 |---|---|
 | Validator plugins (built-in) | `backend/app/validators/` |
 | Validator-registry entry-points | `backend/pyproject.toml` |
-| Manifest schema | `packages/bluerange-spec/src/bluerange_spec/` |
+| Manifest schema | `packages/castra-spec/src/castra_spec/` |
 | Example challenges | `examples/challenges/` |
 | Test harness | `backend/app/services/test_harness/` |
 | Loader (manifest → DB rows) | `backend/app/services/challenge_loader/` |

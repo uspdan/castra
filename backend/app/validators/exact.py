@@ -22,7 +22,7 @@ import hashlib
 import hmac
 from typing import Any, Mapping
 
-from bluerange_spec import (
+from castra_spec import (
     ValidationContext,
     ValidationResult,
     Validator,

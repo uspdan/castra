@@ -37,7 +37,7 @@ import re as _re
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from bluerange_spec import (
+from castra_spec import (
     ValidationContext,
     ValidationResult,
     Validator,

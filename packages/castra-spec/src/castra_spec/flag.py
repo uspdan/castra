@@ -25,7 +25,7 @@ classes:
   enumerates from a fixture IaC bundle.
 
 Custom validator plugins are introduced via the
-``bluerange.validators`` entry-point group; their ``type`` strings are
+``castra.validators`` entry-point group; their ``type`` strings are
 not constrained by this enum, so the manifest stores ``type`` as a
 string and the registry resolves it at submission time. v1's first-
 party set is enforced with discriminated-union models below for IDE /

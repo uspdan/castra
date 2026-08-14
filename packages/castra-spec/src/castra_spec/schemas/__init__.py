@@ -1,9 +1,9 @@
 """Frozen JSON Schema documents for editor / tooling use.
 
-The Pydantic models in :mod:`bluerange_spec.manifest` are the source of
+The Pydantic models in :mod:`castra_spec.manifest` are the source of
 truth for validation. The JSON Schema files in this directory are a
 generated mirror, kept in sync by a parity test in
-``packages/bluerange-spec/tests/test_schema_parity.py``. Edit the
+``packages/castra-spec/tests/test_schema_parity.py``. Edit the
 Pydantic models, then regenerate.
 """
 

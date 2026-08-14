@@ -1,6 +1,6 @@
 """Validator plugin registry.
 
-Loads the ``bluerange.validators`` entry-point group at module import
+Loads the ``castra.validators`` entry-point group at module import
 and exposes a single :class:`ValidatorRegistry` instance. The
 built-ins (``exact``, ``regex``, ``multi_part``) are registered via
 the *same* mechanism (see ``backend/pyproject.toml``) — that's the
@@ -26,11 +26,11 @@ import logging
 from importlib import metadata
 from typing import Dict, Iterable, Iterator, Mapping, Optional
 
-from bluerange_spec import Validator
+from castra_spec import Validator
 
 
 _logger = logging.getLogger(__name__)
-_ENTRY_POINT_GROUP = "bluerange.validators"
+_ENTRY_POINT_GROUP = "castra.validators"
 
 
 class DuplicateValidator(RuntimeError):
@@ -116,7 +116,7 @@ def discover_entry_points(
         if not isinstance(instance, Validator):
             raise TypeError(
                 f"entry point {ep.name!r} from {ep.value!r} resolved to "
-                f"{type(instance).__name__}, expected bluerange_spec.Validator"
+                f"{type(instance).__name__}, expected castra_spec.Validator"
             )
         registry.register(instance, source=ep.value)
         # ``name`` is reserved by stdlib LogRecord (it carries the

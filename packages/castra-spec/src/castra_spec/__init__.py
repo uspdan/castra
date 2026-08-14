@@ -1,7 +1,7 @@
-"""bluerange-spec — challenge manifest schema (v1).
+"""castra-spec — challenge manifest schema (v1).
 
 Public surface used by the platform. Import paths under
-``bluerange_spec.<submodule>`` are also stable; this module re-exports
+``castra_spec.<submodule>`` are also stable; this module re-exports
 the most common types.
 """
 

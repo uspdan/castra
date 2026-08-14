@@ -55,7 +55,7 @@ class Challenge(Base):
     released_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 
-    # Phase 7 — bluerange-spec v1 manifest tracking.
+    # Phase 7 — castra-spec v1 manifest tracking.
     spec_version = Column(String(8), nullable=True)
     manifest_sha256 = Column(String(64), nullable=True)
     source_path = Column(String(500), nullable=True)

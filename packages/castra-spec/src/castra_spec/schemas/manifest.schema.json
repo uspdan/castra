@@ -125,7 +125,8 @@
         "type": {
           "const": "attack_chain",
           "default": "attack_chain",
-          "title": "Type"
+          "title": "Type",
+          "type": "string"
         }
       },
       "required": [
@@ -243,7 +244,8 @@
         "type": {
           "const": "chain_of_custody",
           "default": "chain_of_custody",
-          "title": "Type"
+          "title": "Type",
+          "type": "string"
         }
       },
       "required": [
@@ -355,7 +357,8 @@
         "type": {
           "const": "cloud_misconfig",
           "default": "cloud_misconfig",
-          "title": "Type"
+          "title": "Type",
+          "type": "string"
         }
       },
       "required": [
@@ -463,7 +466,8 @@
         "type": {
           "const": "exact",
           "default": "exact",
-          "title": "Type"
+          "title": "Type",
+          "type": "string"
         },
         "value": {
           "maxLength": 4096,
@@ -558,7 +562,8 @@
         "type": {
           "const": "llm_signal",
           "default": "llm_signal",
-          "title": "Type"
+          "title": "Type",
+          "type": "string"
         }
       },
       "required": [
@@ -615,7 +620,8 @@
         "type": {
           "const": "multi_part",
           "default": "multi_part",
-          "title": "Type"
+          "title": "Type",
+          "type": "string"
         }
       },
       "required": [
@@ -669,7 +675,8 @@
         "type": {
           "const": "regex",
           "default": "regex",
-          "title": "Type"
+          "title": "Type",
+          "type": "string"
         }
       },
       "required": [
@@ -743,7 +750,8 @@
         "type": {
           "const": "sigma_rule",
           "default": "sigma_rule",
-          "title": "Type"
+          "title": "Type",
+          "type": "string"
         }
       },
       "required": [
@@ -893,7 +901,8 @@
         "type": {
           "const": "yara_rule",
           "default": "yara_rule",
-          "title": "Type"
+          "title": "Type",
+          "type": "string"
         }
       },
       "required": [
@@ -905,7 +914,7 @@
       "type": "object"
     }
   },
-  "$id": "https://seige-range.local/schemas/bluerange-spec/v1/manifest.schema.json",
+  "$id": "https://seige-range.local/schemas/castra-spec/v1/manifest.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "description": "v1 challenge manifest for the seige-range platform.",
@@ -1031,7 +1040,8 @@
     },
     "spec_version": {
       "const": "1",
-      "title": "Spec Version"
+      "title": "Spec Version",
+      "type": "string"
     },
     "team": {
       "enum": [
@@ -1066,6 +1076,6 @@
     "container",
     "flags"
   ],
-  "title": "BluerangeChallengeManifest",
+  "title": "CastraChallengeManifest",
   "type": "object"
 }

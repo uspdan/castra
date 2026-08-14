@@ -15,7 +15,7 @@ import pytest
 
 from app.validators.sigma_rule import SigmaRuleValidator
 from app.validators.yara_rule import YaraRuleValidator
-from bluerange_spec import ValidationContext, ValidatorConfigError
+from castra_spec import ValidationContext, ValidatorConfigError
 
 
 # ---------------------------------------------------------------------------

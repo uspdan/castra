@@ -55,17 +55,17 @@ RUN set -eux; \
 WORKDIR /app
 
 # Build context is the repo root (see docker-compose.yml). We stage the
-# in-repo bluerange-spec package first so pip can resolve the path
+# in-repo castra-spec package first so pip can resolve the path
 # dependency declared in backend/requirements.txt.
-COPY packages/bluerange-spec /packages/bluerange-spec
+COPY packages/castra-spec /packages/castra-spec
 COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir /packages/bluerange-spec
+    && pip install --no-cache-dir /packages/castra-spec
 
 COPY backend/ /app/
 
 # Phase 8: install the backend as an editable package so the
-# bluerange.validators entry-point group registered in
+# castra.validators entry-point group registered in
 # backend/pyproject.toml is discoverable via importlib.metadata. The
 # install picks up zero new runtime deps (those still come from
 # requirements.txt above) — this step exists purely to register entry
