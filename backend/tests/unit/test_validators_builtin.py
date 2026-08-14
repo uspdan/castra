@@ -9,7 +9,7 @@ import pytest
 from app.validators.exact import ExactValidator, hash_exact_value
 from app.validators.multi_part import MultiPartValidator, join_parts
 from app.validators.regex import RegexValidator, regex_engine
-from bluerange_spec import (
+from castra_spec import (
     ValidationContext,
     ValidatorConfigError,
 )

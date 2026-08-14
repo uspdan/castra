@@ -12,7 +12,7 @@ from typing import Any, Mapping
 
 import pytest
 
-from bluerange_spec import (
+from castra_spec import (
     ValidationContext,
     ValidationResult,
     Validator,

@@ -47,7 +47,7 @@ from __future__ import annotations
 import json
 from typing import Any, Iterable, List, Mapping, Set, Tuple
 
-from bluerange_spec import (
+from castra_spec import (
     ValidationContext,
     ValidationResult,
     Validator,

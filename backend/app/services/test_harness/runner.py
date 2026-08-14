@@ -1,10 +1,10 @@
 """Test-harness runner: dispatch manifest TestCases through validators.
 
-Each :class:`bluerange_spec.TestCase` carries a ``flag_id``, a
+Each :class:`castra_spec.TestCase` carries a ``flag_id``, a
 ``submission`` string, and an ``expected ∈ {"pass", "fail"}``
 discriminator. The runner:
 
-1. Loads the manifest (via :func:`bluerange_spec.load_manifest`).
+1. Loads the manifest (via :func:`castra_spec.load_manifest`).
 2. Resolves ``case.flag_id`` to the matching :class:`Flag` model.
 3. Translates the flag into dispatch args via :func:`flag_to_dispatch`
    — the same path the loader uses to write
@@ -32,7 +32,7 @@ from enum import Enum
 from pathlib import Path
 from typing import List, Optional, Sequence
 
-from bluerange_spec import (
+from castra_spec import (
     ChallengeManifest,
     TestCase,
     ValidationContext,
@@ -254,7 +254,7 @@ async def run_paths(
     """Walk ``roots`` and run every challenge directory found.
 
     A "challenge directory" is any directory containing one of the
-    manifest filenames recognised by :func:`bluerange_spec.load_manifest`.
+    manifest filenames recognised by :func:`castra_spec.load_manifest`.
     Directories without a manifest are skipped silently — that lets
     callers point the harness at a parent directory that mixes
     challenges with other files.

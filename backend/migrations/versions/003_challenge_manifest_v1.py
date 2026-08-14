@@ -5,7 +5,7 @@ Revises: 002
 Create Date: 2026-05-02
 
 Adds the schema needed by Phase 7 of the hardening programme to
-support the bluerange-spec v1 manifest format.
+support the castra-spec v1 manifest format.
 
 Changes to ``challenges``:
   - new columns ``spec_version``, ``manifest_sha256``, ``source_path``,

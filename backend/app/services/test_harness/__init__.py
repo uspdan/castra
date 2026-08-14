@@ -10,7 +10,7 @@ Public surface:
 
 - :class:`HarnessOutcome`, :class:`CaseOutcome`, :class:`CaseStatus` —
   structured per-case + per-challenge result types.
-- :func:`run_case` — execute a single :class:`bluerange_spec.TestCase`.
+- :func:`run_case` — execute a single :class:`castra_spec.TestCase`.
 - :func:`run_challenge` — execute every test case for a single
   challenge directory.
 - :func:`run_paths` — walk one or more roots, returning a flat report.
@@ -18,7 +18,7 @@ Public surface:
 The harness reuses the platform's validator registry so behavioural
 equivalence with the API is automatic — anything that lands in
 ``app.validators`` (or a third-party plugin under the
-``bluerange.validators`` entry-point group) is exercised the same way
+``castra.validators`` entry-point group) is exercised the same way
 on both code paths.
 """
 

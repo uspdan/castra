@@ -3,12 +3,12 @@
 Phase 8 introduces a pluggable validator system. Each ``Flag`` declared
 in a manifest carries a ``type`` (e.g. ``exact``, ``regex``,
 ``multi_part``) that names a validator plugin. The platform discovers
-plugins via the ``bluerange.validators`` entry-point group; the v1
+plugins via the ``castra.validators`` entry-point group; the v1
 first-party set ships under that same mechanism so external authors
 exercise an identical code path.
 
 This module is the **public contract** every plugin author depends on.
-Keeping it inside ``bluerange-spec`` (one-way dep into the platform)
+Keeping it inside ``castra-spec`` (one-way dep into the platform)
 means a plugin package never imports ``app.*`` and stays installable
 without the platform present.
 

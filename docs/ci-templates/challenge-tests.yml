@@ -21,7 +21,7 @@ on:
       - "backend/app/tools/test_harness.py"
       - "backend/requirements.txt"
       - "backend/pyproject.toml"
-      - "packages/bluerange-spec/**"
+      - "packages/castra-spec/**"
       - "examples/challenges/**"
       - ".github/workflows/challenge-tests.yml"
   pull_request:
@@ -32,7 +32,7 @@ on:
       - "backend/app/tools/test_harness.py"
       - "backend/requirements.txt"
       - "backend/pyproject.toml"
-      - "packages/bluerange-spec/**"
+      - "packages/castra-spec/**"
       - "examples/challenges/**"
       - ".github/workflows/challenge-tests.yml"
 
@@ -61,7 +61,7 @@ jobs:
           # backend's editable install for entry-point discovery.
           # Skip requirements-test.txt to keep the pipeline lean.
           pip install -r requirements.txt
-          pip install ../packages/bluerange-spec
+          pip install ../packages/castra-spec
           pip install -e .
 
       - name: Run challenge harness

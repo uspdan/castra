@@ -31,7 +31,7 @@ from __future__ import annotations
 
 from typing import Any, List, Mapping
 
-from bluerange_spec import (
+from castra_spec import (
     ValidationContext,
     ValidationResult,
     Validator,

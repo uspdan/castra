@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List
 
-from bluerange_spec import (
+from castra_spec import (
     ChallengeManifest,
     load_manifest,
     manifest_sha256,
@@ -52,9 +52,9 @@ class LoadedManifest:
 def load_directory(directory: Path | str) -> LoadedManifest:
     """Parse, validate, and integrity-check a challenge directory.
 
-    Raises :class:`bluerange_spec.ManifestNotFound`,
-    :class:`bluerange_spec.ManifestParseError`,
-    :class:`bluerange_spec.ManifestValidationError`,
+    Raises :class:`castra_spec.ManifestNotFound`,
+    :class:`castra_spec.ManifestParseError`,
+    :class:`castra_spec.ManifestValidationError`,
     :class:`ArtifactMismatch`, or :class:`UnknownProfile` on failure.
     """
 

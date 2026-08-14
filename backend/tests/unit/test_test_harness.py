@@ -14,7 +14,7 @@ from app.services.test_harness import (
     run_paths,
 )
 from app.services.challenge_loader.flag_mapping import flag_to_dispatch
-from bluerange_spec import (
+from castra_spec import (
     ExactFlag,
     TestCase,
 )

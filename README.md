@@ -35,7 +35,7 @@ nightly DB backups, and per-instance egress isolation.
   volume and SIGHUPs tinyproxy. Per-instance sidecars are
   available when allowlists shouldn't bleed across challenges.
 
-### Validators (`bluerange.validators` entry-point group)
+### Validators (`castra.validators` entry-point group)
 - `exact`, `regex`, `multi_part` (red-team baseline)
 - `sigma_rule`, `yara_rule`, `chain_of_custody`,
   `attack_chain`, `cloud_misconfig` (blue-team)

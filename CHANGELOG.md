@@ -310,7 +310,7 @@ posture. Backend test suite: **637 passed @ 86.06% coverage**.
 Hardening program: Pydantic schema wiring, hash-chained audit
 ledger, secret fail-fast / CORS / security headers, `/readyz`
 with dep probes, test infrastructure, router decomposition,
-`bluerange-spec` package + manifest v1 + loader, validator
+`castra-spec` package + manifest v1 + loader, validator
 plugin system, container profiles + orchestrator hardening,
 blue-team validators (sigma / yara / chain-of-custody /
 attack-chain / cloud-misconfig), challenge testing harness.

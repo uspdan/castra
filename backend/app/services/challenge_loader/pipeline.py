@@ -14,7 +14,7 @@ from typing import Iterable, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bluerange_spec import (
+from castra_spec import (
     ManifestNotFound,
     ManifestParseError,
     ManifestValidationError,

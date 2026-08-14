@@ -1,6 +1,6 @@
 # Phase 8: backend is now a packaged project so the built-in
 # validators in `app/validators/` can register under the
-# `bluerange.validators` entry-point group — the same mechanism
+# `castra.validators` entry-point group — the same mechanism
 # external plugin authors use. The package isn't published anywhere;
 # it's installed editable into the runtime image (Dockerfile) and the
 # host test venv (requirements-test.txt) purely so importlib.metadata
@@ -21,7 +21,7 @@ description = "seige-range FastAPI application (internal package, not published)
 requires-python = ">=3.10"
 license = { text = "MIT" }
 
-[project.entry-points."bluerange.validators"]
+[project.entry-points."castra.validators"]
 exact = "app.validators.exact:ExactValidator"
 regex = "app.validators.regex:RegexValidator"
 multi_part = "app.validators.multi_part:MultiPartValidator"
