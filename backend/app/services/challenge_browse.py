@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 from sqlalchemy import and_, exists, func, select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Challenge, HintUnlock, Solve, User, Writeup
@@ -262,9 +263,9 @@ async def get_challenge_detail(
 
     challenge = (
         await db.execute(
-            select(Challenge).where(
-                Challenge.slug == slug, Challenge.is_active.is_(True)
-            )
+            select(Challenge)
+            .options(selectinload(Challenge.artifacts))
+            .where(Challenge.slug == slug, Challenge.is_active.is_(True))
         )
     ).scalars().first()
     if not challenge:
@@ -273,6 +274,18 @@ async def get_challenge_detail(
     return {
         "id": challenge.id,
         "slug": challenge.slug,
+        # ADR 005 — False means artifact-only: the UI shows a download
+        # list where the LAUNCH button would be, and the launch route
+        # 409s. Derived from docker_image so legacy and v1 rows agree.
+        "has_container": challenge.docker_image is not None,
+        "artifacts": [
+            {
+                "path": a.path,
+                "size_bytes": a.size_bytes,
+                "description": a.description,
+            }
+            for a in sorted(challenge.artifacts, key=lambda a: a.path)
+        ],
         "title": challenge.title,
         "description": challenge.description,
         "category": challenge.category,

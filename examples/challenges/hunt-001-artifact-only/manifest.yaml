@@ -1,0 +1,50 @@
+# Canonical example of an artifact-only challenge (spec v1.1, ADR 005).
+# No container: block — the platform serves the declared artifacts
+# for download and the challenge never touches the orchestrator.
+spec_version: "1"
+slug: hunt-001-artifact-only
+title: "Off-hours shadow grab"
+description: |
+  An attacker brute-forced a service account on web01 and staged a
+  sensitive file for exfiltration. Review the auth log and identify
+  the source IP that accessed the account, wrapped as
+  CTF{a.b.c.d}.
+team: blue
+category: "Threat Hunting"
+difficulty: 1
+points: 100
+license: MIT
+author:
+  name: "seige-range maintainers"
+  email: "maintainers@example.org"
+
+flags:
+  - id: source_ip
+    type: exact
+    value: "CTF{198.51.100.23}"
+    points: 100
+
+hints:
+  - text: "Look for a successful login sandwiched between failures from the same address."
+    cost: 25
+
+artifacts:
+  - path: artifacts/auth.log
+    sha256: "e83340d4c86db567a7230ca7c3eed81ab514cb0627aa9f621a1c665314006652"
+    size_bytes: 596
+    description: "sshd/sudo auth log covering the incident window"
+
+tests:
+  cases:
+    - name: "correct source IP passes"
+      flag_id: source_ip
+      submission: "CTF{198.51.100.23}"
+      expected: pass
+    - name: "the legitimate admin IP fails"
+      flag_id: source_ip
+      submission: "CTF{10.20.1.5}"
+      expected: fail
+    - name: "bare IP without wrapper fails"
+      flag_id: source_ip
+      submission: "198.51.100.23"
+      expected: fail
