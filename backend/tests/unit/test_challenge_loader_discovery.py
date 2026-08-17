@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from app.services.challenge_loader import ArtifactMismatch, discover, load_directory
-from bluerange_spec import ManifestNotFound, ManifestValidationError
+from castra_spec import ManifestNotFound, ManifestValidationError
 
 
 def _write_minimum_manifest(directory: Path, slug: str = "loader-test-001") -> Path:

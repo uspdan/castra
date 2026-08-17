@@ -17,7 +17,7 @@ from __future__ import annotations
 import hmac
 from typing import Any, List, Mapping
 
-from bluerange_spec import (
+from castra_spec import (
     ValidationContext,
     ValidationResult,
     Validator,

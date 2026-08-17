@@ -27,7 +27,7 @@ hostile plugin is already contained.
 The protocol is intentionally line-based JSON, not pickle: pickle would
 be a code-execution channel back into the parent if a child were ever
 compromised, while JSON is type-restricted to primitives + nested
-dict/list. The :class:`bluerange_spec.ValidationContext` and
+dict/list. The :class:`castra_spec.ValidationContext` and
 :class:`ValidationResult` are reconstructed from primitives on each
 side.
 
@@ -125,7 +125,7 @@ def _apply_rlimits(rlimits: Mapping[str, int]) -> None:
 
 
 def _build_context(payload: Mapping[str, Any]):
-    from bluerange_spec import ValidationContext
+    from castra_spec import ValidationContext
 
     artifact_raw = payload.get("artifact_dir")
     artifact_dir = Path(artifact_raw) if artifact_raw else None
@@ -150,7 +150,7 @@ def _result_to_envelope(result) -> dict[str, Any]:
 
 
 async def _run_validator(envelope: Mapping[str, Any]) -> dict[str, Any]:
-    from bluerange_spec import ValidatorConfigError, ValidatorError
+    from castra_spec import ValidatorConfigError, ValidatorError
 
     module_name = str(envelope["validator_module"])
     class_name = str(envelope["validator_class"])

@@ -1,6 +1,6 @@
 """Test cases declared by a challenge author.
 
-Phase 11 introduces the ``bluerange-test`` runner that consumes these
+Phase 11 introduces the ``castra-test`` runner that consumes these
 cases and exercises the validator pipeline end-to-end without standing
 up the platform. v1 only requires the schema to be present so authors
 can start writing tests immediately; the runner itself ships in

@@ -1,6 +1,6 @@
-# bluerange-spec
+# castra-spec
 
-Challenge manifest schema (v1) for the seige-range / bluerange platform.
+Challenge manifest schema (v1) for the seige-range / castra platform.
 
 This package defines the on-disk format authors use to publish challenges:
 
@@ -8,13 +8,13 @@ This package defines the on-disk format authors use to publish challenges:
 - JSON Schema files (drafted from the same models) for tooling and editors.
 - Canonical hashing for `manifest_sha256` so the platform can detect drift.
 
-`bluerange_spec` is a one-way dependency: it does **not** import from the
+`castra_spec` is a one-way dependency: it does **not** import from the
 platform's `app/` package. The platform imports from it.
 
 ## Layout
 
 ```
-src/bluerange_spec/
+src/castra_spec/
 ├── __init__.py        # Public exports
 ├── manifest.py        # ChallengeManifest (top-level v1 model)
 ├── flag.py            # Flag definitions (typed for the validator registry)
@@ -31,7 +31,7 @@ src/bluerange_spec/
 ## Usage (platform code)
 
 ```python
-from bluerange_spec import load_manifest, ChallengeManifest, manifest_sha256
+from castra_spec import load_manifest, ChallengeManifest, manifest_sha256
 
 manifest, raw = load_manifest("examples/challenges/soc-001-off-hours-admin")
 digest = manifest_sha256(raw)

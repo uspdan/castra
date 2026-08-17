@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../../packages/bluerange-spec/src/bluerange_spec/schemas/manifest.schema.json
+# yaml-language-server: $schema=../../../packages/castra-spec/src/castra_spec/schemas/manifest.schema.json
 spec_version: "1"
 slug: soc-001-off-hours-admin
 title: "Off-Hours Admin Activity"

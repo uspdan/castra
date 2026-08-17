@@ -12,8 +12,8 @@ Regenerate via the snippet documented in the repo-root spec doc
 
 from __future__ import annotations
 
-from bluerange_spec import ChallengeManifest
-from bluerange_spec.schemas import load_schema
+from castra_spec import ChallengeManifest
+from castra_spec.schemas import load_schema
 
 
 _INJECTED_KEYS = {"$schema", "$id", "title", "description"}
@@ -37,4 +37,4 @@ def test_frozen_schema_metadata_present() -> None:
     frozen = load_schema("manifest")
     assert frozen.get("$schema") == "https://json-schema.org/draft/2020-12/schema"
     assert "manifest.schema.json" in frozen.get("$id", "")
-    assert frozen.get("title") == "BluerangeChallengeManifest"
+    assert frozen.get("title") == "CastraChallengeManifest"

@@ -44,9 +44,9 @@ google-re2==1.1.20240702
 #   the source-build fallback for arches without a wheel.
 pysigma==1.3.3
 yara-python==4.5.4
-# In-repo bluerange-spec path-dep is installed via a separate
-# `pip install /packages/bluerange-spec` step in the Dockerfile
-# (and via `-e ../packages/bluerange-spec` in requirements-test.txt
+# In-repo castra-spec path-dep is installed via a separate
+# `pip install /packages/castra-spec` step in the Dockerfile
+# (and via `-e ../packages/castra-spec` in requirements-test.txt
 # on the host). Keeping it out of this file means `pip install -r
 # requirements.txt` works equally on host and in the build context.
 

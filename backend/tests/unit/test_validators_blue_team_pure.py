@@ -14,7 +14,7 @@ import pytest
 from app.validators.attack_chain import AttackChainValidator
 from app.validators.chain_of_custody import ChainOfCustodyValidator
 from app.validators.cloud_misconfig import CloudMisconfigValidator
-from bluerange_spec import ValidationContext, ValidatorConfigError
+from castra_spec import ValidationContext, ValidatorConfigError
 
 
 @pytest.fixture

@@ -34,7 +34,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from bluerange_spec import ValidationContext
+from castra_spec import ValidationContext
 
 from app.models import Challenge
 from app.services.validator_registry import (
@@ -146,7 +146,7 @@ async def _run_with_optional_artifacts(
 
 
 def _wrong_result():
-    from bluerange_spec import ValidationResult
+    from castra_spec import ValidationResult
 
     return ValidationResult(correct=False)
 

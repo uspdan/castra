@@ -18,7 +18,7 @@ import hashlib
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional
 
-from bluerange_spec import (
+from castra_spec import (
     AttackChainFlag,
     ChainOfCustodyFlag,
     CloudMisconfigFlag,

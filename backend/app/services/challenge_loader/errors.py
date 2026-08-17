@@ -10,7 +10,7 @@ class LoaderError(Exception):
 
     Manifest parse / validation failures bubble up as the
     ``ManifestParseError`` / ``ManifestValidationError`` types from
-    :mod:`bluerange_spec`; callers should catch both of those plus
+    :mod:`castra_spec`; callers should catch both of those plus
     ``LoaderError`` to enumerate every failure mode the loader can
     raise.
     """

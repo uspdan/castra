@@ -99,7 +99,7 @@ from the manifest by competitors who can read shipped artifacts.
 - New manifest field `flags[].secret_bundle` — a
   base64-encoded ciphertext blob. Encrypted with libsodium
   `crypto_secretbox` using a key derived from
-  `BLUERANGE_SECRET_BUNDLE_KEY` (env var, fail-fast if unset
+  `CASTRA_SECRET_BUNDLE_KEY` (env var, fail-fast if unset
   in production per CLAUDE.md §3.2). The plaintext is the JSON
   config the validator needs (regex patterns, classifier ids,
   thresholds).
@@ -109,13 +109,13 @@ from the manifest by competitors who can read shipped artifacts.
   The encrypted manifest stays on disk.
 - The validator subprocess receives the plaintext via the
   existing sandboxed stdin path (Phase 8 sandbox); it never sees
-  `BLUERANGE_SECRET_BUNDLE_KEY` itself.
+  `CASTRA_SECRET_BUNDLE_KEY` itself.
 - Authors run `make encrypt-bundle` (a thin CLI wrapper around
   `nacl.secret.SecretBox.encrypt`) to seal the bundle before
   committing the manifest.
 
 **Trade-off accepted:** the operator must protect
-`BLUERANGE_SECRET_BUNDLE_KEY` like any other production secret.
+`CASTRA_SECRET_BUNDLE_KEY` like any other production secret.
 A leaked key compromises every honeypot challenge's grading
 config but does NOT compromise the platform — it only lets a
 sophisticated competitor inspect the validator's expected signals.
@@ -146,7 +146,7 @@ When ready to implement, the ordered shopping list:
 1. Validator plugin `llm_signal` in `backend/app/validators/`.
 2. Container profile `llm-sandbox` (or extend `egress-proxied`
    with allowlist injection).
-3. `BLUERANGE_SECRET_BUNDLE_KEY` config + loader decrypt path.
+3. `CASTRA_SECRET_BUNDLE_KEY` config + loader decrypt path.
 4. `make encrypt-bundle` author CLI tool.
 5. Reference challenge in `examples/challenges/llm-customer-pii/`.
 6. Runbook in `docs/runbooks/llm-honeypot-operator.md` covering
