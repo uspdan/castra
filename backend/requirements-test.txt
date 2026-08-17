@@ -12,11 +12,11 @@ pytest-asyncio==0.23.5
 pytest-cov==4.1.0
 testcontainers[postgres,redis]==4.0.1
 asgi-lifespan==2.1.0
-# Phase 7: pull in the bluerange-spec path-dep so loader / spec tests
+# Phase 7: pull in the castra-spec path-dep so loader / spec tests
 # can import from it. Path is relative to the backend/ directory (which
 # is where `make test-install` runs `pip install -r ...`).
--e ../packages/bluerange-spec
-# Phase 8: install the backend editable so the bluerange.validators
+-e ../packages/castra-spec
+# Phase 8: install the backend editable so the castra.validators
 # entry-point group declared in backend/pyproject.toml is registered
 # in the test venv's metadata. Without this, importlib.metadata
 # returns an empty entry-point list and the registry can't discover

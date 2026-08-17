@@ -19,7 +19,7 @@ import logging
 import re
 from typing import Any, Mapping
 
-from bluerange_spec import (
+from castra_spec import (
     ValidationContext,
     ValidationResult,
     Validator,

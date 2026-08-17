@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "bluerange-spec"
+name = "castra-spec"
 version = "1.0.0"
-description = "Challenge manifest schema for the seige-range / bluerange platform."
+description = "Challenge manifest schema for the seige-range / castra platform."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -26,4 +26,4 @@ testing = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-bluerange_spec = ["schemas/*.json"]
+castra_spec = ["schemas/*.json"]

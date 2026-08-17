@@ -1,15 +1,15 @@
 # Challenge Spec — v1
 
 > The on-disk format authors use to publish challenges to seige-range.
-> Implemented by the `bluerange-spec` package under
-> `packages/bluerange-spec/`. Loaded by
+> Implemented by the `castra-spec` package under
+> `packages/castra-spec/`. Loaded by
 > `backend/app/services/challenge_loader/` and the
 > `python -m app.tools.load_challenges` CLI.
 
 This document is the authoritative reference for v1. The
-`bluerange_spec.ChallengeManifest` Pydantic model and the frozen
+`castra_spec.ChallengeManifest` Pydantic model and the frozen
 JSON Schema at
-`packages/bluerange-spec/src/bluerange_spec/schemas/manifest.schema.json`
+`packages/castra-spec/src/castra_spec/schemas/manifest.schema.json`
 are kept in lockstep by an automated parity test
 (`tests/test_schema_parity.py`); when this document and the schema
 disagree, **the schema wins**.
@@ -164,7 +164,7 @@ artifacts:
 
 ### Tests
 
-Phase 11 ships a `bluerange-test` runner that consumes these cases.
+Phase 11 ships a `castra-test` runner that consumes these cases.
 v1 only requires the schema to be correct so authors can start writing
 tests now.
 
@@ -228,24 +228,24 @@ the manifest itself.
 ## Regenerating the JSON Schema
 
 The frozen schema in
-`packages/bluerange-spec/src/bluerange_spec/schemas/manifest.schema.json`
+`packages/castra-spec/src/castra_spec/schemas/manifest.schema.json`
 is generated from the Pydantic model. After changing the model, run:
 
 ```bash
 python -c "
 import json
-from bluerange_spec import ChallengeManifest
+from castra_spec import ChallengeManifest
 s = ChallengeManifest.model_json_schema()
 s['\$schema'] = 'https://json-schema.org/draft/2020-12/schema'
-s['\$id'] = 'https://seige-range.local/schemas/bluerange-spec/v1/manifest.schema.json'
-s['title'] = 'BluerangeChallengeManifest'
+s['\$id'] = 'https://seige-range.local/schemas/castra-spec/v1/manifest.schema.json'
+s['title'] = 'CastraChallengeManifest'
 s['description'] = 'v1 challenge manifest for the seige-range platform.'
 print(json.dumps(s, indent=2, sort_keys=True))
-" > packages/bluerange-spec/src/bluerange_spec/schemas/manifest.schema.json
+" > packages/castra-spec/src/castra_spec/schemas/manifest.schema.json
 ```
 
 The parity test in
-`packages/bluerange-spec/tests/test_schema_parity.py` will fail until
+`packages/castra-spec/tests/test_schema_parity.py` will fail until
 this is done.
 
 ---

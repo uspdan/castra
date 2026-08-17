@@ -20,7 +20,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Challenge, ChallengeArtifact, ChallengeFlag, TeamType, utcnow
-from bluerange_spec import ChallengeManifest, ExactFlag
+from castra_spec import ChallengeManifest, ExactFlag
 
 from .flag_mapping import flag_to_dispatch
 from .single import LoadedManifest

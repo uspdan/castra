@@ -88,7 +88,7 @@ Hard-coded SHA256 equality in `services/crypto.py`. No registry, no plugin syste
 | 4 | `/readyz` with dep probes (🟠 #6) | **complete** (2026-05-02) | Phase 3 green |
 | 5 | Test infrastructure + auth/submit/scoring coverage (🔴 #5) | **complete** (2026-05-02) | Phase 4 green |
 | 6 | Split `routers/challenges.py` (🟠 #7) | **complete** (2026-05-02) | Phase 5 green |
-| 7 | `bluerange-spec` package + manifest v1 + loader | **complete** (2026-05-02) | Phase 6 green + Q2, Q5 answered |
+| 7 | `castra-spec` package + manifest v1 + loader | **complete** (2026-05-02) | Phase 6 green + Q2, Q5 answered |
 | 8 | Validator plugin system | **complete** (2026-05-02) | Phase 7 + Q4 answered (`google-re2`) |
 | 9 | Container profiles + orchestrator hardening | **complete** (2026-05-02) | Phase 7 + Q3 answered |
 | 10 | Blue-team validators (sigma/yara/chain-of-custody/attack-chain/cloud-misconfig) | **complete** (2026-05-02) | Phase 8 + Q4 answered (pysigma/yara-python/clamav) |
@@ -103,7 +103,7 @@ Hard-coded SHA256 equality in `services/crypto.py`. No registry, no plugin syste
 2. **Existing 12 challenges — option (b).** Leave under `challenges/` as legacy, ignored by new loader. Canonical v1 examples under `examples/challenges/`. `MIGRATION.md` documents the divide.
 3. **Orchestrator (Phase 9) — keep DinD as sandbox boundary; insert `tecnativa/docker-socket-proxy` between api and DinD.** Minimum API surface: CONTAINERS, NETWORKS, IMAGES only. Add TLS inside DinD (`DOCKER_TLS_CERTDIR=/certs`), proxy speaks TLS. Resolves the existing `DOCKER_HOST` port mismatch (lands on 2376). DinD stays `privileged: true` — cost of nesting; rootless-Podman documented as future direction.
 4. **Phase 8/10 deps approved**: `pysigma`, `yara-python` + `libyara`, `clamav` (CI), `google-re2` (Phase 8). Each will still be flagged in its own commit.
-5. **`packages/bluerange-spec/` — path-dep only through Phase 11.** PyPI publish is a separate decision.
+5. **`packages/castra-spec/` — path-dep only through Phase 11.** PyPI publish is a separate decision.
 6. **Coverage** — 60% touched-module floor in Phase 5, **ramp to 80%+ project-wide** as a Phase 12 deliverable per CLAUDE.md §5.1.
 
 ---
@@ -557,12 +557,12 @@ endpoints; tests will land then.
 ## Phase 7 — completion notes (2026-05-02)
 
 **Goal**: ship the v1 challenge manifest format as a standalone package
-(`bluerange-spec`), a loader that walks paths and upserts validated
+(`castra-spec`), a loader that walks paths and upserts validated
 manifests into the platform DB, and two reference challenges under
 `examples/challenges/` (per Q2 = option b — legacy `challenges/` left
 ignored by the new loader).
 
-**Package — `packages/bluerange-spec/`** (path-dep through Phase 11
+**Package — `packages/castra-spec/`** (path-dep through Phase 11
 per Q5):
 
 | Module | Purpose | Lines |
@@ -617,13 +617,13 @@ manifest-tracking columns on `Challenge`. `flag_hash` typed nullable.
 **Build wiring**:
 - `docker-compose.yml`: api build context moved to repo root with
   `dockerfile: backend/Dockerfile` so the image can pull in the
-  in-repo `packages/bluerange-spec/`.
-- `backend/Dockerfile`: stages `/packages/bluerange-spec` then
+  in-repo `packages/castra-spec/`.
+- `backend/Dockerfile`: stages `/packages/castra-spec` then
   `pip install` it after `requirements.txt`. Path-dep is **not** in
   `requirements.txt` so host-side `pip install -r requirements.txt`
   still works (and is what `make test-install` runs).
 - `backend/requirements.txt`: adds `pyyaml==6.0.1` (loader dep).
-- `backend/requirements-test.txt`: adds `-e ../packages/bluerange-spec`
+- `backend/requirements-test.txt`: adds `-e ../packages/castra-spec`
   so the host venv installs the package editable.
 
 **Reference challenges** under `examples/challenges/`:
@@ -641,12 +641,12 @@ under `python -m app.tools.load_challenges --dry-run examples/challenges`.
 - `docs/challenge-spec-v1.md` — full v1 reference (top-level fields,
   flag types, artefact rules, drift detection, JSON Schema regen
   recipe, legacy-→-v1 migration).
-- `packages/bluerange-spec/README.md` — package-level orientation.
+- `packages/castra-spec/README.md` — package-level orientation.
 
 **Tests** (16 added; 82 total all-green; 14 separate spec-package
-tests under `packages/bluerange-spec/tests/`):
+tests under `packages/castra-spec/tests/`):
 
-Spec package (`packages/bluerange-spec/tests/`, 14):
+Spec package (`packages/castra-spec/tests/`, 14):
 - `test_schema_parity.py` — frozen JSON Schema must equal
   `ChallengeManifest.model_json_schema()` (modulo `$schema`/`$id`
   metadata). Refuses to pass when authors edit the model without
@@ -686,7 +686,7 @@ Backend (`backend/tests/`, 16):
 
 **Verification** (Phase 7 gate):
 - ✅ `pytest backend/tests/` — 82 passed (66 Phase-6 baseline + 16 new).
-- ✅ `pytest packages/bluerange-spec/tests/` — 14 passed.
+- ✅ `pytest packages/castra-spec/tests/` — 14 passed.
 - ✅ `--cov-fail-under=60` — actual 70.15% project-wide.
 - ✅ OpenAPI: 41 paths / 18 schemas (unchanged from Phase 6 — Phase 7
   added no endpoints).
@@ -706,7 +706,7 @@ Backend (`backend/tests/`, 16):
 - Profile name is validated for shape only; Phase 9 introduces the
   `PROFILES` registry that will reject unknown profiles at load
   time.
-- Test runner harness (`bluerange-test`) is Phase 11. The schema for
+- Test runner harness (`castra-test`) is Phase 11. The schema for
   `tests.cases` is in place so authors can start writing cases now.
 - Optional manifest signing block (sigstore/minisign) is Phase 11.
 - The loader does not invoke ATT&CK technique validation against the
@@ -730,7 +730,7 @@ entry-point group community plugins use, sandbox dispatch with a
 per-call timeout + read-only artefact tree, and add `google-re2` so
 the regex validator is ReDoS-immune.
 
-**Public contract — `bluerange_spec.validators`** (new module in the
+**Public contract — `castra_spec.validators`** (new module in the
 spec package):
 
 | Type | Purpose |
@@ -740,8 +740,8 @@ spec package):
 | `ValidationResult` | frozen dataclass — `correct`, `partial`, `details` |
 | `ValidatorError` / `ValidatorConfigError` / `ValidatorTimeoutError` | typed exception hierarchy |
 
-Re-exported from `bluerange_spec.__init__` so plugin authors `from
-bluerange_spec import Validator` and stop. The package keeps its
+Re-exported from `castra_spec.__init__` so plugin authors `from
+castra_spec import Validator` and stop. The package keeps its
 one-way dependency on the platform: nothing under `app.*` is
 imported.
 
@@ -757,7 +757,7 @@ Each lands well under the §1.1 size caps (largest is 102 lines).
 
 **Registry — `app/services/validator_registry.py`**: `ValidatorRegistry.
 register / get / names / __contains__ / __iter__`, `discover_entry_points`
-walks `bluerange.validators`, `build_default_registry` is the
+walks `castra.validators`, `build_default_registry` is the
 production constructor, `get_registry()` is the lazy module-level
 singleton (matches the existing `audit.append`/`crypto.verify_flag`
 pattern). Duplicate names raise `DuplicateValidator` at boot rather
@@ -802,7 +802,7 @@ the ledger payload (`flag_id`, `validator`).
 
 **Backend packaging — new `backend/pyproject.toml`**:
 ```toml
-[project.entry-points."bluerange.validators"]
+[project.entry-points."castra.validators"]
 exact = "app.validators.exact:ExactValidator"
 regex = "app.validators.regex:RegexValidator"
 multi_part = "app.validators.multi_part:MultiPartValidator"
@@ -826,7 +826,7 @@ enumerates the entry points.
 
 **Tests**:
 
-Spec package — `packages/bluerange-spec/tests/test_validator_contract.py`
+Spec package — `packages/castra-spec/tests/test_validator_contract.py`
 (6): subclass satisfies contract, abstract class can't be
 instantiated, `ValidationContext` is frozen, `ValidationResult`
 defaults, validate returns Result, `ValidatorConfigError` propagates.
@@ -879,7 +879,7 @@ installed; no `requires_subprocess=True` validators ship in v1).
 **Verification** (Phase 8 gate):
 - ✅ `pytest backend/tests/` — 132 passed (82 Phase-7 baseline + 50
   new across 5 new test files).
-- ✅ `pytest packages/bluerange-spec/tests/` — 20 passed (14
+- ✅ `pytest packages/castra-spec/tests/` — 20 passed (14
   Phase-7 baseline + 6 new contract tests).
 - ✅ `--cov-fail-under=60` — actual 84.45% project-wide.
 - ✅ OpenAPI: 41 paths / 18 schemas (unchanged from Phase 7 — Phase
@@ -964,7 +964,7 @@ maps it (and `UnknownProfile` from the profile registry) to **409
 Conflict**, and `EgressProxyUnavailable` to **503 Service Unavailable**.
 
 **Manifest spec change** —
-`packages/bluerange-spec/src/bluerange_spec/container.py`:
+`packages/castra-spec/src/castra_spec/container.py`:
 
 * New optional field `egress_allowlist: list[str]` (FQDN entries).
 * `model_validator` rejects `egress_allowlist` set when
@@ -1101,7 +1101,7 @@ end-to-end checklist below cover the rest.
 
 - ✅ `pytest backend/tests/` — 170 passed (132 Phase-8 baseline +
   29 unit + 8 integration + 1 audit-collapse fixture-driven).
-- ✅ `pytest packages/bluerange-spec/tests/` — 26 passed (20
+- ✅ `pytest packages/castra-spec/tests/` — 26 passed (20
   Phase-8 baseline + 6 new egress_allowlist tests).
 - ✅ `--cov-fail-under=60` — actual 82.81% project-wide.
 - ✅ OpenAPI: 41 paths / 18 schemas (unchanged from Phases 4–8 —
@@ -1211,7 +1211,7 @@ the FS.
 | `sigma_rule.py` | `SigmaRuleValidator` | yes | yes | ~300 |
 | `yara_rule.py` | `YaraRuleValidator` | yes | yes | ~195 |
 
-Each registered under `bluerange.validators` in
+Each registered under `castra.validators` in
 `backend/pyproject.toml` alongside the v1 trio. The Sigma evaluator
 walks `pysigma`'s parsed condition tree (ConditionAND / OR / NOT /
 ConditionFieldEqualsValueExpression) and matches SigmaString /
@@ -1219,7 +1219,7 @@ SigmaNumber / SigmaRegularExpression values against fixture event
 records. YARA rules compile via `yara-python`'s linked `libyara` and
 scan files under `samples_dir`.
 
-**Spec extension — `bluerange-spec.flag`**:
+**Spec extension — `castra-spec.flag`**:
 
 * `Flag` discriminated union extended with five new pydantic models
   (`SigmaRuleFlag`, `YaraRuleFlag`, `ChainOfCustodyFlag`,
@@ -1237,7 +1237,7 @@ extended with five new isinstance branches mapping each flag class
 into a `ChallengeFlag` row. The `flag_type` discriminator stays a
 plain string in the DB; config is JSON.
 
-**Validator contract — `bluerange-spec.validators`**: `Validator`
+**Validator contract — `castra-spec.validators`**: `Validator`
 gains a `requires_artifacts: ClassVar[bool] = False` attribute.
 Backward-compatible default; existing v1 validators don't need to
 opt in.
@@ -1316,7 +1316,7 @@ fully covered.
 - ✅ `pytest backend/tests/` — 225 passed (170 Phase-9 baseline + 33
   new unit + 5 new integration; 2 Phase 8 placeholder tests
   rewritten in place).
-- ✅ `pytest packages/bluerange-spec/tests/` — 38 passed (26 Phase-9
+- ✅ `pytest packages/castra-spec/tests/` — 38 passed (26 Phase-9
   baseline + 12 new flag-validation tests).
 - ✅ `--cov-fail-under=60` — actual 80.78% project-wide.
 - ✅ OpenAPI: 41 paths / 18 schemas (unchanged from Phase 9 — Phase
@@ -1450,7 +1450,7 @@ public catalogue API against.
   `backend/app/validators/`, `backend/app/services/test_harness/`,
   `backend/app/services/challenge_loader/flag_mapping.py`,
   `backend/app/tools/test_harness.py`, `backend/requirements.txt`,
-  `backend/pyproject.toml`, `packages/bluerange-spec/**`,
+  `backend/pyproject.toml`, `packages/castra-spec/**`,
   `examples/challenges/**`, or the workflow itself.
 * Installs runtime + spec packages only (no testcontainers, no
   pytest deps) — shaves ~80% off the install time vs. the full
@@ -1500,7 +1500,7 @@ exercises it because all callers point at directories.
 
 - ✅ `pytest backend/tests/` — 240 passed (225 Phase-10 baseline +
   15 new harness unit tests).
-- ✅ `pytest packages/bluerange-spec/tests/` — 38 passed (no Phase 11
+- ✅ `pytest packages/castra-spec/tests/` — 38 passed (no Phase 11
   changes to the spec).
 - ✅ `--cov-fail-under=60` — actual 81.86% project-wide.
 - ✅ `python -m app.tools.test_harness examples/challenges` exits 0
@@ -1640,7 +1640,7 @@ each.
 
 - ✅ `pytest backend/tests/` — 257 passed (240 Phase-11 baseline +
   17 new v1 integration tests).
-- ✅ `pytest packages/bluerange-spec/tests/` — 38 passed (no spec
+- ✅ `pytest packages/castra-spec/tests/` — 38 passed (no spec
   changes in this slice).
 - ✅ `--cov-fail-under=60` — actual 83.99% project-wide.
 - ✅ OpenAPI: 46 paths / 29 schemas (was 41 / 18 — 5 v1 paths + 11
@@ -1787,7 +1787,7 @@ Pytest cov scope unchanged from slice 1 (`app.routers.v1` and
 
 - ✅ `pytest backend/tests/` — 271 passed (257 slice-1 baseline +
   14 new write-endpoint integration tests).
-- ✅ `pytest packages/bluerange-spec/tests/` — 38 passed (no spec
+- ✅ `pytest packages/castra-spec/tests/` — 38 passed (no spec
   changes).
 - ✅ `--cov-fail-under=60` — actual 84.42% project-wide.
 - ✅ OpenAPI: 48 paths / 32 schemas. Both new POST endpoints have
@@ -1925,7 +1925,7 @@ Backend integration — `test_api_v1_progress.py` (10):
 - ✅ `pytest backend/tests/` — 281 passed (271 slice-2 baseline +
   10 new progress tests; existing 271 unaffected by the
   `_persist_pass` extension).
-- ✅ `pytest packages/bluerange-spec/tests/` — 38 passed.
+- ✅ `pytest packages/castra-spec/tests/` — 38 passed.
 - ✅ `make test-challenges` — 9/9 example test cases passing.
 - ✅ `--cov-fail-under=60` — actual 84.67% project-wide.
 - ✅ OpenAPI: 49 paths / 34 schemas (was 48 / 32 — 1 new GET
@@ -2081,7 +2081,7 @@ updated to include the new `points_awarded` key.
 
 - ✅ `pytest backend/tests/` — 291 passed (281 slice-3 baseline +
   10 new multi-flag tests).
-- ✅ `pytest packages/bluerange-spec/tests/` — 38 passed (no spec
+- ✅ `pytest packages/castra-spec/tests/` — 38 passed (no spec
   changes).
 - ✅ `make test-challenges` — 9/9 example test cases passing.
 - ✅ `--cov-fail-under=60` — actual 84.80% project-wide.
@@ -2262,7 +2262,7 @@ Backend integration — `test_api_v1_webhooks.py` (13):
 
 - ✅ `pytest backend/tests/` — 318 passed (291 slice-4 baseline +
   14 unit + 13 integration).
-- ✅ `pytest packages/bluerange-spec/tests/` — 38 passed.
+- ✅ `pytest packages/castra-spec/tests/` — 38 passed.
 - ✅ `make test-challenges` — 9/9 example test cases passing.
 - ✅ `--cov-fail-under=60` — actual 85.45% project-wide.
 - ✅ OpenAPI: 51 paths / 38 schemas (was 49 / 34 — 4 new admin
@@ -2400,7 +2400,7 @@ and `app.routers.v1` already in scope).
 
 - ✅ `pytest backend/tests/` — 331 passed (318 slice-5 baseline +
   13 new).
-- ✅ `pytest packages/bluerange-spec/tests/` — 38 passed.
+- ✅ `pytest packages/castra-spec/tests/` — 38 passed.
 - ✅ `make test-challenges` — 9/9 example test cases passing.
 - ✅ `--cov-fail-under=60` — actual 85.70% project-wide.
 - ✅ OpenAPI: 53 paths / 41 schemas (was 51 / 38 — 2 new admin
@@ -2509,7 +2509,7 @@ Pytest cov scope unchanged from slice 6.
 
 - ✅ `pytest backend/tests/` — 360 passed (331 slice-6 baseline +
   29 new).
-- ✅ `pytest packages/bluerange-spec/tests/` — 38 passed.
+- ✅ `pytest packages/castra-spec/tests/` — 38 passed.
 - ✅ `make test-challenges` — 9/9 example test cases passing.
 - ✅ `--cov-fail-under=60` — actual 85.73% project-wide.
 - ✅ OpenAPI: 53 paths / 41 schemas (slice 7 added no public
@@ -2605,7 +2605,7 @@ grep before the change).
 - ✅ `pytest backend/tests/` — 360 passed (same baseline as slice
   7; the migration applies cleanly + admin reads via ledger
   return the right shape).
-- ✅ `pytest packages/bluerange-spec/tests/` — 38 passed.
+- ✅ `pytest packages/castra-spec/tests/` — 38 passed.
 - ✅ `make test-challenges` — 9/9 example test cases passing.
 - ✅ `--cov-fail-under=60` — actual 85.72% project-wide.
 - ✅ OpenAPI: 53 paths / 41 schemas (unchanged — no public surface
@@ -2716,7 +2716,7 @@ Backend integration — `test_challenge_release_audit.py` (3):
 
 - ✅ `pytest backend/tests/` — 363 passed (360 slice-8 baseline +
   3 new release-audit tests).
-- ✅ `pytest packages/bluerange-spec/tests/` — 38 passed.
+- ✅ `pytest packages/castra-spec/tests/` — 38 passed.
 - ✅ `make test-challenges` — 9/9 example test cases passing.
 - ✅ `--cov-fail-under=60` — actual 86.07% project-wide.
 - ✅ OpenAPI: 53 paths / 41 schemas (slice 9 added no public
@@ -2833,7 +2833,7 @@ is gone.
 - ✅ `pytest backend/tests/` — 351 passed (363 slice-9 baseline
   − 12 deleted `test_crypto.py` cases, no regressions in the
   remaining 351).
-- ✅ `pytest packages/bluerange-spec/tests/` — 38 passed.
+- ✅ `pytest packages/castra-spec/tests/` — 38 passed.
 - ✅ `make test-challenges` — 9/9 example test cases passing.
 - ✅ `--cov-fail-under=60` — actual 86.05% project-wide.
 - ✅ OpenAPI: 53 paths / 41 schemas (unchanged — no public
@@ -2937,7 +2937,7 @@ Test-fixture changes:
 
 - ✅ `pytest backend/tests/` — 354 passed (351 slice-10 baseline +
   3 new).
-- ✅ `pytest packages/bluerange-spec/tests/` — 38 passed.
+- ✅ `pytest packages/castra-spec/tests/` — 38 passed.
 - ✅ `make test-challenges` — 9/9 example test cases passing.
 - ✅ `--cov-fail-under=60` — actual 85.95% project-wide.
 - ✅ OpenAPI: 53 paths / 41 schemas (no public surface change).
@@ -3004,7 +3004,7 @@ silently drift toward the old 60% floor.
 
 - ✅ `pytest backend/tests/` — 354 passed; coverage gate
   satisfied at 80% (actual 85.95%).
-- ✅ `pytest packages/bluerange-spec/tests/` — 38 passed.
+- ✅ `pytest packages/castra-spec/tests/` — 38 passed.
 - ✅ `make test-challenges` — 9/9 example test cases passing.
 - ✅ OpenAPI: 53 paths / 41 schemas (no surface change).
 
@@ -3158,7 +3158,7 @@ Backend integration — ``test_egress_renderer.py`` (15):
 
 - ✅ ``pytest backend/tests/`` — 369 passed (354 slice-12
   baseline + 15 new).
-- ✅ ``pytest packages/bluerange-spec/tests/`` — 38 passed.
+- ✅ ``pytest packages/castra-spec/tests/`` — 38 passed.
 - ✅ ``make test-challenges`` — 9/9 example test cases passing.
 - ✅ ``--cov-fail-under=80`` — actual 86.30% project-wide.
 
@@ -3189,7 +3189,7 @@ an egg-info refresh in the test-install target.
 
 **`make regen-schema`** — wraps the inline json-dump command
 documented in ``docs/challenge-spec-v1.md`` for regenerating
-``packages/bluerange-spec/.../manifest.schema.json`` after a
+``packages/castra-spec/.../manifest.schema.json`` after a
 spec model change. Re-runs cleanly; the parity test in the spec
 package keeps passing.
 
@@ -3311,7 +3311,7 @@ Backend integration — ``test_egress_renderer.py`` extension (6):
 
 - ✅ ``pytest backend/tests/`` — 375 passed (369 slice-16 baseline +
   6 new).
-- ✅ ``pytest packages/bluerange-spec/tests/`` — 38 passed.
+- ✅ ``pytest packages/castra-spec/tests/`` — 38 passed.
 - ✅ ``make test-challenges`` — 9/9 example test cases passing.
 - ✅ ``--cov-fail-under=80`` — actual 86.31% project-wide.
 
@@ -3618,7 +3618,7 @@ swap with regression coverage in place.
 
 - ✅ ``pytest backend/tests/`` — 375 passed (zero new tests; the
   shape-lock asserts caught the DTO change exactly as designed).
-- ✅ ``pytest packages/bluerange-spec/tests/`` — 38 passed.
+- ✅ ``pytest packages/castra-spec/tests/`` — 38 passed.
 - ✅ ``make test-challenges`` — 9/9.
 - ✅ ``--cov-fail-under=80`` — actual 86.32%.
 - ✅ ``npm run build`` — frontend builds clean.
@@ -3668,7 +3668,7 @@ production blockers from that review closed.
 **1. Backend test CI workflow** —
 ``.github/workflows/backend-tests.yml``. Three jobs (pytest, spec
 package tests, harness smoke) gate every PR touching ``backend/``
-or ``packages/bluerange-spec/``. Mirrors the local ``make test``
+or ``packages/castra-spec/``. Mirrors the local ``make test``
 flow but uses the runner's system Python instead of
 ``.venv-test/`` so we don't need ``python -m venv`` on the agent.
 
@@ -3761,7 +3761,7 @@ reload misfire).
 - ✅ ``pytest backend/tests/`` — 375 passed @ 86.32% (no
   regressions; the alembic-on-boot change is fully gated by an
   env var that tests don't set).
-- ✅ ``pytest packages/bluerange-spec/tests/`` — 38 passed.
+- ✅ ``pytest packages/castra-spec/tests/`` — 38 passed.
 - ✅ ``make test-challenges`` — 9/9.
 - ⏭ Production smoke (``make prod`` against a real host with
   certs) — not exercised here; the Sprint-2 frontend work runs
@@ -3962,7 +3962,7 @@ through.
 **Verification (Sprint 3 gate)**
 
 - ✅ ``pytest backend/tests/`` — 490 passed @ 85.82%.
-- ✅ ``pytest packages/bluerange-spec/tests/`` — unchanged from
+- ✅ ``pytest packages/castra-spec/tests/`` — unchanged from
   Sprint 1 (38 passing); package not touched.
 - ✅ ``npx playwright test --list`` — 13 tests in 6 files (was 9 in
   4 files).
@@ -4277,7 +4277,7 @@ ADR 0001 status flips Proposed → Accepted.
 
 - ✅ ``pytest backend/tests/`` — 583 passed @ 86.89% (was 564 /
   86.64%).
-- ✅ ``pytest packages/bluerange-spec/tests/`` — 38/38.
+- ✅ ``pytest packages/castra-spec/tests/`` — 38/38.
 - ✅ ``npm run build`` — clean.
 
 ## Sprint 10 — operational hardening (2026-05-05)

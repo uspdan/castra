@@ -27,7 +27,7 @@ services:
 
   api:
     # Build context is the repo root so the Dockerfile can pull in the
-    # path-dependent `packages/bluerange-spec/` package alongside the
+    # path-dependent `packages/castra-spec/` package alongside the
     # backend source tree.
     build:
       context: .

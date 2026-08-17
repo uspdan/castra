@@ -88,6 +88,19 @@ jobs:
           # ones only one tier exercises.
           python -m pytest tests/ -v
 
+      # The in-repo SDK ships its own suite (manifest validation, flag
+      # types, the validator contract, and a parity check between the
+      # Pydantic model and the frozen JSON Schema). None of it ran in
+      # CI, because the step above is scoped to backend/tests. The
+      # schema-parity test had been failing since the pydantic 2.6→2.13
+      # bump — newer pydantic stopped emitting "type" alongside "const"
+      # — and nothing noticed for weeks.
+      - name: run the castra-spec package suite
+        working-directory: backend
+        env:
+          APP_ENV: test
+        run: python -m pytest ../packages/castra-spec/tests -v --no-cov
+
   frontend-build:
     name: frontend — vite build + lint
     runs-on: ubuntu-22.04
@@ -177,7 +190,7 @@ jobs:
 
       - name: audit backend requirements
         # R13 / R14: fail on HIGH or CRITICAL findings. The
-        # editable ``../packages/bluerange-spec`` line in
+        # editable ``../packages/castra-spec`` line in
         # requirements-test.txt resolves relative to backend/, so
         # cd in first.
         #

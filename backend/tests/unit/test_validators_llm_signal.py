@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from bluerange_spec import ValidationContext, ValidatorConfigError
+from castra_spec import ValidationContext, ValidatorConfigError
 from app.validators.llm_signal import LlmSignalValidator
 
 

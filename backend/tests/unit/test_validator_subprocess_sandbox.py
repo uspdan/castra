@@ -14,7 +14,7 @@ from __future__ import annotations
 import pytest
 
 from app.services.validator_sandbox import run_validator_subprocess
-from bluerange_spec import (
+from castra_spec import (
     ValidationContext,
     ValidationResult,
     Validator,

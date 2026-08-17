@@ -18,7 +18,7 @@ from app.services.validator_registry import (
     build_default_registry,
     discover_entry_points,
 )
-from bluerange_spec import (
+from castra_spec import (
     ValidationResult,
     Validator,
 )

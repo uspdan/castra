@@ -33,7 +33,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncIterator, Mapping, Optional
 
-from bluerange_spec import (
+from castra_spec import (
     ValidationContext,
     ValidationResult,
     Validator,
@@ -298,7 +298,7 @@ async def readonly_artifact_dir(source: Path) -> AsyncIterator[Path]:
     flags don't read artefacts.
     """
 
-    tmp_root = Path(tempfile.mkdtemp(prefix="bluerange-artefact-"))
+    tmp_root = Path(tempfile.mkdtemp(prefix="castra-artefact-"))
     try:
         await asyncio.to_thread(_copy_readonly, source, tmp_root)
         yield tmp_root
