@@ -6,6 +6,7 @@ import ChallengeCard from '../components/ChallengeCard'
 import FlagSubmission from '../components/FlagSubmission'
 import InstancePanel from '../components/InstancePanel'
 import ChallengeProgress from '../components/ChallengeProgress'
+import ArtifactList from '../components/ArtifactList'
 import { toast } from '../stores/toastStore'
 import { v1 } from '../api/client'
 import { reportIgnored } from '../lib/report'
@@ -212,7 +213,10 @@ export default function Challenges() {
             </div>
           )}
 
-          {!instance ? (
+          {selectedChallenge.has_container === false ? (
+            /* Artifact-only (ADR 005): nothing to launch. */
+            <ArtifactList slug={selectedChallenge.slug} artifacts={selectedChallenge.artifacts} />
+          ) : !instance ? (
             <button onClick={handleLaunch} disabled={launching}
               className="w-full py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
               style={{ background: 'var(--accent-cyan)', color: 'var(--bg-primary)' }}>

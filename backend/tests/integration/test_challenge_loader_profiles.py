@@ -39,6 +39,7 @@ async def test_default_strict_profile_loads_clean(staged_examples: Path) -> None
         "dfir-001-memory-string",
         "soc-002-pwsh-detection",
         "llm-customer-pii",
+        "hunt-001-artifact-only",
     }
     assert statuses == {slug: LoadStatus.LOADED for slug in expected}
 

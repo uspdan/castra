@@ -51,7 +51,13 @@ class ChallengeManifest(BaseModel):
     license: str = Field(min_length=1, max_length=100)
     author: Author
 
-    container: Container
+    # Optional since spec v1.1 (ADR 005). A challenge without a
+    # container is "artifact-only": the platform serves its declared
+    # artifacts for download and skips the orchestrator entirely.
+    # Roughly a third of real challenges (threat hunting, forensics,
+    # log analysis) need no runtime — they were paying for a container
+    # that only existed to hand over static files.
+    container: Optional[Container] = None
 
     flags: List[Flag] = Field(min_length=1, max_length=20)
     hints: List[Hint] = Field(default_factory=list, max_length=20)
@@ -90,6 +96,18 @@ class ChallengeManifest(BaseModel):
             if not _SLUG_RE.match(s):
                 raise ValueError(f"prerequisite is not a valid slug: {s!r}")
         return v
+
+    @model_validator(mode="after")
+    def _artifact_only_needs_artifacts(self) -> "ChallengeManifest":
+        # A manifest with neither a container nor artifacts has no
+        # content a player can interact with. Reject at parse time so
+        # the mistake surfaces in `castra validate`, not at launch.
+        if self.container is None and not self.artifacts:
+            raise ValueError(
+                "artifact-only challenge (no container) must declare "
+                "at least one artifact"
+            )
+        return self
 
     @model_validator(mode="after")
     def _check_flag_ids(self) -> "ChallengeManifest":

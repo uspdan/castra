@@ -43,6 +43,7 @@ _EXPECTED_EXAMPLE_SLUGS = {
     "dfir-001-memory-string",
     "soc-002-pwsh-detection",
     "llm-customer-pii",
+    "hunt-001-artifact-only",
 }
 
 
