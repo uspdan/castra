@@ -66,6 +66,18 @@ async def launch(
     if not challenge:
         raise HTTPException(status_code=404, detail="Challenge not found.")
 
+    if challenge.docker_image is None:
+        # Artifact-only (ADR 005): there is nothing to launch. 409
+        # rather than 400 — the request is well-formed, it just
+        # conflicts with what this challenge is.
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "This challenge has no container; download its "
+                "artifacts from the challenge page instead."
+            ),
+        )
+
     try:
         instance_data = await launch_instance(
             current_user.id, challenge, db, redis_client

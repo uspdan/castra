@@ -1,0 +1,6 @@
+Apr 20 22:58:01 web01 sshd[4211]: Accepted password for deploy from 10.20.1.5 port 51244 ssh2
+Apr 20 23:41:09 web01 sshd[4590]: Failed password for root from 198.51.100.23 port 40022 ssh2
+Apr 20 23:41:11 web01 sshd[4590]: Failed password for root from 198.51.100.23 port 40022 ssh2
+Apr 20 23:41:14 web01 sshd[4593]: Accepted password for backup-svc from 198.51.100.23 port 40031 ssh2
+Apr 20 23:42:02 web01 sudo[4601]: backup-svc : TTY=pts/1 ; PWD=/home/backup-svc ; COMMAND=/usr/bin/tar czf /tmp/.cache.tgz /etc/shadow
+Apr 20 23:44:37 web01 sshd[4593]: Disconnected from 198.51.100.23 port 40031

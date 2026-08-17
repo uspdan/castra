@@ -46,8 +46,11 @@ class Challenge(Base):
     hints = Column(JSON, default=list)
     skills = Column(JSON, default=list)
     mitre_techniques = Column(JSON, default=list)
-    docker_image = Column(String(300), nullable=False)
-    docker_port = Column(Integer, nullable=False)
+    # NULL = artifact-only challenge (spec v1.1, ADR 005): no
+    # container, no orchestrator involvement — players download the
+    # declared artifacts instead of launching an instance.
+    docker_image = Column(String(300), nullable=True)
+    docker_port = Column(Integer, nullable=True)
     docker_config = Column(JSON, default=dict)
     prerequisite_ids = Column(JSON, default=list)
     is_active = Column(Boolean, default=True, nullable=False)

@@ -937,7 +937,15 @@
       "type": "string"
     },
     "container": {
-      "$ref": "#/$defs/Container"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Container"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "description": {
       "maxLength": 10000,
@@ -1073,7 +1081,6 @@
     "points",
     "license",
     "author",
-    "container",
     "flags"
   ],
   "title": "CastraChallengeManifest",

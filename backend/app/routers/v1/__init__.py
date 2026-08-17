@@ -23,6 +23,7 @@ from fastapi import APIRouter
 
 from . import (
     admin,
+    artifacts,
     attack_coverage,
     auth,
     challenges,
@@ -40,6 +41,7 @@ router = APIRouter(prefix="/api/v1", tags=["v1"])
 router.include_router(auth.router)
 router.include_router(admin.router)
 router.include_router(challenges.router)
+router.include_router(artifacts.router)
 router.include_router(scoreboard.router)
 router.include_router(leaderboard.router)
 router.include_router(attack_coverage.router)

@@ -142,6 +142,14 @@ class Settings(BaseSettings):
     # docs/adr/004-validator-network-isolation.md.
     VALIDATOR_REQUIRE_NETWORK_ISOLATION: bool = True
 
+    # ADR 005 — root of the challenges tree, mounted read-only into
+    # the api container so artifact-only challenges can be served for
+    # download. Serving is allowlist-only: a path must exist in
+    # challenge_artifacts (populated from the sha-verified manifest at
+    # load time) before it is reachable, so the flag/answer sidecars
+    # that live in the same tree are never servable.
+    CHALLENGES_DIR: str = "/challenges"
+
     # Seconds the rendered v1 scoreboard is served from Redis. 0
     # disables the cache (read-your-writes), which the dev/E2E stack
     # uses so a user who registers mid-test appears on the board
