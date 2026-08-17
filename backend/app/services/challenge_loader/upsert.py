@@ -89,13 +89,22 @@ def _apply_manifest_to_challenge(challenge: Challenge, loaded: LoadedManifest) -
     challenge.points = manifest.points
     challenge.skills = list(manifest.skills)
     challenge.mitre_techniques = list(manifest.mitre_techniques)
-    challenge.docker_image = manifest.container.image
-    challenge.docker_port = manifest.container.port
-    challenge.docker_config = {
-        "digest": manifest.container.digest,
-        "profile": manifest.container.profile,
-        "egress_allowlist": list(manifest.container.egress_allowlist or []) or None,
-    }
+    if manifest.container is not None:
+        challenge.docker_image = manifest.container.image
+        challenge.docker_port = manifest.container.port
+        challenge.docker_config = {
+            "digest": manifest.container.digest,
+            "profile": manifest.container.profile,
+            "egress_allowlist": list(manifest.container.egress_allowlist or []) or None,
+        }
+    else:
+        # Artifact-only (spec v1.1, ADR 005). Explicit None rather than
+        # skip-if-absent: a re-load of a manifest that *dropped* its
+        # container must clear the stale image reference, or the
+        # challenge would keep launching the old container.
+        challenge.docker_image = None
+        challenge.docker_port = None
+        challenge.docker_config = None
     challenge.hints = [h.model_dump() for h in manifest.hints]
     # Maintain backward compatibility: copy first exact flag's hash to
     # the legacy column so the existing submission path keeps working

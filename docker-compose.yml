@@ -76,6 +76,10 @@ services:
       # ``docker compose up`` — i.e. every deploy silently discards the
       # entire backup history, which is exactly when you most want it.
       - backup_data:/var/lib/siege-range/backups
+      # ADR 005 — artifact-only challenges are served from this tree.
+      # Read-only, and the download route is DB-allowlist-gated, so the
+      # flag/answer sidecars living alongside are never reachable.
+      - ./challenges:/challenges:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 15s

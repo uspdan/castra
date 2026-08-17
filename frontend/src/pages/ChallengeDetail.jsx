@@ -5,6 +5,7 @@ import useChallengeStore from '../stores/challengeStore'
 import useInstanceStore from '../stores/instanceStore'
 import FlagSubmission from '../components/FlagSubmission'
 import InstancePanel from '../components/InstancePanel'
+import ArtifactList from '../components/ArtifactList'
 import ChallengeProgress from '../components/ChallengeProgress'
 import { toast } from '../stores/toastStore'
 
@@ -75,7 +76,9 @@ export default function ChallengeDetail() {
           </div>
         )}
 
-        {!instance ? (
+        {c.has_container === false ? (
+          <ArtifactList slug={c.slug} artifacts={c.artifacts} />
+        ) : !instance ? (
           <button onClick={handleLaunch} disabled={launching}
             className="px-6 py-2.5 rounded-lg font-bold text-sm flex items-center gap-2 disabled:opacity-50"
             style={{ background: 'var(--accent-cyan)', color: 'var(--bg-primary)' }}>

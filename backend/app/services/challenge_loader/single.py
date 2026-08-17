@@ -74,6 +74,9 @@ def load_directory(directory: Path | str) -> LoadedManifest:
 
 
 def _validate_profile_known(manifest: ChallengeManifest) -> None:
+    # Artifact-only (ADR 005): no container means no profile to check.
+    if manifest.container is None:
+        return
     name = manifest.container.profile
     if name not in orchestration_profiles.PROFILES:
         raise UnknownProfile(
@@ -102,7 +105,7 @@ def _verify_artifacts(directory: Path, manifest: ChallengeManifest) -> None:
 
 def _collect_warnings(manifest: ChallengeManifest) -> List[str]:
     warnings: List[str] = []
-    if not manifest.container.digest:
+    if manifest.container is not None and not manifest.container.digest:
         warnings.append(
             "container.digest is not set; this challenge will not be "
             "launchable until the digest is added (Phase 9 refuses to "
