@@ -21,7 +21,7 @@ import struct
 
 import pytest
 
-from app.security.syscall_filter import (
+from castra_spec.syscall_filter import (
     SyscallFilterError,
     build_program,
     is_supported,
@@ -172,8 +172,12 @@ class TestFailClosedWiring:
     """The runner must refuse to proceed when the filter won't install."""
 
     def _isolate(self, monkeypatch, required, raises):
-        from app.services import validator_subprocess_runner as runner
-        from app.security import syscall_filter
+        # Target the SDK modules directly: the app.* paths are now
+        # re-export shims, and monkeypatching a shim's copy of
+        # ``install`` would not affect the module the runner actually
+        # calls into.
+        from castra_spec import subprocess_runner as runner
+        from castra_spec import syscall_filter
 
         def fake_install():
             if raises:
@@ -199,20 +203,43 @@ class TestFailClosedWiring:
 
 
 class TestParentDefaults:
-    def test_isolation_is_on_by_default(self):
-        from app.services.validator_sandbox import _require_network_isolation
+    """The SDK resolves the policy via hook → env var → True.
 
-        assert _require_network_isolation() is True
+    The platform wires its Settings in through
+    ``require_network_isolation_hook`` (see the validator_sandbox
+    shim); standalone SDK users get the env-var default. These tests
+    pin the resolution order and the fail-closed property.
+    """
 
-    def test_isolation_fails_closed_when_config_unavailable(
-        self, monkeypatch
-    ):
-        # A broken/missing config must not be a route to an open sandbox.
-        import app.config as config_module
-        from app.services.validator_sandbox import _require_network_isolation
+    def test_isolation_is_on_by_default(self, monkeypatch):
+        from castra_spec import sandbox
+
+        monkeypatch.setattr(sandbox, "require_network_isolation_hook", None)
+        monkeypatch.delenv("CASTRA_SANDBOX_REQUIRE_ISOLATION", raising=False)
+        assert sandbox._require_network_isolation() is True
+
+    def test_hook_wins_over_default(self, monkeypatch):
+        from castra_spec import sandbox
+
+        monkeypatch.setattr(
+            sandbox, "require_network_isolation_hook", lambda: False
+        )
+        assert sandbox._require_network_isolation() is False
+
+    def test_platform_shim_installs_the_hook(self):
+        # Importing the platform shim must wire Settings into the SDK —
+        # that is the whole contract of the shim.
+        import app.services.validator_sandbox  # noqa: F401
+        from castra_spec import sandbox
+
+        assert sandbox.require_network_isolation_hook is not None
+
+    def test_isolation_fails_closed_when_hook_breaks(self, monkeypatch):
+        # A broken hook must not be a route to an open sandbox.
+        from castra_spec import sandbox
 
         def boom():
-            raise RuntimeError("config exploded")
+            raise RuntimeError("hook exploded")
 
-        monkeypatch.setattr(config_module, "get_settings", boom)
-        assert _require_network_isolation() is True
+        monkeypatch.setattr(sandbox, "require_network_isolation_hook", boom)
+        assert sandbox._require_network_isolation() is True

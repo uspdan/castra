@@ -22,7 +22,7 @@ equivalence with the API is automatic — anything that lands in
 on both code paths.
 """
 
-from .runner import (
+from castra_spec.harness import (
     CaseOutcome,
     CaseStatus,
     HarnessOutcome,
