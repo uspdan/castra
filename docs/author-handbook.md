@@ -1,9 +1,41 @@
 # Challenge author handbook
 
-How to write a challenge that ships on siege-range. Pairs with
-the v1 manifest schema in
+How to write a challenge that ships on Castra. Pairs with the v1
+manifest schema in
 `packages/castra-spec/src/castra_spec/schemas/manifest.schema.json`
 and the worked examples in `examples/challenges/`.
+
+## The fast path: the Castra SDK
+
+You do not need this repository, Docker, or a running platform to
+author challenges. The SDK is a standalone Python package:
+
+```bash
+pip install castra-spec        # from PyPI once published; until then:
+pip install "castra-spec @ git+https://github.com/uspdan/seige-range#subdirectory=packages/castra-spec"
+
+castra new my-challenge        # scaffold a working artifact-only skeleton
+# edit my-challenge/manifest.yaml, replace the sample artifact
+castra validate my-challenge   # parse + verify the manifest
+castra test my-challenge       # run the manifest's tests.cases
+```
+
+`castra test` runs the **same harness the platform runs** — same
+validators, same sandbox code — so a challenge that passes locally
+loads cleanly on any Castra deployment. Exit codes are stable
+(0 pass, 1 fail, 2 usage) for CI use.
+
+The SDK ships the baseline validators (`exact`, `regex`,
+`multi_part`). The blue-team validators (`sigma_rule`, `yara_rule`,
+`chain_of_custody`, `attack_chain`, `cloud_misconfig`, `llm_signal`)
+carry heavy dependencies and are platform-side — challenges using
+them validate locally but need a platform (or the backend package)
+to run their tests. Regex note: the platform enforces google-re2
+(ReDoS defence); the CLI falls back to stdlib `re` with a warning
+when re2 isn't installed — `pip install "castra-spec[re2]"` for
+parity.
+
+Everything below applies whether you author via the SDK or in-repo.
 
 ## What a challenge is
 

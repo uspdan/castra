@@ -40,16 +40,16 @@ from castra_spec import (
     load_manifest,
 )
 
-from app.services.challenge_loader.flag_mapping import (
+from .flag_mapping import (
     FlagDispatchArgs,
     flag_to_dispatch,
 )
-from app.services.validator_registry import (
+from .registry import (
     UnknownValidator,
     ValidatorRegistry,
     get_registry,
 )
-from app.services.validator_sandbox import readonly_artifact_dir, run_validator
+from .sandbox import readonly_artifact_dir, run_validator
 
 
 class CaseStatus(str, Enum):
