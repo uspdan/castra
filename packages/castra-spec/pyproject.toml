@@ -27,7 +27,7 @@ multi_part = "castra_spec.builtin.multi_part:MultiPartValidator"
 
 [project.urls]
 Homepage = "https://castra.sh"
-Repository = "https://github.com/uspdan/seige-range"
+Repository = "https://github.com/uspdan/castra"
 
 [project.optional-dependencies]
 # ReDoS-hardened regex engine, as used by the platform. Optional for

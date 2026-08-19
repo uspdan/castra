@@ -7,7 +7,7 @@ The names, and which you'll see where:
 | Name | What it is |
 |---|---|
 | **Castra** | The product: the platform teams deploy, and the authoring SDK (`castra-spec` on PyPI, `castra.validators` plugin group, `castra` CLI — SDK publication in progress). |
-| **seige-range** | This repository, and the internal service/container names. Kept for continuity — renaming would break every existing deploy. |
+| **seige-range** | The legacy internal name. The repository is now `uspdan/castra`; the old name survives in service/container names and the DB on existing deploys, and in the offline runner script. |
 
 If you arrived from castra.sh: you're in the right place.
 
