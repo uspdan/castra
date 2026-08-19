@@ -54,7 +54,7 @@ frozen schema:
 | `points` | integer 1–100 000 | ✓ | Base score for solving the challenge end-to-end. |
 | `license` | string | ✓ | SPDX identifier or named licence (`MIT`, `CC-BY-4.0`, etc). |
 | `author` | object | ✓ | See [Author](#author). |
-| `container` | object | ✓ | See [Container](#container). |
+| `container` | object | – | Optional since v1.1 (ADR 005) — omit for an artifact-only challenge. See [Container](#container). |
 | `flags` | array | ✓ | At least one. See [Flags](#flags). |
 | `hints` | array | – | See [Hints](#hints). |
 | `artifacts` | array | – | See [Artifacts](#artifacts). |
@@ -78,6 +78,13 @@ author:
 reviewers can contact the author. Neither is enforced in v1.
 
 ### Container
+
+**Optional since spec v1.1** (ADR 005). Omitting `container:`
+makes the challenge *artifact-only*: the platform serves the
+declared `artifacts:` for download and never launches a
+container. A manifest with neither `container:` nor at least one
+`artifacts:` entry is rejected — it has no content. Everything in
+this section applies only when the block is present.
 
 ```yaml
 container:
