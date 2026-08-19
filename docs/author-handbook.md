@@ -20,9 +20,37 @@ my-challenge/
 ```
 
 The platform reads the manifest, hashes the artefact files,
-launches the container per the manifest's `container.profile`,
-and grades flag submissions through the validator named by
-`flags[].type`.
+launches the container per the manifest's `container.profile`
+(when one is declared), and grades flag submissions through the
+validator named by `flags[].type`.
+
+## Artifact-only challenges (spec v1.1)
+
+`container:` is optional. A challenge that omits it is
+**artifact-only**: the platform serves the declared `artifacts:`
+for download and never launches anything — no image to build, no
+Docker knowledge needed, instant availability for players. This
+is the right shape for threat hunting, log analysis, forensics
+and crypto challenges whose entire content is files.
+
+Rules:
+
+- An artifact-only manifest must declare **at least one**
+  `artifacts:` entry — a challenge with neither a container nor
+  artifacts has no content, and validation rejects it.
+- Every artifact needs its real `sha256`; the loader verifies the
+  file on disk against it and refuses the challenge on mismatch.
+  Compute it with `sha256sum artifacts/<file>`.
+- Only files listed under `artifacts:` are ever downloadable.
+  Anything else in the challenge directory is unreachable by
+  players — but don't ship solution notes in the tree anyway.
+- Everything else (flags, hints, tests, scoring) works exactly as
+  it does for container challenges.
+
+Worked example: `examples/challenges/hunt-001-artifact-only/` —
+a complete threat-hunt challenge in one log file and 60 lines of
+manifest. Design rationale in
+`docs/adr/005-artifact-only-challenges.md`.
 
 ## The 30-second example
 
