@@ -21,10 +21,12 @@ description = "seige-range FastAPI application (internal package, not published)
 requires-python = ">=3.10"
 license = { text = "MIT" }
 
+# Baseline validators (exact, regex, multi_part) are registered by the
+# castra-spec package itself — the SDK must work standalone, and the
+# registry treats duplicate names as an error, so they must not be
+# re-registered here. This group carries only the platform-side
+# validators with heavy dependencies (pysigma, yara-python, clamav).
 [project.entry-points."castra.validators"]
-exact = "app.validators.exact:ExactValidator"
-regex = "app.validators.regex:RegexValidator"
-multi_part = "app.validators.multi_part:MultiPartValidator"
 # Phase 10 — blue-team validators. Each maps a manifest flag.type
 # string to its implementation class.
 sigma_rule = "app.validators.sigma_rule:SigmaRuleValidator"

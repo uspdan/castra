@@ -17,7 +17,23 @@ dependencies = [
     "PyYAML>=6.0,<7",
 ]
 
+[project.scripts]
+castra = "castra_spec.cli:main"
+
+[project.entry-points."castra.validators"]
+exact = "castra_spec.builtin.exact:ExactValidator"
+regex = "castra_spec.builtin.regex:RegexValidator"
+multi_part = "castra_spec.builtin.multi_part:MultiPartValidator"
+
+[project.urls]
+Homepage = "https://castra.sh"
+Repository = "https://github.com/uspdan/seige-range"
+
 [project.optional-dependencies]
+# ReDoS-hardened regex engine, as used by the platform. Optional for
+# authors: `castra` falls back to stdlib re (with a logged warning) so
+# authoring works on platforms without a google-re2 wheel.
+re2 = ["google-re2>=1.1"]
 testing = [
     "pytest>=8,<9",
 ]
