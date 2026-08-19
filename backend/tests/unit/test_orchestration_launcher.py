@@ -226,7 +226,21 @@ def _make_db():
     count_result.scalar = MagicMock(return_value=0)
     existing_result = MagicMock()
     existing_result.scalar_one_or_none = MagicMock(return_value=None)
-    db.execute.side_effect = [count_result, existing_result]
+    # Third execute() is the per-instance flag query (ADR 005 part 2):
+    # default to "no per-instance flags" so tests that don't care about
+    # minting are unaffected. A side_effect list runs dry after its
+    # entries, so use a function that returns the cap results in order
+    # and an empty flag result thereafter.
+    empty_flags = MagicMock()
+    empty_flags.scalars = MagicMock(
+        return_value=MagicMock(all=MagicMock(return_value=[]))
+    )
+    _results = iter([count_result, existing_result])
+
+    async def _execute(*_a, **_k):
+        return next(_results, empty_flags)
+
+    db.execute.side_effect = _execute
     db.add = MagicMock()
     db.flush = AsyncMock()
 
@@ -608,3 +622,69 @@ async def test_pull_failure_with_no_local_copy_raises_image_unavailable(
 
     with pytest.raises(ImageUnavailable):
         await launcher.launch_instance(1, challenge, _make_db(), _FakeRedis())
+
+
+# ---------------------------------------------------------------------------
+# Per-instance flags (ADR 005 part 2): the launcher mints a value per
+# flagged exact flag, injects the cleartext into the container env, and
+# stores only the hash on the instance row.
+# ---------------------------------------------------------------------------
+@pytest.mark.asyncio
+async def test_launch_mints_per_instance_flags(
+    monkeypatch: pytest.MonkeyPatch, fake_client
+) -> None:
+    from castra_spec.builtin.exact import hash_exact_value
+
+    class _FlagRow:
+        flag_id = "main"
+        per_instance = True
+        flag_type = "exact"
+
+    digest = "sha256:" + "a" * 64
+    challenge = _make_challenge(digest=digest)
+    db = _make_db()
+
+    # Route the ChallengeFlag query through the mocked db: third
+    # execute() call returns our flag row.
+    flag_result = MagicMock()
+    flag_result.scalars = MagicMock(
+        return_value=MagicMock(all=MagicMock(return_value=[_FlagRow()]))
+    )
+    count_result = MagicMock()
+    count_result.scalar = MagicMock(return_value=0)
+    existing_result = MagicMock()
+    existing_result.scalar_one_or_none = MagicMock(return_value=None)
+    db.execute.side_effect = [count_result, existing_result, flag_result]
+
+    await launcher.launch_instance(1, challenge, db, _FakeRedis())
+
+    env = fake_client.captured_run_kwargs.get("environment") or {}
+    assert "CASTRA_FLAG_MAIN" in env, "cleartext must be injected into the container env"
+    minted = env["CASTRA_FLAG_MAIN"]
+    assert minted.startswith("CTF" + "{") and len(minted) > 10
+
+    # The instance row got the hash of exactly that value — and never
+    # the cleartext.
+    added = [a for c in db.add.call_args_list for a in c.args]
+    inst = next(a for a in added if hasattr(a, "flag_hashes"))
+    assert inst.flag_hashes == {"main": hash_exact_value(minted)}
+    assert minted not in str(inst.flag_hashes)
+
+
+@pytest.mark.asyncio
+async def test_launch_without_per_instance_flags_injects_nothing(fake_client) -> None:
+    digest = "sha256:" + "b" * 64
+    challenge = _make_challenge(digest=digest)
+    db = _make_db()
+    flag_result = MagicMock()
+    flag_result.scalars = MagicMock(
+        return_value=MagicMock(all=MagicMock(return_value=[]))
+    )
+    count_result = MagicMock()
+    count_result.scalar = MagicMock(return_value=0)
+    existing_result = MagicMock()
+    existing_result.scalar_one_or_none = MagicMock(return_value=None)
+    db.execute.side_effect = [count_result, existing_result, flag_result]
+
+    await launcher.launch_instance(1, challenge, db, _FakeRedis())
+    assert "environment" not in fake_client.captured_run_kwargs

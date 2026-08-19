@@ -110,6 +110,9 @@ class ChallengeFlag(Base):
     label = Column(String(200), nullable=True)
     value_hash = Column(String(64), nullable=True)
     config = Column(JSON, nullable=False, default=dict)
+    # ADR 005 part 2 — exact flags only. When true, validation uses the
+    # per-launch hash on ChallengeInstance.flag_hashes, never value_hash.
+    per_instance = Column(Boolean, nullable=False, default=False, server_default="false")
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     challenge = relationship("Challenge", back_populates="flag_definitions")
@@ -182,6 +185,10 @@ class ChallengeInstance(Base):
         String(64), nullable=False, server_default="default-strict"
     )
     applied_digest = Column(String(71), nullable=True)
+    # ADR 005 part 2 — {flag_id: sha256(value)} for per-instance exact
+    # flags minted at launch. Cleartext goes into the container
+    # environment only; it is never stored.
+    flag_hashes = Column(JSON, nullable=True)
     seccomp_profile_sha256 = Column(String(64), nullable=True)
     # Phase 12 follow-up: per-instance egress-proxy sidecar
     # (``egress-proxied-sidecar`` profile).
