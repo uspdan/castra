@@ -1,6 +1,16 @@
-# Siege Range
+# Siege Range · Castra
 
-A self-hosted CTF platform for security operations training.
+A self-hosted CTF platform for security operations training —
+being productised as **Castra** ([castra.sh](https://castra.sh)).
+The names, and which you'll see where:
+
+| Name | What it is |
+|---|---|
+| **Castra** | The product: the platform teams deploy, and the authoring SDK (`castra-spec` on PyPI, `castra.validators` plugin group, `castra` CLI — SDK publication in progress). |
+| **seige-range** | This repository, and the internal service/container names. Kept for continuity — renaming would break every existing deploy. |
+
+If you arrived from castra.sh: you're in the right place.
+
 Players compete on red-team and blue-team challenges running in
 isolated, hardened Docker containers; operators get live
 scoreboards, an immutable audit ledger, Prometheus metrics,
