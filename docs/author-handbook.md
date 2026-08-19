@@ -12,7 +12,7 @@ author challenges. The SDK is a standalone Python package:
 
 ```bash
 pip install castra-spec        # from PyPI once published; until then:
-pip install "castra-spec @ git+https://github.com/uspdan/seige-range#subdirectory=packages/castra-spec"
+pip install "castra-spec @ git+https://github.com/uspdan/castra#subdirectory=packages/castra-spec"
 
 castra new my-challenge        # scaffold a working artifact-only skeleton
 # edit my-challenge/manifest.yaml, replace the sample artifact

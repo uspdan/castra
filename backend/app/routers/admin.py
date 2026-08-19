@@ -1,4 +1,5 @@
 import json
+import typing
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
@@ -7,10 +8,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.database import get_db
-from app.models import AuditLedger, Challenge, Solve, Streak, User
+from typing import Optional
+
+from app.models import AuditLedger, Challenge, Competition, Solve, Streak, User
 from app.schemas import UserUpdate
 from app.services.auth import require_admin
 from app.validators.exact import hash_exact_value
@@ -317,7 +320,13 @@ async def operator_report(
     streak_row = streak_result.scalars().first()
 
     template_dir = Path(__file__).parent.parent / "templates"
-    env = Environment(loader=FileSystemLoader(str(template_dir)))
+    # autoescape is not Jinja2's default. Without it, user-settable
+    # fields (display_name is the live example) land in report HTML
+    # unescaped — markup/CSS injection into a PDF an admin generates.
+    env = Environment(
+        loader=FileSystemLoader(str(template_dir)),
+        autoescape=select_autoescape(["html"]),
+    )
 
     try:
         template = env.get_template("reports/operator_report.html")
@@ -349,4 +358,98 @@ async def operator_report(
         buffer,
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/reports/drill")
+async def drill_report(
+    since: Optional[datetime] = Query(None),
+    until: Optional[datetime] = Query(None),
+    competition_id: Optional[int] = Query(None),
+    format: str = Query("json", pattern="^(json|pdf)$"),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Drill evidence pack (ADR-pending; see services/drill_report).
+
+    Either pass ``competition_id`` (window defaults to the
+    competition's own bounds) or an explicit ``since``/``until`` pair.
+    ``format=json`` returns the artefact of record; ``format=pdf``
+    renders the same data for humans. Generation itself is appended to
+    the audit ledger, so producing evidence is evidenced.
+    """
+
+    from app.services.drill_report import build_drill_report
+
+    competition = None
+    if competition_id is not None:
+        competition = (
+            await db.execute(
+                select(Competition).where(Competition.id == competition_id)
+            )
+        ).scalars().first()
+        if competition is None:
+            raise HTTPException(status_code=404, detail="Competition not found.")
+        since = since or typing.cast(datetime, competition.starts_at)
+        until = until or typing.cast(datetime, competition.ends_at)
+    if since is None or until is None:
+        raise HTTPException(
+            status_code=422,
+            detail="Provide competition_id, or both since and until.",
+        )
+    if until <= since:
+        raise HTTPException(status_code=422, detail="until must be after since.")
+
+    report = await build_drill_report(
+        db,
+        since=since,
+        until=until,
+        competition=competition,
+        generated_by=str(admin.username),
+    )
+
+    # Evidence about the evidence: record generation in the ledger with
+    # the pack's fingerprint, before returning it.
+    from app.services.audit import EventType, append
+
+    await append(
+        db,
+        event_type=EventType.REPORT_DRILL_GENERATED,
+        actor_type="user",
+        actor_id=str(admin.id),
+        payload={
+            "fingerprint": report["attestation"]["fingerprint"],
+            "window_since": report["window"]["since"],
+            "window_until": report["window"]["until"],
+            "competition_id": competition_id,
+        },
+    )
+    await db.commit()
+
+    if format == "json":
+        return report
+
+    template_dir = Path(__file__).parent.parent / "templates"
+    env = Environment(
+        loader=FileSystemLoader(str(template_dir)),
+        autoescape=select_autoescape(["html"]),
+    )
+    try:
+        template = env.get_template("reports/drill_report.html")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Report template not found.")
+    html_content = template.render(report=report)
+
+    from weasyprint import HTML
+
+    pdf_bytes = HTML(string=html_content).write_pdf()
+    buffer = BytesIO(pdf_bytes)
+    buffer.seek(0)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=drill_evidence_{stamp}.pdf"
+        },
     )
