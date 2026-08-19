@@ -16,7 +16,7 @@ to be deployed for the first time, read this end-to-end.
 ### Bootstrap
 
 ```bash
-git clone https://github.com/uspdan/seige-range
+git clone https://github.com/uspdan/castra
 cd seige-range
 cp .env.example .env
 # Generate real secrets:
@@ -177,3 +177,40 @@ commands. Rotate quarterly even when nothing has leaked.
 | ADRs | `docs/adr/` |
 | Alert rules | `docs/alerts/` |
 | Sprint history | `WORK_PLAN.md` |
+
+## Drill reports: using exercises as tabletop evidence
+
+Control frameworks increasingly ask for proof that the team
+exercises: ISO 27001 reviews, SOC 2 audits, DORA and NIS2
+resilience-testing obligations, cyber-insurance questionnaires. A
+scoreboard screenshot does not survive an auditor. The drill report
+does, because it is built from the hash-chained audit ledger.
+
+```bash
+# JSON evidence pack (the artefact of record)
+GET /admin/reports/drill?since=2026-08-01T00:00:00Z&until=2026-08-31T23:59:59Z
+
+# Or scope to a competition (window defaults to its bounds)
+GET /admin/reports/drill?competition_id=3
+
+# Human-readable PDF of the same data
+GET /admin/reports/drill?competition_id=3&format=pdf
+```
+
+The pack contains participants, exercises with their ATT&CK
+techniques, outcome counts, and a full event timeline where every
+entry carries its ledger `seq` and hash. Three properties make it
+evidence rather than reporting:
+
+1. **Chain verification runs at generation time**, inside the same
+   transaction the timeline reads from, and the result is embedded.
+2. **The pack fingerprints itself**: sha256 over its canonical JSON.
+   An auditor recomputes it in one line.
+3. **Generation is ledgered**: a `report.drill.generated` event
+   carrying the fingerprint lands in the same chain, so the evidence
+   trail shows who produced evidence, and when.
+
+File the JSON with your control evidence; hand the PDF to the
+meeting. To re-verify later: recompute the fingerprint over the pack
+minus its `attestation` block, and run
+`python -m app.tools.audit_verify` against the platform.

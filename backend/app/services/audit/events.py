@@ -58,6 +58,8 @@ class EventType:
     INSTANCE_RESET: Final = "instance.reset"
     INSTANCE_EXPIRED: Final = "instance.expired"
 
+    REPORT_DRILL_GENERATED: Final = "report.drill.generated"
+
     WORKSTATION_LAUNCH: Final = "workstation.launch"
     WORKSTATION_STOP: Final = "workstation.stop"
     WORKSTATION_ATTACHED: Final = "workstation.attached"
@@ -90,6 +92,7 @@ _ALLOWED_EVENT_TYPES: Final = frozenset(
         EventType.INSTANCE_STOP,
         EventType.INSTANCE_RESET,
         EventType.INSTANCE_EXPIRED,
+        EventType.REPORT_DRILL_GENERATED,
         EventType.WORKSTATION_LAUNCH,
         EventType.WORKSTATION_STOP,
         EventType.WORKSTATION_ATTACHED,
