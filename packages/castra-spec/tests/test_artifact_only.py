@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from castra_spec import ChallengeManifest, ManifestValidationError, load_manifest_text
+from castra_spec import ChallengeManifest
 
 
 def _manifest(**overrides) -> dict:
