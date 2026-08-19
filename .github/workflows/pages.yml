@@ -1,0 +1,45 @@
+name: pages
+
+# Deploys the static landing page in site/ to GitHub Pages on push to
+# main. The site is self-contained (one HTML file, no build step), so
+# this just uploads the directory — nothing to compile, nothing to pin.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel an in-flight deploy; let it finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: configure pages
+        uses: actions/configure-pages@v5
+
+      - name: upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: deploy
+        id: deploy
+        uses: actions/deploy-pages@v4
