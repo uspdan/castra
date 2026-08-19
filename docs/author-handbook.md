@@ -56,6 +56,34 @@ launches the container per the manifest's `container.profile`
 (when one is declared), and grades flag submissions through the
 validator named by `flags[].type`.
 
+## Per-instance flags (spec v1.1)
+
+An exact flag can set `per_instance: true`. The platform then mints a
+fresh flag value for every launched instance, injects it into the
+container environment as `CASTRA_FLAG_<ID>` (uppercased, hyphens to
+underscores), and accepts **only that value** — the `value` in your
+manifest is used by `castra test` and never validates on the platform.
+
+```yaml
+flags:
+  - id: root_flag
+    type: exact
+    value: "CTF{authoring-placeholder}"   # castra test uses this
+    per_instance: true                     # platform mints its own
+    points: 200
+```
+
+Your challenge must surface the injected value to the player. Read
+`$CASTRA_FLAG_ROOT_FLAG` in the container's entrypoint and write it
+wherever the flag is meant to be found (a file, a service response,
+a database row).
+
+Two things this buys you: players can't share a flag, because each
+has a different one; and the challenge image carries no secret, so it
+can be built and published openly. Requires a container — an
+artifact-only challenge has nowhere to inject to, and the manifest is
+rejected if it tries.
+
 ## Artifact-only challenges (spec v1.1)
 
 `container:` is optional. A challenge that omits it is

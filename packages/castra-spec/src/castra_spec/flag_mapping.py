@@ -46,6 +46,9 @@ class FlagDispatchArgs:
     label: Optional[str]
     value_hash: Optional[str]
     config: Mapping[str, Any]
+    # Exact flags only (ADR 005 part 2): the platform mints the value
+    # per launched instance and ignores value_hash for validation.
+    per_instance: bool = False
 
 
 def flag_to_dispatch(flag) -> FlagDispatchArgs:
@@ -58,6 +61,7 @@ def flag_to_dispatch(flag) -> FlagDispatchArgs:
             points=flag.points,
             label=flag.label,
             value_hash=hashlib.sha256(flag.value.encode("utf-8")).hexdigest(),
+            per_instance=bool(getattr(flag, "per_instance", False)),
             config={"case_sensitive": flag.case_sensitive},
         )
     if isinstance(flag, RegexFlag):

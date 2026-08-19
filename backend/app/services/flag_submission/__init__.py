@@ -19,6 +19,8 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import User
+from sqlalchemy import select
+
 from app.services.flag_dispatch import dispatch_submission
 
 from ._multi_flag import _process_multi_flag_submission
@@ -82,7 +84,10 @@ async def process_submission(
     await _ensure_unsolved(user.id, challenge.id, db)
     await _ensure_prerequisites(user.id, challenge, db)
 
-    dispatch = await dispatch_submission(submitted_flag, challenge)
+    minted = await _instance_flag_hashes(user.id, challenge.id, db)
+    dispatch = await dispatch_submission(
+        submitted_flag, challenge, instance_flag_hashes=minted
+    )
     if dispatch.correct:
         return await _record_pass(
             user=user,
@@ -108,3 +113,33 @@ __all__ = [
     "SubmissionResult",
     "process_submission",
 ]
+
+
+async def _instance_flag_hashes(
+    user_id: int, challenge_id: int, db: AsyncSession
+) -> dict[str, str]:
+    """Minted per-instance flag hashes for the user's running instance.
+
+    Most-recent running instance wins (reset creates a new container
+    under the same row; relaunch creates a new row). Empty dict when
+    the user has no instance — per-instance flags then simply cannot
+    match, which is the intended fail-closed behaviour.
+    """
+
+    from app.models import ChallengeInstance, InstanceStatus
+
+    row = (
+        await db.execute(
+            select(ChallengeInstance)
+            .where(
+                ChallengeInstance.user_id == user_id,
+                ChallengeInstance.challenge_id == challenge_id,
+                ChallengeInstance.status == InstanceStatus.running,
+            )
+            .order_by(ChallengeInstance.started_at.desc())
+            .limit(1)
+        )
+    ).scalars().first()
+    if row is None or not row.flag_hashes:
+        return {}
+    return dict(row.flag_hashes)
