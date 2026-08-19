@@ -110,6 +110,23 @@ class ChallengeManifest(BaseModel):
         return self
 
     @model_validator(mode="after")
+    def _per_instance_needs_container(self) -> "ChallengeManifest":
+        # A per-instance flag is minted at launch and injected into the
+        # container's environment. Artifact-only challenges launch
+        # nothing, so there is nowhere to put it.
+        offenders = [
+            f.id
+            for f in self.flags
+            if getattr(f, "per_instance", False)
+        ]
+        if offenders and self.container is None:
+            raise ValueError(
+                "per_instance flags require a container "
+                f"(flags: {', '.join(offenders)})"
+            )
+        return self
+
+    @model_validator(mode="after")
     def _check_flag_ids(self) -> "ChallengeManifest":
         ids = [f.id for f in self.flags]
         if len(set(ids)) != len(ids):
