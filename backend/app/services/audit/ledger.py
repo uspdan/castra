@@ -21,6 +21,8 @@ with it.
 
 from __future__ import annotations
 
+import typing
+
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -179,3 +181,77 @@ async def append(
     except Exception as exc:  # pragma: no cover - surfaced to caller
         raise AuditError(f"failed to append audit ledger row: {exc}") from exc
     return row
+
+
+async def verify_chain(db: "AsyncSession") -> dict[str, Any]:
+    """Re-walk the hash chain inside the caller's session.
+
+    Session-in, not session-owned: callers that need the verification
+    to see their own transactional snapshot (the drill evidence report
+    verifies the very rows it is reporting on) pass their session;
+    the CLI/scheduler pass a fresh one. Extracted from
+    ``app.tools.audit_verify`` for exactly that reason.
+    """
+
+    from sqlalchemy import select
+
+    from app.models import AuditLedger
+
+    findings: list[dict[str, Any]] = []
+    rows_checked = 0
+    last_seq = 0
+    last_hash = GENESIS_HASH
+
+    result = await db.execute(select(AuditLedger).order_by(AuditLedger.seq.asc()))
+    for row in result.scalars():
+        rows_checked += 1
+        if row.seq != last_seq + 1:
+            findings.append({
+                "kind": "seq_gap",
+                "expected_seq": last_seq + 1,
+                "found_seq": int(row.seq),
+                "row_id": int(row.id),
+            })
+        if row.prev_hash != last_hash:
+            findings.append({
+                "kind": "prev_hash_mismatch",
+                "seq": int(row.seq),
+                "expected_prev_hash": last_hash,
+                "found_prev_hash": row.prev_hash,
+                "row_id": int(row.id),
+            })
+        # str()/None-preserving casts: the ORM attributes are plain
+        # strings at runtime, but the legacy Column[...] declarations
+        # type them as Column[str] and this module stays on the
+        # mypy-clean side of the ratchet.
+        recomputed = compute_hash(
+            seq=int(row.seq),
+            prev_hash=str(row.prev_hash),
+            event_type=str(row.event_type),
+            actor_type=str(row.actor_type),
+            actor_id=None if row.actor_id is None else str(row.actor_id),
+            resource_type=None if row.resource_type is None else str(row.resource_type),
+            resource_id=None if row.resource_id is None else str(row.resource_id),
+            ip_address=None if row.ip_address is None else str(row.ip_address),
+            request_id=None if row.request_id is None else str(row.request_id),
+            payload=typing.cast("dict[str, Any]", row.payload),
+            created_at=typing.cast("datetime", row.created_at),
+        )
+        if recomputed != row.this_hash:
+            findings.append({
+                "kind": "hash_mismatch",
+                "seq": int(row.seq),
+                "stored_hash": row.this_hash,
+                "recomputed_hash": recomputed,
+                "row_id": int(row.id),
+            })
+        last_seq = int(row.seq)
+        last_hash = str(row.this_hash)
+
+    return {
+        "ok": not findings,
+        "rows_checked": rows_checked,
+        "tail_seq": last_seq,
+        "tail_hash": last_hash,
+        "findings": findings,
+    }
