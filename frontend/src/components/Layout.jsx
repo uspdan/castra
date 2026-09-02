@@ -44,7 +44,7 @@ export default function Layout() {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: 'Outfit, sans-serif',
-              }}>SIEGE RANGE</span>
+              }}>CASTRA</span>
             </NavLink>
             <div className="hidden md:flex items-center gap-1">
               {navLinks.map((link) => (

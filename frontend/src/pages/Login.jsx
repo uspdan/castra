@@ -65,7 +65,7 @@ export default function Login() {
           <h1 className="text-2xl font-bold" style={{
             background: 'linear-gradient(135deg, var(--accent-cyan), var(--accent-red))',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          }}>{showingMfa ? 'TWO-FACTOR' : 'SIEGE RANGE'}</h1>
+          }}>{showingMfa ? 'TWO-FACTOR' : 'CASTRA'}</h1>
         </div>
 
         {showingMfa ? (
