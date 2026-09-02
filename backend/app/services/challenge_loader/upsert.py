@@ -155,6 +155,7 @@ def _flag_row(challenge_id: int, flag) -> ChallengeFlag:
         points=args.points,
         label=args.label,
         value_hash=args.value_hash,
+        per_instance=args.per_instance,
         config=dict(args.config),
     )
 

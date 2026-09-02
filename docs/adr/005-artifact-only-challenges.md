@@ -1,7 +1,7 @@
 # ADR 005 — Artifact-only challenges and per-instance flags
 
-- **Status**: Accepted (part 1 implemented; part 2 accepted-in-principle,
-  not yet implemented)
+- **Status**: Accepted (part 1 implemented; part 2 MVP implemented
+  2026-08-19 — exact flags only)
 - **Date**: 2026-08-17
 - **Context**: product direction review against generator-style CTF
   platforms (reference: 8gwifi.org/ctf)

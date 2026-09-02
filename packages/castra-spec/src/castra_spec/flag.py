@@ -64,6 +64,13 @@ class ExactFlag(_BaseFlag):
     type: Literal["exact"] = "exact"
     value: str = Field(min_length=1, max_length=4096)
     case_sensitive: bool = True
+    # ADR 005 part 2. When true, the platform mints a fresh value at
+    # instance launch, injects it into the container's environment as
+    # ``CASTRA_FLAG_<ID>``, and only that minted value validates —
+    # the manifest ``value`` is used by the local test harness only.
+    # Kills flag sharing between players and removes the last secret
+    # from challenge images.
+    per_instance: bool = False
 
 
 class RegexFlag(_BaseFlag):
