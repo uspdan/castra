@@ -457,6 +457,11 @@
           "default": null,
           "title": "Label"
         },
+        "per_instance": {
+          "default": false,
+          "title": "Per Instance",
+          "type": "boolean"
+        },
         "points": {
           "maximum": 100000,
           "minimum": 0,

@@ -55,7 +55,12 @@ async def _process_multi_flag_submission(
 
     await _ensure_prerequisites(user.id, challenge, db)
 
-    dispatch = await dispatch_submission(submitted_flag, challenge)
+    from app.services.flag_submission import _instance_flag_hashes
+
+    minted = await _instance_flag_hashes(user.id, challenge.id, db)
+    dispatch = await dispatch_submission(
+        submitted_flag, challenge, instance_flag_hashes=minted
+    )
     if not dispatch.correct:
         return await _record_fail(
             user=user,

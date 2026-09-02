@@ -32,7 +32,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Mapping, Optional
 
 from castra_spec import ValidationContext
 
@@ -61,6 +61,7 @@ async def dispatch_submission(
     challenge: Challenge,
     *,
     registry: Optional[ValidatorRegistry] = None,
+    instance_flag_hashes: Optional[Mapping[str, str]] = None,
 ) -> DispatchResult:
     """Run ``submission`` against the challenge's flag definitions.
 
@@ -73,7 +74,9 @@ async def dispatch_submission(
     candidate = submission.strip()
 
     if challenge.flag_definitions:
-        return await _dispatch_v1(candidate, challenge, reg)
+        return await _dispatch_v1(
+            candidate, challenge, reg, instance_flag_hashes or {}
+        )
     return await _dispatch_legacy(candidate, challenge, reg)
 
 
@@ -81,6 +84,7 @@ async def _dispatch_v1(
     submission: str,
     challenge: Challenge,
     registry: ValidatorRegistry,
+    instance_flag_hashes: Mapping[str, str],
 ) -> DispatchResult:
     for flag in challenge.flag_definitions:
         try:
@@ -93,7 +97,17 @@ async def _dispatch_v1(
             # submission on a partially-misconfigured deployment.
             continue
         config = dict(flag.config or {})
-        if flag.flag_type == "exact" and "value_hash" not in config:
+        if flag.flag_type == "exact" and getattr(flag, "per_instance", False):
+            # ADR 005 part 2: only the value minted for THIS user's
+            # instance validates. No instance (or a pre-migration
+            # instance without minted hashes) means this flag simply
+            # cannot match — the static manifest value must never be
+            # accepted, or per-instance would be theatre.
+            minted = instance_flag_hashes.get(str(flag.flag_id))
+            if not minted:
+                continue
+            config["value_hash"] = minted
+        elif flag.flag_type == "exact" and "value_hash" not in config:
             config["value_hash"] = flag.value_hash or ""
 
         result = await _run_with_optional_artifacts(

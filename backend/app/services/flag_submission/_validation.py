@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from sqlalchemy import and_, exists, select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Challenge, Solve
@@ -18,7 +19,13 @@ from ._types import AlreadySolved, ChallengeNotFound, PrerequisitesNotMet
 async def _load_challenge(slug: str, db: AsyncSession) -> Challenge:
     challenge = (
         await db.execute(
-            select(Challenge).where(
+            select(Challenge)
+            # Eager-load: dispatch reads challenge.flag_definitions,
+            # and a lazy relationship access under async SQLAlchemy
+            # depends on the row still being in the session's identity
+            # map. selectinload makes the read explicit and safe.
+            .options(selectinload(Challenge.flag_definitions))
+            .where(
                 Challenge.slug == slug,
                 Challenge.is_released.is_(True),
                 Challenge.is_active.is_(True),

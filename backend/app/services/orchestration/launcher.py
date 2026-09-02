@@ -318,6 +318,14 @@ async def launch_instance(
                 raise
             sidecar_container_id = launched.container_id
 
+        # ADR 005 part 2 — per-instance flags. Mint a fresh value for
+        # every exact flag marked per_instance, inject the cleartext
+        # into the container environment, and keep only the hash. The
+        # image itself never contains a flag, so images stop being
+        # secrets; and two players never share a value, so neither do
+        # they.
+        minted_env, minted_hashes = await _mint_instance_flags(db, challenge)
+
         image_ref = _image_ref(challenge, digest) if digest else challenge.docker_image
         run_kwargs = _build_run_kwargs(
             profile=profile,
@@ -329,6 +337,11 @@ async def launch_instance(
             expires_at=expires_at,
             digest=digest,
         )
+        if minted_env:
+            run_kwargs["environment"] = {
+                **run_kwargs.get("environment", {}),
+                **minted_env,
+            }
         enforce_no_forbidden(run_kwargs)
 
         # Create+connect+start rather than .run() so we can pin the
@@ -437,6 +450,7 @@ async def launch_instance(
             expires_at=expires_at,
             applied_profile=profile.name,
             applied_digest=digest,
+            flag_hashes=minted_hashes or None,
             seccomp_profile_sha256=profile_sha256(profile.seccomp_profile),
             sidecar_container_id=sidecar_container_id,
         )
@@ -475,3 +489,40 @@ __all__ = [
     "PostPullDigestMismatch",
     "launch_instance",
 ]
+
+
+async def _mint_instance_flags(
+    db: AsyncSession, challenge: Challenge
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Mint per-instance flag values for this launch.
+
+    Returns ``(env_vars, hashes)``: cleartext for the container
+    environment (``CASTRA_FLAG_<ID>``), sha256 hashes for the instance
+    row. Explicit query rather than the ``flag_definitions``
+    relationship — the challenge object arrives from the route without
+    eager loading, and touching a lazy relationship here would raise
+    under async SQLAlchemy.
+    """
+
+    from castra_spec.builtin.exact import hash_exact_value
+
+    from app.models import ChallengeFlag
+
+    rows = (
+        await db.execute(
+            select(ChallengeFlag).where(
+                ChallengeFlag.challenge_id == challenge.id,
+                ChallengeFlag.per_instance.is_(True),
+                ChallengeFlag.flag_type == "exact",
+            )
+        )
+    ).scalars().all()
+
+    env: dict[str, str] = {}
+    hashes: dict[str, str] = {}
+    for row in rows:
+        value = "CTF" + "{" + secrets.token_hex(12) + "}"
+        env_name = "CASTRA_FLAG_" + str(row.flag_id).upper().replace("-", "_")
+        env[env_name] = value
+        hashes[str(row.flag_id)] = hash_exact_value(value)
+    return env, hashes
