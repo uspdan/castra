@@ -15,6 +15,27 @@ Website: [castra.sh](https://castra.sh) *(launching soon)* · License:
 Apache-2.0 per version) · Status: **pre-launch, pilots welcome** —
 [hello@castra.sh](mailto:hello@castra.sh)
 
+## A look inside
+
+![Challenge catalogue — blue-team threat-hunting drills](docs/images/challenges.png)
+
+| | |
+|---|---|
+| ![Challenge detail with artifact download and flag submission](docs/images/challenge-detail.png) | ![Operator dashboard with ATT&CK coverage](docs/images/dashboard.png) |
+| ![In-range analyst workstation](docs/images/workstation.png) | ![Live rankings](docs/images/leaderboard.png) |
+
+## Create your own challenges & flags
+
+Castra is an authoring platform first — the catalogue is meant to be yours.
+The **[author handbook](docs/author-handbook.md)** is the complete guide:
+scaffold with `castra new`, describe the drill in one `manifest.yaml`
+(container or artifact-only), pick a flag type (`exact`, `regex`,
+`multi_part`, or a blue-team validator like `sigma_rule` / `yara_rule`),
+declare per-flag hints and test cases, then `castra validate` and
+`castra test` before shipping. Per-instance flags mint a fresh flag per
+launched container so players can't share answers. The normative format
+reference is the [challenge manifest spec](docs/challenge-spec-v1.md).
+
 ## Why Castra
 
 - **The blue team is first-class.** Nine validator plugins including

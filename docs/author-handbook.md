@@ -5,6 +5,8 @@ manifest schema in
 `packages/castra-spec/src/castra_spec/schemas/manifest.schema.json`
 and the worked examples in `examples/challenges/`.
 
+![The catalogue your challenges land in](images/challenges.png)
+
 ## The fast path: the Castra SDK
 
 You do not need this repository, Docker, or a running platform to

@@ -8,6 +8,11 @@ for one in-session sprint; per-commit detail lives in `git log`.
 ## [Unreleased]
 
 ### Added
+- Product screenshots in `docs/images/` (login, dashboard, catalogue,
+  challenge detail, rankings, workstation, admin, landing-page banner),
+  embedded in the README gallery and the player/operator/author handbooks.
+- README "Create your own challenges & flags" section routing to the
+  author handbook and manifest spec.
 - `LICENSE` — Castra is licensed under the Business Source License 1.1
   (each version converts to Apache-2.0 four years after release).
 - `SECURITY.md` (private vulnerability reporting policy),
@@ -15,6 +20,9 @@ for one in-session sprint; per-commit detail lives in `git log`.
 - Product-oriented README with an installation/manuals index.
 
 ### Changed
+- Dashboard UI brand strings renamed `SIEGE RANGE` → `CASTRA` (nav bar
+  and login card); workstation page prose no longer says "seige-range
+  network".
 - Reported version aligned to 2.5.0 everywhere (`/health`, admin system
   info, frontend package) — the health endpoint previously reported 2.4.1.
 - API title renamed `Siege Range API` → `Castra API`.

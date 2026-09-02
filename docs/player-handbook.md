@@ -3,6 +3,9 @@
 > How to play on a Castra range. Three connectivity modes, three
 > levels of self-sufficiency. Pick whichever fits your situation.
 
+![Challenge detail — artifacts, flag submission, hints](images/challenge-detail.png)
+
+
 ## 0. Where am I?
 
 | You are… | What works | Use |
@@ -39,6 +42,8 @@ The rest of this guide walks each mode.
 ---
 
 ## 2. Mode B — Analyst workstation (no VPN to corp toolkit)
+
+![Analyst workstation launch page](images/workstation.png)
 
 Use this when you can reach the range's public endpoint but
 **not** your normal corp jumpbox / DFIR VM.

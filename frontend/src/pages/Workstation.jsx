@@ -91,7 +91,7 @@ export default function Workstation() {
       </div>
 
       <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-        A container that sits inside the seige-range network with full reachability to every challenge host. Use it
+        A container that sits inside the range network with full reachability to every challenge host. Use it
         when you don't have VPN access to your normal forensics toolkit — connect via SSH or browser, run
         <code className="px-1.5 mx-1 rounded" style={{ background: 'var(--bg-elevated)', color: 'var(--accent-yellow)' }}>seige list</code>,
         then <code className="px-1.5 mx-1 rounded" style={{ background: 'var(--bg-elevated)', color: 'var(--accent-yellow)' }}>ssh dc01</code>
