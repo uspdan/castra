@@ -79,7 +79,7 @@ async def _create_admin_user():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
-    logger.info("Starting Siege Range API...")
+    logger.info("Starting Castra API...")
 
     await init_db()
     logger.info("Database initialized.")
@@ -136,7 +136,7 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    logger.info("Shutting down Siege Range API...")
+    logger.info("Shutting down Castra API...")
     pubsub_task.cancel()
     try:
         await pubsub_task
@@ -174,7 +174,7 @@ async def lifespan(app: FastAPI):
 _DOCS_ENABLED = _settings.APP_ENV == "development"
 
 app = FastAPI(
-    title="Siege Range API",
+    title="Castra API",
     version="2.5.0",
     lifespan=lifespan,
     docs_url="/docs" if _DOCS_ENABLED else None,

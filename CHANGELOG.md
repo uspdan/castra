@@ -3,12 +3,28 @@
 All notable changes to this project are documented here in
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 Each entry summarises the user- and operator-facing surface changes
-for one in-session sprint; per-commit detail lives in `git log`,
-per-sprint detail lives in `WORK_PLAN.md`.
+for one in-session sprint; per-commit detail lives in `git log`.
 
 ## [Unreleased]
 
-Nothing pending.
+### Added
+- `LICENSE` — Castra is licensed under the Business Source License 1.1
+  (each version converts to Apache-2.0 four years after release).
+- `SECURITY.md` (private vulnerability reporting policy),
+  `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and GitHub issue/PR templates.
+- Product-oriented README with an installation/manuals index.
+
+### Changed
+- Reported version aligned to 2.5.0 everywhere (`/health`, admin system
+  info, frontend package) — the health endpoint previously reported 2.4.1.
+- API title renamed `Siege Range API` → `Castra API`.
+- `castra-spec` package metadata: description, authors, and license field
+  updated (the previous `MIT` marker predated the license decision).
+
+### Removed
+- Internal working documents and committed audit-run reports from the
+  public tree (`WORK_PLAN.md`, `BACKLOG.md`, `LEARNINGS.md`, agent
+  scaffolding, `.claude/runs/`, internal e2e inventory and backlog).
 
 ## [2.5.0] — 2026-05-17
 
