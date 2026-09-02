@@ -1,10 +1,10 @@
-# Data Protection Impact Assessment — seige-range
+# Data Protection Impact Assessment — Castra
 
 _Last updated: 2026-05-23 (covers code at commit ≥ `8527a98`)._
 
 GDPR Art. 35 requires a DPIA where processing is "likely to result
 in a high risk to the rights and freedoms of natural persons". The
-seige-range platform's processing is **not** high-risk by the WP29
+Castra platform's processing is **not** high-risk by the WP29
 criteria (no automated decisions with legal effect, no large-scale
 special-category processing, no public-space monitoring). The
 remaining risks are routine identity + activity tracking; this

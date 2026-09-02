@@ -1,12 +1,16 @@
 # Castra
 
+[![CI](https://github.com/uspdan/castra/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/uspdan/castra/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/uspdan/castra)](https://github.com/uspdan/castra/releases)
+[![License: BUSL-1.1](https://img.shields.io/badge/license-BUSL--1.1-blue)](LICENSE)
+
 **A cyber range you run yourself.** Castra is a self-hosted platform for
 security-operations drills: red-team and blue-team challenges running in
 isolated, hardened Docker containers, with live scoreboards, a hash-chained
 audit ledger, and evidence packs that turn every exercise into
 audit-ready proof your team trains.
 
-Website: [castra.sh](https://castra.sh) · License:
+Website: [castra.sh](https://castra.sh) *(launching soon)* · License:
 [Business Source License 1.1](LICENSE) (source-available; converts to
 Apache-2.0 per version) · Status: **pre-launch, pilots welcome** —
 [hello@castra.sh](mailto:hello@castra.sh)
@@ -64,6 +68,8 @@ Dashboard: <http://localhost:3000> · default admin from `.env` · API at
 | [Production smoke checklist](docs/runbooks/prod-smoke.md) — post-deploy verification matrix | Operators |
 | [Runbooks](docs/runbooks/) — one file per known failure mode, incl. [air-gapped play](docs/runbooks/offline-workstation.md) | Operators |
 | [Analyst workstation](infra/workstation/README.md) — in-range forensics container, deploy + tuning | Operators |
+
+Full documentation index: [`docs/`](docs/README.md)
 
 ## Reference
 

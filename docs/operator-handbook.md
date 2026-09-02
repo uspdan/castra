@@ -1,6 +1,6 @@
 # Operator handbook
 
-A Day-1 / Day-2 guide for running siege-range in production. If
+A Day-1 / Day-2 guide for running Castra in production. If
 something breaks, jump to `docs/runbooks/`. If something needs
 to be deployed for the first time, read this end-to-end.
 
@@ -17,7 +17,7 @@ to be deployed for the first time, read this end-to-end.
 
 ```bash
 git clone https://github.com/uspdan/castra
-cd seige-range
+cd castra
 cp .env.example .env
 # Generate real secrets:
 python -c "import secrets; print(secrets.token_hex(32))"  # SECRET_KEY

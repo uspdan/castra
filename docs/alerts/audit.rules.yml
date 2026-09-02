@@ -57,8 +57,8 @@ groups:
             in the last hour. The chain is broken — DO NOT
             ignore. Pull the JSON report:
             ``docker compose exec api python -m app.tools.audit_verify --json``
-            and follow the (TODO) tamper runbook.
-          runbook_url: "../runbooks/db-restore.md"
+            and follow the audit-tamper runbook.
+          runbook_url: "../runbooks/audit-tamper.md"
 
 # ─────────────────────────────────────────────────────────────
 # Required scheduler-side metric stubs (operator one-liner)

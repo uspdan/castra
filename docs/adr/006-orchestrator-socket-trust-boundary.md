@@ -1,4 +1,4 @@
-# ADR 0001 — Orchestrator socket trust boundary
+# ADR 006 — Orchestrator socket trust boundary
 
 _Date: 2026-05-23. Audit finding: R26._
 
