@@ -1,6 +1,6 @@
 # Challenge Spec — v1
 
-> The on-disk format authors use to publish challenges to seige-range.
+> The on-disk format authors use to publish challenges to Castra.
 > Implemented by the `castra-spec` package under
 > `packages/castra-spec/`. Loaded by
 > `backend/app/services/challenge_loader/` and the

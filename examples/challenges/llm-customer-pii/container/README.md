@@ -1,7 +1,7 @@
 # LLM customer-support honeypot — reference container
 
 Sprint 11 Phase B. Implementation of ADR 0001's reference
-scenario (`docs/adr/0001-ai-honeypot-category.md`).
+scenario (`docs/adr/001-ai-honeypot-category.md`).
 
 ## What it does
 

@@ -5,8 +5,7 @@ maintenance. Each runbook is structured: **symptom**, **decision
 tree**, **copy-paste-executable steps**, **verification**,
 **after-action**, **estimated time**.
 
-CLAUDE.md §9.2 expects a runbook for every known failure mode.
-Sprint 1 ships the four most critical:
+CLAUDE.md §9.2 expects a runbook for every known failure mode:
 
 | File | When |
 |---|---|
@@ -16,7 +15,9 @@ Sprint 1 ships the four most critical:
 | [`scheduler-stuck.md`](scheduler-stuck.md) | TTL reaper / webhook retries / leaderboard cache aren't firing. |
 | [`egress-allowlist.md`](egress-allowlist.md) | Tinyproxy filter hot-reload pipeline; manual refresh; rollback to static mode. |
 | [`prod-smoke.md`](prod-smoke.md) | Post-deploy verification matrix for `make prod` against a real TLS host. |
-| [`llm-honeypot-operator.md`](llm-honeypot-operator.md) | Deploying + maintaining LLM honeypot challenges (ADR 0001 / `llm-sandbox` profile). |
+| [`llm-honeypot-operator.md`](llm-honeypot-operator.md) | Deploying + maintaining LLM honeypot challenges (ADR 001 / `llm-sandbox` profile). |
+| [`audit-tamper.md`](audit-tamper.md) | Audit-ledger tamper alert fired; chain verification failing. |
+| [`offline-workstation.md`](offline-workstation.md) | Building the offline bundle; air-gapped play. |
 
 Future additions (file an issue if you hit a failure mode not
 covered):
@@ -24,11 +25,10 @@ covered):
 - TLS certificate renewal / expiry
 - Webhook receiver storm (10× expected delivery rate)
 - VPN tunnel drop affecting a live competition
-- Audit ledger tamper detection (`audit_verify` exits 1)
 
 ## When writing a new runbook
 
-1. Start from one of the four shipped files. Steal structure, drop
+1. Start from one of the shipped files. Steal structure, drop
    in your steps.
 2. Every command must be copy-paste-executable. No "edit
    `<the right file>`" without the path.

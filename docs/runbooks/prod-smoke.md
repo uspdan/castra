@@ -83,8 +83,8 @@ ssh "$SIEGE_HOST" 'docker compose -f /opt/siege-range/docker-compose.prod.yml \
 # Expected exit code 0 — chain intact.
 ```
 
-If non-zero: STOP. Tamper detection runbook (TODO) or investigate
-out-of-band. Do NOT continue the smoke.
+If non-zero: STOP. Follow [`audit-tamper.md`](audit-tamper.md).
+Do NOT continue the smoke.
 
 ### 5. Egress allowlist render + tinyproxy reload
 
