@@ -1,0 +1,30 @@
+name: Feature request
+description: Propose an improvement to Castra
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do that Castra doesn't support today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How you imagine it working. Alternatives you considered are welcome.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Running drills / competitions
+        - Challenge authoring
+        - Validators / scoring
+        - Reporting / evidence packs
+        - Operations / deployment
+        - CLI / SDK
+        - Other
