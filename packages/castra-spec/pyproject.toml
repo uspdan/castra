@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "castra-spec"
 version = "1.0.0"
-description = "Challenge manifest schema for the seige-range / castra platform."
+description = "Challenge authoring SDK and manifest schema for the Castra platform."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
-authors = [{ name = "seige-range maintainers" }]
+license = { text = "BUSL-1.1" }
+authors = [{ name = "Castra maintainers" }]
 keywords = ["ctf", "challenge", "manifest", "blueteam"]
 
 dependencies = [

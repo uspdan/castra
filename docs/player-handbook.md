@@ -1,6 +1,6 @@
 # Player Handbook
 
-> How to play the seige-range. Three connectivity modes, three
+> How to play on a Castra range. Three connectivity modes, three
 > levels of self-sufficiency. Pick whichever fits your situation.
 
 ## 0. Where am I?
@@ -18,7 +18,7 @@ The rest of this guide walks each mode.
 
 ## 1. Mode A — Browser, on VPN, normal flow
 
-1. Open `https://<your-seige-range>/`.
+1. Open `https://<your-range-host>/`.
 2. Log in.
 3. Go to **Challenges**. Filter by team / status / category /
    difficulty / search. Sort by points / difficulty / solves /
@@ -28,7 +28,7 @@ The rest of this guide walks each mode.
    big **Launch Challenge** button.
 5. Click Launch. The orchestrator builds and runs a container.
    You get a host port (e.g. `10042`) and an SSH command.
-6. SSH in (`ssh -p 10042 hunter@<seige-range-host>`, password
+6. SSH in (`ssh -p 10042 hunter@<your-range-host>`, password
    `hunter`). Read `~/investigation.md`.
 7. Investigate. Submit answers either inside the container
    (`answer 1 "value"` / `answer reveal`) or from the right-side
@@ -40,7 +40,7 @@ The rest of this guide walks each mode.
 
 ## 2. Mode B — Analyst workstation (no VPN to corp toolkit)
 
-Use this when you can reach the seige-range public endpoint but
+Use this when you can reach the range's public endpoint but
 **not** your normal corp jumpbox / DFIR VM.
 
 ### Launch from the UI
@@ -49,7 +49,7 @@ Use this when you can reach the seige-range public endpoint but
    Deploy).
 2. Click **Launch Workstation**. The platform spins up a
    per-user container `seige-workstation-<your-id>` on the
-   seige-range network and mounts your personal
+   range network and mounts your personal
    `seige-workstation-home-<your-id>` volume at `/home/analyst`.
 3. The page reveals:
    * Your **SSH command** — `ssh -p <port> analyst@<host>`.

@@ -284,7 +284,7 @@ Before opening a PR (or submitting to your operator):
 ## Special-case guides
 
 - **LLM honeypot challenges** — see
-  `docs/adr/0001-ai-honeypot-category.md` and
+  `docs/adr/001-ai-honeypot-category.md` and
   `docs/runbooks/llm-honeypot-operator.md`. Reference
   implementation:
   `examples/challenges/llm-customer-pii/`.

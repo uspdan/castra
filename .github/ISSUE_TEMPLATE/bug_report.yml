@@ -1,0 +1,46 @@
+name: Bug report
+description: Something in Castra is broken
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Security issue?** Do not file it here — use
+        [private vulnerability reporting](https://github.com/uspdan/castra/security/advisories/new).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what happened instead.
+      placeholder: Steps to reproduce, expected vs. actual behaviour.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Release tag, image tag, or `git rev-parse --short HEAD`.
+      placeholder: v2.5.0
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - API / backend
+        - Frontend
+        - Orchestrator / challenge containers
+        - Validators
+        - CLI / SDK
+        - Deployment (compose, nginx, VPN)
+        - Docs
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Trimmed logs or error output. Redact secrets and tokens.
+      render: shell

@@ -1,7 +1,7 @@
 {
   "name": "siege-range-dashboard",
   "private": true,
-  "version": "2.4.1",
+  "version": "2.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -18,7 +18,7 @@
     "lucide-react": "0.344.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-router-dom": "6.30.3",
+    "react-router-dom": "6.30.6",
     "recharts": "2.15.4",
     "zustand": "4.5.7"
   },
