@@ -44,7 +44,7 @@ _cache: dict[str, Any] = {"expires_at": 0.0, "report": None}
 async def health() -> dict[str, str]:
     """Liveness — process is up. No dependency checks. Always 200."""
 
-    return {"status": "ok", "version": "2.4.1"}
+    return {"status": "ok", "version": "2.5.0"}
 
 
 async def _probe_postgres() -> None:

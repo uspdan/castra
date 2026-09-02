@@ -70,4 +70,4 @@ async def test_savepoint_rollback_isolates_tests_part_b(db_session):
 async def test_health_endpoint_via_client(client):
     response = await client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "version": "2.4.1"}
+    assert response.json() == {"status": "ok", "version": "2.5.0"}

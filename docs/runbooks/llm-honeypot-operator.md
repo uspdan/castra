@@ -151,7 +151,7 @@ If a deployed LLM honeypot challenge starts misfiring:
 
 ## See also
 
-- ``docs/adr/0001-ai-honeypot-category.md`` — the design decisions
+- ``docs/adr/001-ai-honeypot-category.md`` — the design decisions
   this runbook implements.
 - ``docs/runbooks/egress-allowlist.md`` — the hot-reload pipeline
   the per-challenge allowlist rides on.

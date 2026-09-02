@@ -1,8 +1,8 @@
-# Privacy Notice — seige-range
+# Privacy Notice — Castra
 
 _Last updated: 2026-05-23 (covers code at commit ≥ `8527a98`)._
 
-This document explains what personal data the seige-range platform
+This document explains what personal data the Castra platform
 collects, why, how long it's kept, and how it's protected. It is
 written for operators deploying the platform and for players whose
 data is processed by it.

@@ -1,4 +1,4 @@
-# ADR 0002 — ttyd shell trust boundary
+# ADR 007 — ttyd shell trust boundary
 
 _Date: 2026-05-23. Audit finding: R20._
 

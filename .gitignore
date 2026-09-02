@@ -58,6 +58,11 @@ nginx/certs/
 .env.*.local
 .coverage
 
+# Claude Code working state — never commit agent run artefacts.
+# (.claude/settings.json is deliberately tracked: it pins attribution off.)
+.claude/*
+!.claude/settings.json
+
 # Per-deploy secrets — flags, answers, and other operator-only blobs.
 # Loaded at build / seed time by the matching scripts under scripts/.
 secrets/
