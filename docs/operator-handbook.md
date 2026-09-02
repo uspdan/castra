@@ -4,6 +4,8 @@ A Day-1 / Day-2 guide for running Castra in production. If
 something breaks, jump to `docs/runbooks/`. If something needs
 to be deployed for the first time, read this end-to-end.
 
+![Admin console — challenge management](images/admin.png)
+
 ## Day 1 — first deploy
 
 ### Prereqs
