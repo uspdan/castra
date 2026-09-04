@@ -273,7 +273,7 @@ async def system_info(
         "containers": {
             "running": container_count,
         },
-        "version": "2.5.0",
+        "version": "2.6.0",
     }
 
 

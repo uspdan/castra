@@ -143,8 +143,8 @@ When in doubt, the runbooks index at
 
 1. `git fetch && git log --oneline HEAD..origin/main` — review
    what's incoming.
-2. Skim the most recent `## Sprint N` section in `WORK_PLAN.md`
-   for breaking-change notes.
+2. Read the latest release entry in `CHANGELOG.md` for operational and
+   breaking-change notes.
 3. `git pull`.
 4. `docker compose -f docker-compose.yml -f docker-compose.prod.yml \
     build api dashboard egress-proxy`.
@@ -178,7 +178,7 @@ commands. Rotate quarterly even when nothing has leaked.
 | Runbooks | `docs/runbooks/` |
 | ADRs | `docs/adr/` |
 | Alert rules | `docs/alerts/` |
-| Sprint history | `WORK_PLAN.md` |
+| Release history | `CHANGELOG.md` |
 
 ## Drill reports: using exercises as tabletop evidence
 
