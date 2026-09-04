@@ -1,40 +1,62 @@
 # Changelog
 
-All notable changes to this project are documented here in
+All notable user- and operator-facing changes are documented here in
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
-Each entry summarises the user- and operator-facing surface changes
-for one in-session sprint; per-commit detail lives in `git log`.
+Per-commit implementation detail lives in `git log`.
 
-## [Unreleased]
+## [2.6.0] - 2026-09-04
+
+This release reconciles all changes merged after the `v2.5.0` tag.
 
 ### Added
-- Product screenshots in `docs/images/` (login, dashboard, catalogue,
-  challenge detail, rankings, workstation, admin, landing-page banner),
-  embedded in the README gallery and the player/operator/author handbooks.
-- README "Create your own challenges & flags" section routing to the
-  author handbook and manifest spec.
-- `LICENSE` — Castra is licensed under the Business Source License 1.1
-  (each version converts to Apache-2.0 four years after release).
-- `SECURITY.md` (private vulnerability reporting policy),
-  `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and GitHub issue/PR templates.
-- Product-oriented README with an installation/manuals index.
+- Artifact-only challenges with authenticated, hash-verified downloads;
+  manifest specification v1.1 makes the challenge container optional.
+- The standalone `castra-spec` authoring SDK and `castra` CLI for
+  scaffolding, validating and testing challenges without the platform.
+- Per-instance exact flags, minted at launch and stored as hashes, so
+  players cannot share answers and challenge images need not contain them.
+- Audit-grade drill evidence packs in JSON and PDF with ledger sequence,
+  chain verification and report fingerprints.
+- Deployed Prometheus and Alertmanager services, tested alert rules,
+  persistent database backups and stale-backup detection.
+- The `castra.sh` landing page, product screenshots, role-based
+  documentation indexes and public contribution and security policies.
 
 ### Changed
-- Dashboard UI brand strings renamed `SIEGE RANGE` → `CASTRA` (nav bar
-  and login card); workstation page prose no longer says "seige-range
-  network".
-- Reported version aligned to 2.5.0 everywhere (`/health`, admin system
-  info, frontend package) — the health endpoint previously reported 2.4.1.
-- API title renamed `Siege Range API` → `Castra API`.
-- `castra-spec` package metadata: description, authors, and license field
-  updated (the previous `MIT` marker predated the license decision).
+- Renamed the authoring package and validator entry-point namespace from
+  `bluerange-spec` to `castra-spec` before third-party publication.
+- Updated visible product and API branding to Castra while preserving
+  deployment identifiers whose rename would break existing installations.
+- Licensed Castra under Business Source License 1.1, with each version
+  converting to Apache-2.0 four years after release.
+- Expanded the public author, player and operator documentation for
+  artifact-only exercises, per-instance flags and operational recovery.
 
-### Removed
-- Internal working documents and committed audit-run reports from the
-  public tree (`WORK_PLAN.md`, `BACKLOG.md`, `LEARNINGS.md`, agent
-  scaffolding, `.claude/runs/`, internal e2e inventory and backlog).
+### Fixed
+- Repaired a backup path that had never succeeded: the runtime now has a
+  matching `pg_dump`, backups persist across container replacement and
+  failures produce actionable monitoring signals.
+- Fixed challenge hints that did not render, production image pull and
+  digest validation failures, an unwired scoreboard cache setting and an
+  incorrect frontend API base path.
+- Made frontend lint, backend lint, strict type checking, SDK tests and
+  dependency audits execute as real CI gates rather than pass vacuously.
+- Fixed a production startup logging crash and a conditional React hook
+  that could fail when an instance appeared after initial render.
 
-## [2.5.0] — 2026-05-17
+### Security
+- Removed the rate-limit bypass header and replaced it with bounded,
+  environment-aware test budgets.
+- Denied validator subprocess network access with a fail-closed seccomp
+  filter, removing an exfiltration and server-side request forgery path.
+- Removed cleartext challenge flags and answers from public source and
+  added CI checks to prevent their reintroduction.
+- Updated affected Python and JavaScript dependencies to clear the known
+  high-severity advisories blocking the security gates.
+- Removed internal working documents, audit-run reports and agent
+  scaffolding from the public repository.
+
+## [2.5.0] - 2026-05-17
 
 47 live-shell challenges, in-range analyst workstation, offline
 player runner, 19 new pytests for the workstation surface, full
@@ -327,8 +349,8 @@ posture. Backend test suite: **637 passed @ 86.06% coverage**.
   delivery history + replay, attack-coverage roll-up.
 - Outbound webhook system (admin-managed via v1) with HMAC
   signing, exponential-backoff retry, retention prune.
-- 21 in-session slices total — see `WORK_PLAN.md` for the
-  per-slice breakdown.
+- 21 in-session slices total; per-slice implementation detail remains
+  available in the git history.
 
 ### Phases 0–11 — 2026-05-01 to 2026-05-02
 Hardening program: Pydantic schema wiring, hash-chained audit
@@ -339,11 +361,5 @@ plugin system, container profiles + orchestrator hardening,
 blue-team validators (sigma / yara / chain-of-custody /
 attack-chain / cloud-misconfig), challenge testing harness.
 
-Detailed phase notes in `WORK_PLAN.md`.
-
-## Versioning
-
-Not yet applied. When the first tagged release ships, future
-entries will move from `[Unreleased]` to `[X.Y.Z] - YYYY-MM-DD`
-sections per [SemVer 2.0.0](https://semver.org/) (CLAUDE.md
-§17).
+[2.6.0]: https://github.com/uspdan/castra/compare/v2.5.0...v2.6.0
+[2.5.0]: https://github.com/uspdan/castra/releases/tag/v2.5.0

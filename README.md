@@ -101,7 +101,7 @@ Full documentation index: [`docs/`](docs/README.md)
 | [`docs/adr/`](docs/adr/) | Architectural decision records. |
 | [`docs/alerts/`](docs/alerts/) | Drop-in Prometheus rules: 5xx rate, p99 SLO, audit tamper, liveness. |
 | [`docs/privacy.md`](docs/privacy.md) / [`docs/dpia.md`](docs/dpia.md) | Privacy notes and GDPR Art. 35 assessment for operators. |
-| [`CHANGELOG.md`](CHANGELOG.md) | Keep-a-Changelog format, current release 2.5.0. |
+| [`CHANGELOG.md`](CHANGELOG.md) | Keep-a-Changelog format, current release 2.6.0. |
 | [`docs/ci-templates/`](docs/ci-templates/) | Reference CI workflows for forks/derivatives. |
 
 ## The SDK and CLIs

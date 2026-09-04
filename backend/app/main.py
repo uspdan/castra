@@ -175,7 +175,7 @@ _DOCS_ENABLED = _settings.APP_ENV == "development"
 
 app = FastAPI(
     title="Castra API",
-    version="2.5.0",
+    version="2.6.0",
     lifespan=lifespan,
     docs_url="/docs" if _DOCS_ENABLED else None,
     redoc_url="/redoc" if _DOCS_ENABLED else None,
