@@ -1,6 +1,6 @@
 # Prometheus alert rules
 
-CLAUDE.md §14.4 requires every service to ship its own alert
+the engineering standards §14.4 requires every service to ship its own alert
 definitions in the repo, with each alert linked to a runbook.
 This directory holds the canonical Prometheus rule files for
 the seige-range API.
@@ -71,7 +71,7 @@ rebuild and never enters git history.
 3. Every rule MUST carry an `annotations.runbook_url` pointing
    at a file under `docs/runbooks/`. If the corresponding
    runbook doesn't exist, write it first — alerts without
-   runbooks are pager-noise per CLAUDE.md.
+   runbooks are pager-noise per the engineering standards.
 4. Set `severity: page` only for true wake-someone-up
    conditions; use `warn` for everything else and let the
    Alertmanager routing tree handle escalation.

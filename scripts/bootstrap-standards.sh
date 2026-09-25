@@ -59,15 +59,15 @@ for entry in "${IGNORE_ENTRIES[@]}"; do
   fi
 done
 
-# --- 3. CLAUDE.md (universal standards) ---
-if [[ -n "${STANDARDS_SOURCE}" && -f "${STANDARDS_SOURCE}/CLAUDE.md" ]]; then
-  cp "${STANDARDS_SOURCE}/CLAUDE.md" "${PROJECT_ROOT}/CLAUDE.md"
-  echo "[COPY] CLAUDE.md from ${STANDARDS_SOURCE}"
-elif create_if_missing "${PROJECT_ROOT}/CLAUDE.md" "Universal engineering standards"; then
-  echo "# CLAUDE.md — placeholder" > "${PROJECT_ROOT}/CLAUDE.md"
-  echo "" >> "${PROJECT_ROOT}/CLAUDE.md"
-  echo "> Pull the canonical version: run ./scripts/sync-standards.sh" >> "${PROJECT_ROOT}/CLAUDE.md"
-  echo "[WARN] CLAUDE.md created as placeholder — sync from standards repo to populate"
+# --- 3. the engineering standards (universal standards) ---
+if [[ -n "${STANDARDS_SOURCE}" && -f "${STANDARDS_SOURCE}/the engineering standards" ]]; then
+  cp "${STANDARDS_SOURCE}/the engineering standards" "${PROJECT_ROOT}/the engineering standards"
+  echo "[COPY] the engineering standards from ${STANDARDS_SOURCE}"
+elif create_if_missing "${PROJECT_ROOT}/the engineering standards" "Universal engineering standards"; then
+  echo "# the engineering standards — placeholder" > "${PROJECT_ROOT}/the engineering standards"
+  echo "" >> "${PROJECT_ROOT}/the engineering standards"
+  echo "> Pull the canonical version: run ./scripts/sync-standards.sh" >> "${PROJECT_ROOT}/the engineering standards"
+  echo "[WARN] the engineering standards created as placeholder — sync from standards repo to populate"
 fi
 
 # --- 4. LEARNINGS.md (cross-project learnings) ---
@@ -179,7 +179,7 @@ fi
 if create_if_missing "${PROJECT_ROOT}/scripts/sync-standards.sh" "Standards sync script"; then
   cat > "${PROJECT_ROOT}/scripts/sync-standards.sh" << 'SYNC_EOF'
 #!/usr/bin/env bash
-# Syncs CLAUDE.md and LEARNINGS.md from the central standards repo.
+# Syncs the engineering standards and LEARNINGS.md from the central standards repo.
 # Usage: ./scripts/sync-standards.sh [branch]
 #
 # Set STANDARDS_REPO_URL to the raw base URL of your standards repo.
@@ -224,7 +224,7 @@ sync_file() {
 }
 
 echo "=== Syncing Engineering Standards ==="
-sync_file "CLAUDE.md"
+sync_file "the engineering standards"
 sync_file "LEARNINGS.md"
 sync_file "CLAUDE.agent.md"
 echo "=== Done ==="
@@ -260,14 +260,14 @@ echo ""
 echo "=== Bootstrap Complete ==="
 echo ""
 echo "Files in project root (all auto-read by Claude Code):"
-echo "  CLAUDE.md          — Universal standards"
+echo "  the engineering standards          — Universal standards"
 echo "  CLAUDE.agent.md    — Agent enforcement prompt"
 echo "  CLAUDE.memory.md   — Project memory (append-only)"
 echo "  CLAUDE.local.md    — Project overrides (create when needed)"
 echo "  LEARNINGS.md       — Cross-project learnings"
 echo ""
 echo "Next steps:"
-echo "  1. Review CLAUDE.md and CLAUDE.agent.md"
+echo "  1. Review the engineering standards and CLAUDE.agent.md"
 echo "  2. Set STANDARDS_REPO_URL or STANDARDS_REDACTED_PATH in your env"
 echo "  3. Add './scripts/sync-standards.sh' to your CI install step"
 echo "  4. Start working — the agent captures learnings automatically"

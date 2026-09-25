@@ -41,7 +41,7 @@ Day-to-day targets:
    Security-sensitive changes (auth, crypto, validation, dependencies) get
    an extra-careful review pass — expect questions.
 
-Engineering standards live in [CLAUDE.md](CLAUDE.md) — module boundaries,
+Engineering standards live in [the engineering standards](the engineering standards) — module boundaries,
 error handling, migrations, observability. Match what's already there.
 
 ## Contributing challenges

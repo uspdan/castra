@@ -150,7 +150,7 @@ When in doubt, the runbooks index at
     build api dashboard egress-proxy`.
 5. The api container's entrypoint runs `alembic upgrade head`
    automatically before launching uvicorn. Migrations are
-   append-only per CLAUDE.md §13.
+   append-only per the engineering standards §13.
 6. `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d`.
 7. Run `docs/runbooks/prod-smoke.md`.
 

@@ -34,7 +34,7 @@ services:
       dockerfile: backend/Dockerfile
     environment:
       # Required: SECRET_KEY, ADMIN_PASSWORD, ALLOWED_ORIGINS — must come
-      # from a real .env file. No placeholder defaults here per CLAUDE.md
+      # from a real .env file. No placeholder defaults here per the engineering standards
       # §3.2 / §8.2; the api boots will fail fast otherwise.
       - APP_ENV=${APP_ENV:-development}
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-siege}:${POSTGRES_PASSWORD:-siege_secret}@db:5432/${POSTGRES_DB:-siege_range}
@@ -189,7 +189,7 @@ services:
     command: ["true"]
 
   # ── Observability ──────────────────────────────────────────────
-  # CLAUDE.md §14.2/§14.4 require metrics and committed alert rules.
+  # the engineering standards §14.2/§14.4 require metrics and committed alert rules.
   # Both existed; nothing consumed them. docs/alerts/*.yml sat in the
   # repo evaluated by no one, which is how a backup job that failed
   # every night for days went unnoticed. These two services are what

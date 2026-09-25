@@ -1,6 +1,6 @@
 """Prometheus instrumentation — Sprint 10 Phase A.
 
-Records the RED triad (CLAUDE.md §14.2) plus a few platform-
+Records the RED triad (the engineering standards §14.2) plus a few platform-
 specific gauges:
 
 - ``http_requests_total{method, route, status}`` — counter

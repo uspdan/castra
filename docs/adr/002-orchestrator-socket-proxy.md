@@ -27,7 +27,7 @@ risk. Specifically:
   the env override landed on `:2375` (plaintext). The plaintext won;
   the config file was misleading.
 
-CLAUDE.md §3 mandates least-privilege and validated boundaries; the
+the engineering standards §3 mandates least-privilege and validated boundaries; the
 orchestrator did not meet that bar.
 
 ## Decision

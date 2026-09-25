@@ -5,7 +5,7 @@
  * WebSocket message handler) are best-effort: if they fail the page
  * should carry on rather than break. That was previously expressed as
  * a bare `catch {}`, which also made the failure completely invisible —
- * no console entry, no signal, nothing to grep. CLAUDE.md §2.1 forbids
+ * no console entry, no signal, nothing to grep. the engineering standards §2.1 forbids
  * exactly that.
  *
  * This keeps the "carry on" behaviour while making the failure

@@ -5,7 +5,7 @@ maintenance. Each runbook is structured: **symptom**, **decision
 tree**, **copy-paste-executable steps**, **verification**,
 **after-action**, **estimated time**.
 
-CLAUDE.md §9.2 expects a runbook for every known failure mode:
+the engineering standards §9.2 expects a runbook for every known failure mode:
 
 | File | When |
 |---|---|

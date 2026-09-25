@@ -3,7 +3,7 @@
 Reuses the existing ``challenge_browse`` aggregations where the shape
 matches and adds v1-specific helpers (scoreboard ranking, ATT&CK
 coverage roll-up, viewer rank computation) that don't have a
-counterpart elsewhere yet. Per CLAUDE.md §1.4 these are pure read
+counterpart elsewhere yet. Per the engineering standards §1.4 these are pure read
 helpers — no commits, no audit emit, no Redis writes (the leaderboard
 endpoint already maintains its own cache; v1 re-derives at request
 time so the contract is deterministic).

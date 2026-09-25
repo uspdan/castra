@@ -4,7 +4,7 @@ Per-player analyst-workstation lifecycle endpoints. See
 ``app.services.workstation`` for the orchestration mechanics.
 
 State-changing events (launch / stop) are appended to the
-hash-chained audit ledger per CLAUDE.md §4. The launcher hook
+hash-chained audit ledger per the engineering standards §4. The launcher hook
 that attaches a running workstation to a per-instance challenge
 network emits ``workstation.attached`` from its call site.
 """
@@ -150,7 +150,7 @@ async def workstation_launch(
             await db.commit()
         except Exception:
             # Ledger error must NOT roll back a successful workstation
-            # launch — log and continue. (CLAUDE.md §4: prefer audit
+            # launch — log and continue. (the engineering standards §4: prefer audit
             # correctness over availability, but never *block* an
             # already-completed side-effect.)
             await db.rollback()
