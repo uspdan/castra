@@ -31,6 +31,8 @@ google-re2==1.1.20240702
 # the host venv exercises the real parser/compiler — these are
 # expensive validator paths and the test venv must catch regressions.
 pysigma==1.3.3
+# Same pyparsing pin as requirements.txt — see the note there.
+pyparsing==3.2.5
 yara-python==4.5.4
 
 # Static analysis (the engineering standards §6.1). Pinned exactly like everything else

@@ -22,7 +22,7 @@ redis==5.0.1
 hiredis==2.3.2
 websockets==12.0
 jinja2==3.1.6
-weasyprint==69.0
+weasyprint==70.0
 apscheduler==3.10.4
 structlog==24.1.0
 bleach==6.4.0
@@ -43,6 +43,11 @@ google-re2==1.1.20240702
 #   the gcc + libffi-dev already installed in the Dockerfile cover
 #   the source-build fallback for arches without a wheel.
 pysigma==1.3.3
+# pysigma leaves pyparsing unpinned. pyparsing 3.3.x changed the
+# ParserElement API pysigma 1.3.3 relies on, so `not` conditions raise
+# TypeError: 'str' object is not callable inside sigma/conditions.py.
+# Pin the last compatible release until pysigma is upgraded.
+pyparsing==3.2.5
 yara-python==4.5.4
 # In-repo castra-spec path-dep is installed via a separate
 # `pip install /packages/castra-spec` step in the Dockerfile
