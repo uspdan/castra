@@ -61,7 +61,9 @@ nginx/certs/
 # Claude Code working state — never commit agent run artefacts.
 # Agent scaffolding is local-only, never published.
 .claude/
-the engineering standards
+CLAUDE.md
+CLAUDE.agent.md
+LEARNINGS.md
 
 # Per-deploy secrets — flags, answers, and other operator-only blobs.
 # Loaded at build / seed time by the matching scripts under scripts/.
