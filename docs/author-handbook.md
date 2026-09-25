@@ -264,7 +264,7 @@ docker inspect --format='{{index .RepoDigests 0}}' siege/example-banner:latest
 
 Take the `sha256:abcdef...` portion and paste into
 `container.digest` in the manifest. The launcher refuses
-launches without a digest (CLAUDE.md §3 / Phase 9 hardening) so
+launches without a digest (the engineering standards §3 / Phase 9 hardening) so
 players don't get a different image than the author shipped.
 
 ## Authoring checklist

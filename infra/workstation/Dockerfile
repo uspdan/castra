@@ -9,7 +9,7 @@
 #
 # Image: siege/workstation:latest
 #
-# CLAUDE.md §12.1 notes:
+# the engineering standards §12.1 notes:
 # * **Digest-pinned base** (below).
 # * **Single-stage** — intentional. There are no compile steps;
 #   every binary lands via apt + the ttyd download. Multi-stage

@@ -42,7 +42,7 @@ include = ["app*"]
 exclude = ["tests*", "migrations*"]
 
 # ---------------------------------------------------------------------------
-# Ruff. CLAUDE.md §6.1 mandates a zero-warning linter; until now the
+# Ruff. the engineering standards §6.1 mandates a zero-warning linter; until now the
 # `make lint` target invoked a ruff that was installed nowhere and CI ran
 # no Python linter at all, so this is the first configuration that has
 # ever actually been enforced.
@@ -74,7 +74,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# Package entrypoints re-export their module's public API (CLAUDE.md
+# Package entrypoints re-export their module's public API (the engineering standards
 # §1.1). Those imports are "unused" only in the sense that nothing in
 # the file itself consumes them.
 "__init__.py" = ["F401"]
@@ -98,7 +98,7 @@ ignore = [
 "tests/conftest.py" = ["F821", "E402"]
 
 # ---------------------------------------------------------------------------
-# mypy. CLAUDE.md §6.1 asks for strict type checking; nothing has ever run
+# mypy. the engineering standards §6.1 asks for strict type checking; nothing has ever run
 # a type checker against this codebase, and a cold `mypy app/` reports 318
 # errors across 39 modules — the bulk of them SQLAlchemy `Column[int]` vs
 # `int` friction that needs `Mapped[...]` annotations on the models.

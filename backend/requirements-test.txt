@@ -33,7 +33,7 @@ google-re2==1.1.20240702
 pysigma==1.3.3
 yara-python==4.5.4
 
-# Static analysis (CLAUDE.md §6.1). Pinned exactly like everything else
+# Static analysis (the engineering standards §6.1). Pinned exactly like everything else
 # here — a linter that changes rules under you turns a green build red
 # for reasons unrelated to the change under review.
 # ``make lint`` previously called a ruff that was installed nowhere.

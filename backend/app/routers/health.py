@@ -1,6 +1,6 @@
 """Liveness (`/health`) and readiness (`/readyz`) endpoints.
 
-Per CLAUDE.md §14.1:
+Per the engineering standards §14.1:
     - /health is liveness only — process is up. Cheap. Used by Docker /
       orchestrator restart loops. Never 503.
     - /readyz checks every external dependency. 200 only if everything

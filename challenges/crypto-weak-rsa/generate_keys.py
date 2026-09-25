@@ -35,7 +35,7 @@ def extended_gcd(a, b):
 d = modinv(e, phi)
 
 # Encrypt the flag (read from sealed sidecar staged into the image
-# by scripts/stage-answers.sh — see CLAUDE.md §3.3).
+# by scripts/stage-answers.sh — see the engineering standards §3.3).
 with open("/opt/flag.txt") as _f:
     flag = _f.read().strip()
 flag_int = int.from_bytes(flag.encode(), "big")

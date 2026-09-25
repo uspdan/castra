@@ -9,7 +9,7 @@
 #       - /etc/prometheus/rules/*.yml
 #
 # Every rule carries a ``runbook_url`` annotation pointing at a
-# concrete recovery procedure under ``docs/runbooks/``. CLAUDE.md
+# concrete recovery procedure under ``docs/runbooks/``. the engineering standards
 # §14.4 mandates this — alerts without a runbook turn into
 # pager-noise.
 
@@ -43,7 +43,7 @@ groups:
           runbook_url: "../runbooks/rollback.md"
 
       # ─────────────────────────────────────────────────────────
-      # Latency SLO (CLAUDE.md §16.1: synchronous API p99 ≤ 1s)
+      # Latency SLO (the engineering standards §16.1: synchronous API p99 ≤ 1s)
       # ─────────────────────────────────────────────────────────
       - alert: SiegeApiSlowP99
         expr: |
@@ -60,7 +60,7 @@ groups:
           summary: "p99 latency > 1s on {{ $labels.route }} for 10 min"
           description: |
             Route {{ $labels.route }} p99 latency exceeded the
-            CLAUDE.md §16.1 1-second SLO over the last 10
+            the engineering standards §16.1 1-second SLO over the last 10
             minutes. Inspect slow queries (Postgres
             ``pg_stat_statements``) and Redis latency.
           runbook_url: "../runbooks/scheduler-stuck.md"

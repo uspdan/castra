@@ -12,7 +12,7 @@ Keeping it inside ``castra-spec`` (one-way dep into the platform)
 means a plugin package never imports ``app.*`` and stays installable
 without the platform present.
 
-Design constraints (CLAUDE.md §1.4, §3, §15):
+Design constraints (the engineering standards §1.4, §3, §15):
 - Validators are pure: no DB session, no audit service, no I/O beyond
   the read-only ``artifact_dir`` provided in the context.
 - Validators must respect ``default_timeout_s``. The platform also

@@ -100,7 +100,7 @@ from the manifest by competitors who can read shipped artifacts.
   base64-encoded ciphertext blob. Encrypted with libsodium
   `crypto_secretbox` using a key derived from
   `CASTRA_SECRET_BUNDLE_KEY` (env var, fail-fast if unset
-  in production per CLAUDE.md §3.2). The plaintext is the JSON
+  in production per the engineering standards §3.2). The plaintext is the JSON
   config the validator needs (regex patterns, classifier ids,
   thresholds).
 - The challenge loader (`backend/app/services/challenge_loader/`)

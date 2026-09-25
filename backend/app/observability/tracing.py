@@ -1,6 +1,6 @@
 """OpenTelemetry tracing setup.
 
-Sprint 11 Phase C. Implements CLAUDE.md §14.3 — distributed
+Sprint 11 Phase C. Implements the engineering standards §14.3 — distributed
 tracing across inbound HTTP, SQLAlchemy queries, and outbound
 ``httpx`` calls.
 

@@ -189,7 +189,7 @@ async def delete_my_account_v1(
     """Anonymise the account + revoke pending sessions.
 
     The user row is anonymised in place (NOT hard-deleted) because:
-    - The audit ledger is immutable per CLAUDE.md §4.2.
+    - The audit ledger is immutable per the engineering standards §4.2.
     - ``challenge_instances`` and ``solves`` carry FKs to user_id
       we don't want to cascade-delete (those rows are platform-
       aggregate data, not user-identifying once detached).

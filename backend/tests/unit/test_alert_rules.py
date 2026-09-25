@@ -4,7 +4,7 @@
 behaviour. It cannot check the conventions this repo layers on top:
 
   * every rule carries a ``runbook_url`` that resolves to a real file —
-    CLAUDE.md §14.4, and docs/alerts/README.md makes it mandatory,
+    the engineering standards §14.4, and docs/alerts/README.md makes it mandatory,
     because an alert without a recovery procedure is pager noise;
   * ``severity`` is drawn from the two values the Alertmanager routing
     tree actually matches. A rule labelled anything else lands on the
@@ -58,7 +58,7 @@ class TestEveryRule:
         annotations = rule.get("annotations") or {}
         assert "runbook_url" in annotations, (
             f"{rule['alert']} in {path.name} has no runbook_url — "
-            "CLAUDE.md §14.4 requires every alert to link a recovery "
+            "the engineering standards §14.4 requires every alert to link a recovery "
             "procedure"
         )
 

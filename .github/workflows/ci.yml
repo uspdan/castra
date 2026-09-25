@@ -155,7 +155,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r requirements-test.txt
 
-      # CLAUDE.md §6.1 mandates a zero-warning linter and strict type
+      # the engineering standards §6.1 mandates a zero-warning linter and strict type
       # checking. Neither has ever run in CI: ``make lint`` invoked a
       # ruff that was installed nowhere, and no type checker existed.
       - name: ruff
@@ -263,7 +263,7 @@ jobs:
       # osv-scanner reads package-lock.json directly and queries OSV —
       # the same vulnerability service the pip-audit job already uses,
       # so both ecosystems now gate on one data source. Pinned by
-      # version *and* checksum per CLAUDE.md §11.1.
+      # version *and* checksum per the engineering standards §11.1.
       - name: fetch osv-scanner
         run: |
           set -euo pipefail

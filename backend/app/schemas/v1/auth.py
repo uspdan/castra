@@ -5,7 +5,7 @@ columns of whatever the SQLAlchemy ``User`` row happens to expose).
 The v1 surface freezes the shape: every response is a pydantic model
 with ``ConfigDict(extra="forbid")`` so an unintended column cannot
 leak. Every request is schema-validated at the boundary
-(CLAUDE.md §3.1). Phase 12 (post-slice 21) — front-door
+(the engineering standards §3.1). Phase 12 (post-slice 21) — front-door
 auth migration.
 """
 

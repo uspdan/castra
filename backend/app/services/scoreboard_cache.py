@@ -53,7 +53,7 @@ async def get_cached_scoreboard(
     On cache miss: computes, writes to Redis with ``ttl_seconds``.
     On cache hit: returns the parsed list. On any Redis error:
     logs a warning and falls through to the live computation
-    (graceful degradation per CLAUDE.md §15.4).
+    (graceful degradation per the engineering standards §15.4).
 
     ``redis_client`` is for tests that want to inject a stub /
     fake. Production callers leave it None.

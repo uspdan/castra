@@ -17,7 +17,7 @@ Design:
   human review is the gate. Auto-disqualification belongs in a
   separate decision layer.
 
-Tunables (defaults documented in CLAUDE.md §16.3 spirit — bounded
+Tunables (defaults documented in the engineering standards §16.3 spirit — bounded
 queries, no unbounded scans):
 
 * ``BURST_WINDOW_MINUTES = 15``

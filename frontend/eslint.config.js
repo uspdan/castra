@@ -12,7 +12,7 @@ import globals from 'globals'
  * configuration that actually runs.
  *
  * The `lint` script runs with `--max-warnings=12`, the count at the
- * time this landed. CLAUDE.md §6.1 wants zero warnings; 11 of the 12
+ * time this landed. the engineering standards §6.1 wants zero warnings; 11 of the 12
  * are `exhaustive-deps`, where each fix is a judgement call about
  * whether a stale closure is intended. Freezing the count is the
  * ratchet: existing debt is tolerated, new debt fails the build. Lower
